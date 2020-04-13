@@ -41,6 +41,7 @@ typedef enum {
     NODE_TYPE_CALL_ARGS,
 
     NODE_TYPE_TEST,
+    NODE_TYPE_CMD_LINE,
     NODE_TYPE_OR_TEST,
     NODE_TYPE_AND_TEST,
     NODE_TYPE_NOT_TEST,
@@ -254,8 +255,12 @@ typedef struct {
 } node_call_args_t;
 
 typedef struct {
-    node_t *or_test;
+    node_t *cmd_line;
 } node_test_t;
+
+typedef struct {
+    node_array_t *nodearr;
+} node_cmd_line_t;
 
 typedef struct {
     node_array_t *nodearr;

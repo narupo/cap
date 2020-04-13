@@ -144,7 +144,14 @@ ast_del_nodes(const ast_t *self, node_t *node) {
     } break;
     case NODE_TYPE_TEST: {
         node_test_t *test = node->real;
-        ast_del_nodes(self, test->or_test);
+        ast_del_nodes(self, test->cmd_line);
+    } break;
+    case NODE_TYPE_CMD_LINE: {
+        node_cmd_line_t *cmd_line = node->real;
+        for (int32_t i = 0; i < nodearr_len(cmd_line->nodearr); ++i) {
+            ast_del_nodes(self, nodearr_get(cmd_line->nodearr, i));
+        }
+        nodearr_del_without_nodes(cmd_line->nodearr);
     } break;
     case NODE_TYPE_OR_TEST: {
         node_or_test_t *or_test = node->real;

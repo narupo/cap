@@ -4,7 +4,7 @@ BNF of Cap's template language
 
             blocks: ( code_block | ref_block | text_block ) blocks
         code_block: '{@' elems '@}'
-         ref_block: '{#' formula '#}'
+         ref_block: '{:' formula ':}'
         text_block: .*
              elems: ( def | stmt | formula ) elems
 
@@ -48,6 +48,10 @@ BNF of Cap's template language
      simple_assign: test [ '=' test ]*
             
          test_list: test [ ',' test ]*
+
+            - test: cmd_line
+        - cmd_line: or_test [ or_test ]*
+        
               test: or_test
            or_test: and_test [ 'or' and_test ]*
           and_test: not_test [ 'and' not_test ]*

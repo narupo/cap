@@ -3064,6 +3064,7 @@ test_cc_ref_block(void) {
     node_nil_t *nil;
     node_identifier_t *identifier;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
 
     tkr_parse(tkr, "{: nil :}");
     {
@@ -3080,7 +3081,8 @@ test_cc_ref_block(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3112,7 +3114,8 @@ test_cc_ref_block(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3154,7 +3157,8 @@ test_cc_ref_block(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3187,7 +3191,8 @@ test_cc_ref_block(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3303,6 +3308,7 @@ test_cc_formula(void) {
     node_digit_t *digit;
     node_string_t *string;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
 
     tkr_parse(tkr, "{@ a = 1 @}");
     {
@@ -3320,7 +3326,8 @@ test_cc_formula(void) {
         assign_list = formula->assign_list->real;
         assign = nodearr_get(assign_list->nodearr, 0)->real;
         test = nodearr_get(assign->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3336,7 +3343,8 @@ test_cc_formula(void) {
         identifier = atom->identifier->real;
         assert(identifier != NULL);
         test = nodearr_get(assign->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3368,7 +3376,8 @@ test_cc_formula(void) {
         assign_list = formula->assign_list->real;
         assign = nodearr_get(assign_list->nodearr, 0)->real;
         test = nodearr_get(assign->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3385,7 +3394,8 @@ test_cc_formula(void) {
         assert(identifier != NULL);
         assert(!strcmp(identifier->identifier, "a"));
         test = nodearr_get(assign->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3417,7 +3427,8 @@ test_cc_formula(void) {
         assign = nodearr_get(assign_list->nodearr, 0)->real;
         assert(nodearr_len(assign->nodearr) == 3);
         test = nodearr_get(assign->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3434,7 +3445,8 @@ test_cc_formula(void) {
         assert(identifier != NULL);
         assert(!strcmp(identifier->identifier, "a"));
         test = nodearr_get(assign->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         assert(or_test);
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         assert(and_test);
@@ -3455,7 +3467,8 @@ test_cc_formula(void) {
         assert(identifier != NULL);
         assert(!strcmp(identifier->identifier, "b"));
         test = nodearr_get(assign->nodearr, 2)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3486,7 +3499,8 @@ test_cc_formula(void) {
         assign_list = formula->assign_list->real;
         assign = nodearr_get(assign_list->nodearr, 0)->real;
         test = nodearr_get(assign->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3503,7 +3517,8 @@ test_cc_formula(void) {
         assert(identifier != NULL);
         assert(!strcmp(identifier->identifier, "a"));
         test = nodearr_get(assign->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3521,7 +3536,8 @@ test_cc_formula(void) {
         assert(digit->lvalue == 1);
         assign = nodearr_get(assign_list->nodearr, 1)->real;
         test = nodearr_get(assign->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3538,7 +3554,8 @@ test_cc_formula(void) {
         assert(identifier);
         assert(!strcmp(identifier->identifier, "b"));    
         test = nodearr_get(assign->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3593,6 +3610,7 @@ test_cc_dict(void) {
     node_simple_assign_t *simple_assign;
     node_asscalc_t *asscalc;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
 
     tkr_parse(tkr, "{@ { \"key\" : \"value\" } @}");
     {
@@ -3610,7 +3628,8 @@ test_cc_dict(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3652,7 +3671,8 @@ test_cc_dict(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3694,7 +3714,8 @@ test_cc_dict(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3808,6 +3829,7 @@ test_cc_expr(void) {
     node_add_sub_op_t *add_sub_op;
     node_mul_div_op_t *mul_div_op;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
 
     tkr_parse(tkr, "{@ 1 @}");
     {
@@ -3824,7 +3846,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3855,7 +3878,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3900,7 +3924,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -3959,7 +3984,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4004,7 +4030,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4063,7 +4090,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4106,7 +4134,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4157,7 +4186,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4200,7 +4230,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4251,7 +4282,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4293,7 +4325,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4342,7 +4375,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4369,7 +4403,8 @@ test_cc_expr(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4439,6 +4474,7 @@ test_cc_index(void) {
     node_atom_t *atom;
     node_identifier_t *identifier;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
 
     tkr_parse(tkr, "{@ a[0] @}");
     {
@@ -4455,7 +4491,8 @@ test_cc_index(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4488,7 +4525,8 @@ test_cc_index(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4541,6 +4579,7 @@ test_cc_dot(void) {
     node_atom_t *atom;
     node_identifier_t *identifier;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
     node_t *node;
 
     tkr_parse(tkr, "{@ a.b @}");
@@ -4558,7 +4597,8 @@ test_cc_dot(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4611,7 +4651,8 @@ test_cc_dot(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4648,7 +4689,8 @@ test_cc_dot(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4697,6 +4739,7 @@ test_cc_call(void) {
     node_negative_t *negative;
     node_dot_t *dot;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
     node_index_t *index;
     node_asscalc_t *asscalc;
     node_factor_t *factor;
@@ -4720,7 +4763,8 @@ test_cc_call(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4752,7 +4796,8 @@ test_cc_call(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4771,7 +4816,8 @@ test_cc_call(void) {
 
         call_args = nodearr_get(call->call_args_list, 0)->real;
         test = nodearr_get(call_args->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4803,7 +4849,8 @@ test_cc_call(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4823,7 +4870,8 @@ test_cc_call(void) {
         call_args = nodearr_get(call->call_args_list, 0)->real;
         test = nodearr_get(call_args->nodearr, 0)->real;
 
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4841,7 +4889,8 @@ test_cc_call(void) {
 
         test = nodearr_get(call_args->nodearr, 1)->real;
 
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4873,7 +4922,8 @@ test_cc_call(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4921,7 +4971,8 @@ test_cc_call(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -4960,7 +5011,8 @@ test_cc_call(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5012,6 +5064,7 @@ test_cc_array(void) {
     node_index_t *index;
     node_dot_t *dot;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
     node_asscalc_t *asscalc;
     node_factor_t *factor;
     node_atom_t *atom;
@@ -5032,7 +5085,8 @@ test_cc_array(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5065,7 +5119,8 @@ test_cc_array(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5099,7 +5154,8 @@ test_cc_array(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5133,7 +5189,8 @@ test_cc_array(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5168,7 +5225,8 @@ test_cc_array(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5207,7 +5265,8 @@ test_cc_array(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5232,6 +5291,115 @@ test_cc_array(void) {
         test = nodearr_get(simple_assign->nodearr, 0)->real;
     }
 
+
+    tkr_del(tkr);
+    ast_del(ast);
+    config_del(config);
+}
+
+static void
+test_cc_assign(void) {
+    config_t *config = config_new();
+    tokenizer_option_t *opt = tkropt_new();
+    tokenizer_t *tkr = tkr_new(mem_move(opt));
+    ast_t *ast = ast_new(config);
+    const node_t *root;
+    node_program_t *program;
+    node_blocks_t *blocks;
+    node_code_block_t *code_block;
+    node_elems_t *elems;
+    node_identifier_t *identifier;
+    node_formula_t *formula;
+    node_assign_list_t *assign_list;
+    node_assign_t *assign;
+    node_test_list_t *test_list;
+    node_test_t *test;
+    node_or_test_t *or_test;
+    node_and_test_t *and_test;
+    node_not_test_t *not_test;
+    node_comparison_t *comparison;
+    node_expr_t *expr;
+    node_term_t *term;
+    node_negative_t *negative;
+    node_index_t *index;
+    node_dot_t *dot;
+    node_call_t *call;
+    node_cmd_line_t *cmd_line;
+    node_asscalc_t *asscalc;
+    node_factor_t *factor;
+    node_atom_t *atom;
+    node_digit_t *digit;
+    node_string_t *string;
+    node_augassign_t *augassign;
+    node_t *node;
+
+    tkr_parse(tkr, "{@ a = 0 \n b = 1 @}");
+    {
+        ast_clear(ast);
+        (cc_compile(ast, tkr_get_tokens(tkr)));
+
+        root = ast_getc_root(ast);
+        program = root->real;
+        blocks = program->blocks->real;
+        code_block = blocks->code_block->real;
+        elems = code_block->elems->real;
+
+        // a = 0
+        formula = elems->formula->real;
+        assign_list = formula->assign_list->real;
+        assign = nodearr_get(assign_list->nodearr, 0)->real;
+
+        test = nodearr_get(assign->nodearr, 0)->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
+        and_test = nodearr_get(or_test->nodearr, 0)->real;
+        not_test = nodearr_get(and_test->nodearr, 0)->real;
+        comparison = not_test->comparison->real;
+        asscalc = nodearr_get(comparison->nodearr, 0)->real;
+        expr = nodearr_get(asscalc->nodearr, 0)->real;
+        term = nodearr_get(expr->nodearr, 0)->real;
+        negative = nodearr_get(term->nodearr, 0)->real;
+        dot = negative->dot->real;
+        call = nodearr_get(dot->nodearr, 0)->real;
+        index = call->index->real;
+        factor = index->factor->real;
+        atom = factor->atom->real;
+        identifier = atom->identifier->real;
+        assert(identifier != NULL);
+        assert(!strcmp(identifier->identifier, "a"));
+
+        test = nodearr_get(assign->nodearr, 1)->real;
+        assert(test);
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
+        and_test = nodearr_get(or_test->nodearr, 0)->real;
+        not_test = nodearr_get(and_test->nodearr, 0)->real;
+        comparison = not_test->comparison->real;
+        asscalc = nodearr_get(comparison->nodearr, 0)->real;
+        expr = nodearr_get(asscalc->nodearr, 0)->real;
+        term = nodearr_get(expr->nodearr, 0)->real;
+        negative = nodearr_get(term->nodearr, 0)->real;
+        dot = negative->dot->real;
+        call = nodearr_get(dot->nodearr, 0)->real;
+        index = call->index->real;
+        factor = index->factor->real;
+        atom = factor->atom->real;
+        assert(atom);
+        digit = atom->digit->real;
+        assert(digit);
+        assert(digit->lvalue == 0);
+
+        // b = 1
+        assert(elems->elems);
+        elems = elems->elems->real;
+        assert(elems);
+        formula = elems->formula->real;
+        assert(formula);
+        assign_list = formula->assign_list->real;
+        assert(assign_list);
+        assign = nodearr_get(assign_list->nodearr, 0)->real;
+        assert(assign);
+    }
 
     tkr_del(tkr);
     ast_del(ast);
@@ -5264,6 +5432,7 @@ test_cc_asscalc(void) {
     node_index_t *index;
     node_dot_t *dot;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
     node_asscalc_t *asscalc;
     node_factor_t *factor;
     node_atom_t *atom;
@@ -5285,7 +5454,8 @@ test_cc_asscalc(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5329,7 +5499,8 @@ test_cc_asscalc(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5373,7 +5544,8 @@ test_cc_asscalc(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5417,7 +5589,8 @@ test_cc_asscalc(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5468,7 +5641,8 @@ test_cc_asscalc(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5503,7 +5677,8 @@ test_cc_asscalc(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5550,6 +5725,7 @@ test_cc_atom(void) {
     node_index_t *index;
     node_dot_t *dot;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
     node_asscalc_t *asscalc;
     node_factor_t *factor;
     node_atom_t *atom;
@@ -5572,7 +5748,8 @@ test_cc_atom(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5603,7 +5780,8 @@ test_cc_atom(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5634,7 +5812,8 @@ test_cc_atom(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5665,7 +5844,8 @@ test_cc_atom(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5697,7 +5877,8 @@ test_cc_atom(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5726,7 +5907,8 @@ test_cc_atom(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5758,7 +5940,8 @@ test_cc_atom(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5790,7 +5973,8 @@ test_cc_atom(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5849,6 +6033,7 @@ test_cc_compile(void) {
     node_index_t *index;
     node_dot_t *dot;
     node_call_t *call;
+    node_cmd_line_t *cmd_line;
     node_asscalc_t *asscalc;
     node_factor_t *factor;
     node_atom_t *atom;
@@ -5954,7 +6139,8 @@ test_cc_compile(void) {
         assign_list = formula->assign_list->real;
         assign = nodearr_get(assign_list->nodearr, 0)->real;
         test = nodearr_get(assign->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -5971,7 +6157,8 @@ test_cc_compile(void) {
         assert(identifier != NULL);
         assert(!strcmp(identifier->identifier, "a"));
         test = nodearr_get(assign->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6026,7 +6213,8 @@ test_cc_compile(void) {
         assign_list = formula->assign_list->real;
         assign = nodearr_get(assign_list->nodearr, 0)->real;
         test = nodearr_get(assign->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6043,7 +6231,8 @@ test_cc_compile(void) {
         assert(identifier != NULL);
         assert(!strcmp(identifier->identifier, "a"));
         test = nodearr_get(assign->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6079,7 +6268,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6118,7 +6308,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6151,7 +6342,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6170,7 +6362,8 @@ test_cc_compile(void) {
         assert(!strcmp(identifier->identifier, "func"));
         test_list = caller->test_list->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6200,7 +6393,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6219,7 +6413,8 @@ test_cc_compile(void) {
         assert(!strcmp(identifier->identifier, "func"));
         test_list = caller->test_list->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6234,7 +6429,8 @@ test_cc_compile(void) {
         assert(digit != NULL);
         assert(digit->lvalue == 1);
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6264,7 +6460,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6284,7 +6481,8 @@ test_cc_compile(void) {
         test_list = caller->test_list->real;
         assert(nodearr_get(test_list->nodearr, 0));
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6313,7 +6511,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6333,7 +6532,8 @@ test_cc_compile(void) {
         test_list = caller->test_list->real;
         assert(nodearr_get(test_list->nodearr, 0));
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6347,7 +6547,8 @@ test_cc_compile(void) {
         string = atom->string->real;
         assert(!strcmp(string->string, "abc"));
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6376,7 +6577,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6396,7 +6598,8 @@ test_cc_compile(void) {
         test_list = caller->test_list->real;
         assert(nodearr_get(test_list->nodearr, 0));
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6410,7 +6613,8 @@ test_cc_compile(void) {
         string = atom->string->real;
         assert(!strcmp(string->string, "abc"));
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6424,7 +6628,8 @@ test_cc_compile(void) {
         string = atom->string->real;
         assert(!strcmp(string->string, "def"));
         test = nodearr_get(test_list->nodearr, 2)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6453,7 +6658,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6473,7 +6679,8 @@ test_cc_compile(void) {
         test_list = caller->test_list->real;
         assert(nodearr_get(test_list->nodearr, 0));
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6487,7 +6694,8 @@ test_cc_compile(void) {
         string = atom->string->real;
         assert(!strcmp(string->string, ""));
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6520,7 +6728,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6540,8 +6749,9 @@ test_cc_compile(void) {
         assert(test_list);
         test = nodearr_get(test_list->nodearr, 1)->real;
         assert(test);
-        assert(test->or_test);
-        or_test = test->or_test->real;
+        assert(test->cmd_line);
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6571,7 +6781,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6588,7 +6799,8 @@ test_cc_compile(void) {
         assert(digit != NULL);
         assert(digit->lvalue == 1);
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6605,7 +6817,8 @@ test_cc_compile(void) {
         assert(digit != NULL);
         assert(digit->lvalue == 2);
         test = nodearr_get(test_list->nodearr, 2)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6635,7 +6848,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6652,7 +6866,8 @@ test_cc_compile(void) {
         assert(string != NULL);
         assert(!strcmp(string->string, "abc"));
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6682,7 +6897,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6699,7 +6915,8 @@ test_cc_compile(void) {
         assert(string != NULL);
         assert(!strcmp(string->string, "abc"));
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6716,7 +6933,8 @@ test_cc_compile(void) {
         assert(string != NULL);
         assert(!strcmp(string->string, "def"));
         test = nodearr_get(test_list->nodearr, 2)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6746,7 +6964,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6763,7 +6982,8 @@ test_cc_compile(void) {
         assert(digit != NULL);
         assert(digit->lvalue == 1);
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6793,7 +7013,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6810,7 +7031,8 @@ test_cc_compile(void) {
         assert(digit != NULL);
         assert(digit->lvalue == 1);
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6840,7 +7062,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6857,7 +7080,8 @@ test_cc_compile(void) {
         assert(digit != NULL);
         assert(digit->lvalue == 1);
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6874,7 +7098,8 @@ test_cc_compile(void) {
         assert(identifier != NULL);
         assert(!strcmp(identifier->identifier, "var"));
         test = nodearr_get(test_list->nodearr, 2)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6904,7 +7129,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6921,7 +7147,8 @@ test_cc_compile(void) {
         assert(digit != NULL);
         assert(digit->lvalue == 1);
         test = nodearr_get(test_list->nodearr, 1)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6938,7 +7165,8 @@ test_cc_compile(void) {
         assert(identifier != NULL);
         assert(!strcmp(identifier->identifier, "var"));
         test = nodearr_get(test_list->nodearr, 2)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -6955,7 +7183,8 @@ test_cc_compile(void) {
         assert(string != NULL);
         assert(!strcmp(string->string, "abc"));
         test = nodearr_get(test_list->nodearr, 3)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -7017,10 +7246,11 @@ test_cc_compile(void) {
         assert(nodearr_get(test_list->nodearr, 0)->real != NULL);
         assert(nodearr_get(test_list->nodearr, 1) == NULL);
         test = nodearr_get(test_list->nodearr, 0)->real;
-        assert(test->or_test != NULL);
-        assert(test->or_test->type == NODE_TYPE_OR_TEST);
-        assert(test->or_test->real != NULL);
-        or_test = test->or_test->real;
+        assert(test->cmd_line != NULL);
+        assert(test->cmd_line->type == NODE_TYPE_CMD_LINE);
+        assert(test->cmd_line->real != NULL);
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         assert(nodearr_get(or_test->nodearr, 0) != NULL);
         assert(nodearr_get(or_test->nodearr, 0)->type == NODE_TYPE_AND_TEST);
         assert(nodearr_get(or_test->nodearr, 0)->real != NULL);    
@@ -7051,7 +7281,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -7079,7 +7310,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -7107,7 +7339,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -7130,7 +7363,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -7156,7 +7390,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         not_test = not_test->not_test->real;
@@ -7177,7 +7412,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         not_test = not_test->not_test->real;
@@ -7199,7 +7435,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -7227,7 +7464,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -7254,7 +7492,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         not_test = not_test->not_test->real;
@@ -7279,7 +7518,8 @@ test_cc_compile(void) {
         multi_assign = formula->multi_assign->real;
         test_list = nodearr_get(multi_assign->nodearr, 0)->real;
         test = nodearr_get(test_list->nodearr, 0)->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         not_test = not_test->not_test->real;
@@ -7756,7 +7996,8 @@ test_cc_compile(void) {
         stmt = elems->stmt->real;
         if_stmt = stmt->if_stmt->real;
         test = if_stmt->test->real;
-        or_test = test->or_test->real;
+        cmd_line = test->cmd_line->real;
+        or_test = nodearr_get(cmd_line->nodearr, 0)->real;
         and_test = nodearr_get(or_test->nodearr, 0)->real;
         not_test = nodearr_get(and_test->nodearr, 0)->real;
         comparison = not_test->comparison->real;
@@ -9895,6 +10136,7 @@ compiler_tests[] = {
     {"cc_call", test_cc_call},
     {"cc_array", test_cc_array},
     {"cc_asscalc", test_cc_asscalc},
+    {"cc_assign", test_cc_assign},
     {0},
 };
 
@@ -10791,7 +11033,6 @@ test_trv_atom(void) {
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
         assert(ast_has_error(ast));
-        showdetail();
         assert(!strcmp(ast_get_error_detail(ast), "can't invoke alias.set. too few arguments"));
     }
 
@@ -14813,6 +15054,7 @@ test_trv_traverse(void) {
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
         assert(ast_has_error(ast));
+        showdetail();
         assert(!strcmp(ast_get_error_detail(ast), "\"a\" is not defined in roll identifier lhs"));
     } 
 
@@ -16335,11 +16577,30 @@ test_trv_asscalc_0(void) {
     gc_t *gc = gc_new();
     context_t *ctx = ctx_new(gc);
 
+    tkr_parse(tkr, "{@ a = 0 @}{: a :}");
+    {
+        cc_compile(ast, tkr_get_tokens(tkr));
+        ctx_clear(ctx);
+        (trv_traverse(ast, ctx));
+        assert(!ast_has_error(ast));
+        assert(!strcmp(ctx_getc_buf(ctx), "0"));
+    } 
+
+    tkr_parse(tkr, "{@ a = 0 \n b = 1 @}{: a :},{: b :}");
+    {
+        cc_compile(ast, tkr_get_tokens(tkr));
+        ctx_clear(ctx);
+        (trv_traverse(ast, ctx));
+        showdetail();
+        assert(!ast_has_error(ast));
+        assert(!strcmp(ctx_getc_buf(ctx), "0,1"));
+    } 
+
     tkr_parse(tkr, "{@ a = 0 \n a += 1 @}{: a :}");
     {
         cc_compile(ast, tkr_get_tokens(tkr));
         ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        (trv_traverse(ast, ctx));
         assert(!ast_has_error(ast));
         assert(!strcmp(ctx_getc_buf(ctx), "1"));
     } 
@@ -16444,7 +16705,7 @@ test_trv_expr_0(void) {
         assert(!strcmp(ctx_getc_buf(ctx), "2"));
     } 
 
-    tkr_parse(tkr, "{@ a = 1 b = a @}{: b :}");
+    tkr_parse(tkr, "{@ a = 1 \n b = a @}{: b :}");
     {
         cc_compile(ast, tkr_get_tokens(tkr));
         ctx_clear(ctx);

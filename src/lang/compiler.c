@@ -16,14 +16,14 @@
         fprintf(stderr, "debug: %5d: %*s: %3d: %s: %s\n", __LINE__, 20, __func__, dep, token_type_to_str(t), ast_get_error_detail(ast)); \
         fflush(stderr); \
     } \
-    cc_skip_newlines(ast); \
     if (!*ast->ptr) { \
         return NULL; \
     } \
 
 #define return_parse(ret) \
     if (ast->debug) { \
-        fprintf(stderr, "debug: %5d: %*s: %3d: return %p: %s\n", __LINE__, 20, __func__, dep, ret, ast_get_error_detail(ast)); \
+        token_t *t = *ast->ptr; \
+        fprintf(stderr, "debug: %5d: %*s: %3d: return %p: %s: %s\n", __LINE__, 20, __func__, dep, ret, token_type_to_str(t), ast_get_error_detail(ast)); \
         fflush(stderr); \
     } \
     return ret; \
@@ -137,6 +137,9 @@ cc_assign(ast_t *ast, int dep) {
         return_parse(NULL); \
     } \
 
+#undef return_ok
+#define return_ok return_parse(node_new(NODE_TYPE_ASSIGN, cur))
+
     check("call lhs cc_test");
     node_t *lhs = cc_test(ast, dep+1);
     if (!lhs) {
@@ -166,15 +169,21 @@ cc_assign(ast_t *ast, int dep) {
 
     nodearr_moveb(cur->nodearr, rhs);
 
-    for (;;) {
-        if (!*ast->ptr) {
-            return_parse(node_new(NODE_TYPE_ASSIGN, cur));
-        }
+    if (!*ast->ptr) {
+        return_ok;
+    }
+    const token_t *tok = *ast->ptr;
+    if (tok->type == TOKEN_TYPE_NEWLINE ||
+        tok->type == TOKEN_TYPE_RBRACEAT) {
+        check("found newline or @}");
+        return_ok;
+    }
 
+    for (;;) {
         token_t *t = *ast->ptr++;
         if (t->type != TOKEN_TYPE_OP_ASS) {
             ast->ptr--;
-            return_parse(node_new(NODE_TYPE_ASSIGN, cur));
+            return_ok;
         }
         check("read =");
 
@@ -188,9 +197,19 @@ cc_assign(ast_t *ast, int dep) {
         }
 
         nodearr_moveb(cur->nodearr, rhs);
+
+        if (!*ast->ptr) {
+            return_ok;
+        }
+        const token_t *tok = *ast->ptr;
+        if (tok->type == TOKEN_TYPE_NEWLINE ||
+            tok->type == TOKEN_TYPE_RBRACEAT) {
+            check("found newline or @} (2)");
+            return_ok;
+        }
     }
 
-    return_parse(node_new(NODE_TYPE_ASSIGN, cur));
+    return_ok;
 }
 
 static node_t *
@@ -646,8 +665,12 @@ cc_for_stmt(ast_t *ast, int dep) {
             return_cleanup("syntax error. reached EOF in for statement (5)");
         }
 
+        check("skip newlines");
+        cc_skip_newlines(ast);
+
         t = *ast->ptr++;
         if (t->type != TOKEN_TYPE_STMT_END) {
+            printf("t->type[%d]\n", t->type);
             return_cleanup("syntax error. not found end in for statement (2)");
         }
         check("read end");
@@ -1552,6 +1575,12 @@ cc_term(ast_t *ast, int dep) {
         return_parse(NULL); \
     } \
 
+#undef return_ok
+#define return_ok return_parse(node_new(NODE_TYPE_TERM, cur))
+
+#undef push
+#define push(node) nodearr_moveb(cur->nodearr, node)
+
     check("call left cc_dot");
     node_t *lhs = cc_negative(ast, dep+1);
     if (ast_has_error(ast)) {
@@ -1561,7 +1590,16 @@ cc_term(ast_t *ast, int dep) {
         return_cleanup(""); // not error
     }
 
-    nodearr_moveb(cur->nodearr, lhs);
+    push(lhs);
+
+    if (!*ast->ptr) {
+        return_ok;
+    }
+    const token_t *tok = *ast->ptr;
+    if (tok->type == TOKEN_TYPE_NEWLINE ||
+        tok->type == TOKEN_TYPE_RBRACEAT) {
+        return_ok;
+    }
 
     for (;;) {
         check("call mul_div_op");
@@ -1570,10 +1608,10 @@ cc_term(ast_t *ast, int dep) {
             return_cleanup("");
         }
         if (!op) {
-            return_parse(node_new(NODE_TYPE_TERM, cur));
+            return_ok;
         }
 
-        nodearr_moveb(cur->nodearr, op);
+        push(op);
 
         check("call right cc_dot");
         node_t *rhs = cc_negative(ast, dep+1);
@@ -1584,7 +1622,16 @@ cc_term(ast_t *ast, int dep) {
             return_cleanup("syntax error. not found rhs operand in term");
         }        
 
-        nodearr_moveb(cur->nodearr, rhs);
+        push(rhs);
+
+        if (!*ast->ptr) {
+            return_ok;
+        }
+        const token_t *tok = *ast->ptr;
+        if (tok->type == TOKEN_TYPE_NEWLINE ||
+            tok->type == TOKEN_TYPE_RBRACEAT) {
+            return_ok;
+        }
     }
 
     assert(0 && "impossible. failed to ast term");
@@ -2182,6 +2229,72 @@ cc_or_test(ast_t *ast, int dep) {
 }
 
 static node_t *
+cc_cmd_line(ast_t *ast, int dep) {
+    ready();
+    declare(node_cmd_line_t, cur);
+    cur->nodearr = nodearr_new();
+    token_t **save_ptr = ast->ptr;
+
+#undef return_cleanup
+#define return_cleanup(msg) { \
+        ast->ptr = save_ptr; \
+        for (; nodearr_len(cur->nodearr); ) { \
+            node_t *node = nodearr_popb(cur->nodearr); \
+            ast_del_nodes(ast, node); \
+        } \
+        nodearr_del_without_nodes(cur->nodearr); \
+        free(cur); \
+        if (strlen(msg)) { \
+            ast_set_error_detail(ast, msg); \
+        } \
+        return_parse(NULL); \
+    } \
+
+#undef return_ok
+#define return_ok return_parse(node_new(NODE_TYPE_CMD_LINE, cur))
+
+#undef push
+#define push(node) nodearr_moveb(cur->nodearr, node)
+
+    node_t *cmdname = cc_or_test(ast, dep+1);
+    if (!cmdname) {
+        return_cleanup(""); // not error
+    }
+    push(cmdname);
+
+    if (!*ast->ptr) {
+        return_ok;
+    }
+    token_t *tok = *ast->ptr;
+    if (tok->type == TOKEN_TYPE_NEWLINE ||
+        tok->type == TOKEN_TYPE_RBRACEAT) {
+        return_ok;
+    }
+
+    for (;;) {
+        node_t *word = cc_or_test(ast, dep+1);
+        if (!word) {
+            return_ok;
+        }
+        push(word);
+
+        if (!*ast->ptr) {
+            return_ok;
+        }
+
+        token_t *tok = *ast->ptr;
+        if (tok->type == TOKEN_TYPE_NEWLINE ||
+            tok->type == TOKEN_TYPE_RBRACEAT) {
+            if (ast->debug) printf("tok type[%d]\n", tok->type);
+            return_ok;
+        }
+    }
+
+    assert(0 && "impossible. failed to compile cmd line");
+    return NULL;
+}
+
+static node_t *
 cc_test(ast_t *ast, int dep) {
     ready();
     declare(node_test_t, cur);
@@ -2190,7 +2303,7 @@ cc_test(ast_t *ast, int dep) {
 #undef return_cleanup
 #define return_cleanup(msg) { \
         ast->ptr = save_ptr; \
-        ast_del_nodes(ast, cur->or_test); \
+        ast_del_nodes(ast, cur->cmd_line); \
         free(cur); \
         if (strlen(msg)) { \
             ast_set_error_detail(ast, msg); \
@@ -2198,9 +2311,9 @@ cc_test(ast_t *ast, int dep) {
         return_parse(NULL); \
     } \
 
-    cur->or_test = cc_or_test(ast, dep+1);
-    if (!cur->or_test) {
-        return_cleanup("");
+    cur->cmd_line = cc_cmd_line(ast, dep+1);
+    if (!cur->cmd_line) {
+        return_cleanup(""); // not error
     }
 
     return_parse(node_new(NODE_TYPE_TEST, cur));
@@ -2658,6 +2771,9 @@ cc_elems(ast_t *ast, int dep) {
         } 
     }
 
+    check("skip newlines");
+    cc_skip_newlines(ast);
+
     check("call cc_elems");
     cur->elems = cc_elems(ast, dep+1);
     if (!cur->elems) {
@@ -2748,11 +2864,17 @@ cc_code_block(ast_t *ast, int dep) {
         return_parse(NULL); \
     } \
 
+    check("skip newlines");
+    cc_skip_newlines(ast);
+
     token_t *t = *ast->ptr++;
     if (t->type != TOKEN_TYPE_LBRACEAT) {
         return_cleanup("");
     }
     check("read {@");
+
+    check("skip newlines");
+    cc_skip_newlines(ast);
 
     check("call cc_elems");
     cur->elems = cc_elems(ast, dep+1);
@@ -2760,6 +2882,9 @@ cc_code_block(ast_t *ast, int dep) {
     if (ast_has_error(ast)) {
         return_cleanup("");
     }
+
+    check("skip newlines");
+    cc_skip_newlines(ast);
 
     t = *ast->ptr++;
     if (!t) {
@@ -2771,9 +2896,6 @@ cc_code_block(ast_t *ast, int dep) {
         // return_cleanup("syntax error. not found \"@}\"");
     }
     check("read @}");
-
-    cc_skip_newlines(ast);
-    check("skip newlines");
 
     return_parse(node_new(NODE_TYPE_CODE_BLOCK, cur));
 }

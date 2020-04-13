@@ -31,6 +31,17 @@
 #define viss(fmt) \
     if (ast->debug) fprintf(stderr, "viss: %d: " fmt "\n", __LINE__); \
 
+#define checkobj(msg, obj, dep) \
+    if (ast->debug) { \
+        if (!obj) { \
+            printf("debug: %5d: %*s: %3d: %s: obj is null\n", __LINE__, 40, __func__, dep, msg); \
+        } else { \
+            string_t *s = obj_to_str(obj); \
+            printf("debug: %5d: %*s: %3d: %s: obj type[%d] str[%s]\n", __LINE__, 40, __func__, dep, msg, obj->type, str_getc(s)); \
+            str_del(s); \
+        } \
+    } \
+
 /*************
 * prototypes *
 *************/
@@ -1080,16 +1091,19 @@ trv_assign(ast_t *ast, const node_t *node, int dep) {
     assert(rnode->type == NODE_TYPE_TEST);
     check("call _trv_traverse with test rnode");
     object_t *rhs = _trv_traverse(ast, rnode, dep+1);
+    checkobj("assign rhs", rhs, dep);
     if (ast_has_error(ast)) {
         return_trav(NULL);
     }
     assert(rhs);
+    if (ast->debug) printf("assign rhs[%d]\n", rhs->type);
 
     for (int32_t i = arrlen-2; i >= 0; --i) {
         node_t *lnode = nodearr_get(assign_list->nodearr, i);
         assert(lnode->type == NODE_TYPE_TEST);
         check("call _trv_traverse with test lnode");
         object_t *lhs = _trv_traverse(ast, lnode, dep+1);
+        checkobj("assign lhs", lhs, dep);
         if (ast_has_error(ast)) {
             obj_del(rhs);
             obj_del(lhs);
@@ -1099,8 +1113,10 @@ trv_assign(ast_t *ast, const node_t *node, int dep) {
             obj_del(rhs);
             return_trav(NULL);
         }
+        if (ast->debug) printf("assign lhs[%d]\n", lhs->type);
 
         object_t *result = trv_calc_assign(ast, lhs, rhs, dep+1);
+        checkobj("assign result", result, dep);
         if (ast_has_error(ast)) {
             obj_del(rhs);
             obj_del(lhs);
@@ -1135,6 +1151,7 @@ trv_assign_list(ast_t *ast, const node_t *node, int dep) {
 
     check("call _trv_traverse with assign assign");
     object_t *obj = _trv_traverse(ast, assign, dep+1);
+    checkobj("assign_list first", obj, dep);
     if (ast_has_error(ast)) {
         objarr_del(objarr);
         return_trav(NULL);
@@ -1149,6 +1166,7 @@ trv_assign_list(ast_t *ast, const node_t *node, int dep) {
 
         check("call _trv_traverse with assign assign");
         obj = _trv_traverse(ast, assign, dep+1);
+        checkobj("assign_list arg", obj, dep);
         if (ast_has_error(ast)) {
             objarr_del(objarr);
             return_trav(NULL);
@@ -1295,8 +1313,66 @@ trv_test(ast_t *ast, const node_t *node, int dep) {
     tready();
     node_test_t *test = node->real;
     check("call _trv_traverse");
-    object_t *obj = _trv_traverse(ast, test->or_test, dep+1);
+    object_t *obj = _trv_traverse(ast, test->cmd_line, dep+1);
     return_trav(obj);
+}
+
+static object_t *
+trv_cmd_line(ast_t *ast, const node_t *node, int dep) {
+    tready();
+    node_cmd_line_t *cmd_line = node->real;
+
+    node_t *cmdnamenode = nodearr_get(cmd_line->nodearr, 0);
+    if (!cmdnamenode) {
+        ast_set_error_detail(ast, "not found command name in command line");
+        return_trav(NULL);
+    }
+
+    check("call _trv_traverse command name");
+    object_t *cmdname = _trv_traverse(ast, cmdnamenode, dep+1);
+    if (ast_has_error(ast)) {
+        return_trav(NULL);
+    } else if (!cmdname) {
+        ast_set_error_detail(ast, "can't traverse command name in command line");
+        return_trav(NULL);
+    }
+    // debug
+    string_t *s = obj_to_str(cmdname);
+    printf("cmdname[%s] type[%d]\n", str_getc(s), cmdname->type);
+    str_del(s);
+    // ~debug
+
+    if (nodearr_len(cmd_line->nodearr) == 1) {
+        return_trav(cmdname); // success
+    }
+
+    object_array_t *objarr = objarr_new();
+    objarr_moveb(objarr, cmdname);
+
+    for (int32_t i = 1; i < nodearr_len(cmd_line->nodearr); ++i) {
+        node_t *cmdargnode = nodearr_get(cmd_line->nodearr, i);
+        assert(cmdargnode);
+
+        check("call _trv_traverse command argument");
+        object_t *cmdarg = _trv_traverse(ast, cmdargnode, dep+1);
+        if (ast_has_error(ast)) {
+            return_trav(NULL);
+        } else if (!cmdarg) {
+            ast_set_error_detail(ast, "not found command argument of (%d)", i);
+            return_trav(NULL);
+        }
+
+        // debug
+        string_t *s = obj_to_str(cmdarg);
+        printf("cmdarg[%s]\n", str_getc(s));
+        str_del(s);
+        // ~debug
+
+        objarr_moveb(objarr, cmdarg);
+    }
+
+    object_t *ret = obj_new_array(ast->ref_gc, mem_move(objarr));
+    return_trav(ret);
 }
 
 static object_t *
@@ -5866,6 +5942,7 @@ trv_asscalc(ast_t *ast, const node_t *node, int dep) {
     } else if (nodearr_len(asscalc->nodearr) >= 3) {
         node_t *lnode = nodearr_get(asscalc->nodearr, 0);
         assert(lnode->type == NODE_TYPE_EXPR);
+
         check("call _trv_traverse");
         object_t *lhs = _trv_traverse(ast, lnode, dep+1);
         if (ast_has_error(ast)) {
@@ -6552,6 +6629,11 @@ _trv_traverse(ast_t *ast, const node_t *node, int dep) {
     case NODE_TYPE_TEST: {
         check("call trv_test");
         object_t *obj = trv_test(ast, node, dep+1);
+        return_trav(obj);
+    } break;
+    case NODE_TYPE_CMD_LINE: {
+        check("call trv_cmd_line");
+        object_t *obj = trv_cmd_line(ast, node, dep+1);
         return_trav(obj);
     } break;
     case NODE_TYPE_OR_TEST: {
