@@ -344,45 +344,6 @@ builtin_deepcopy(builtin_func_args_t *fargs) {
     return obj_deep_copy(arg);
 }
 
-static object_t *
-extract_arg(ast_t *ref_ast, const object_t *arg) {
-    if (!ref_ast || !arg) {
-        return NULL;
-    }
-
-    switch (arg->type) {
-    case OBJ_TYPE_DEF_STRUCT: {
-        
-    } break;
-    }
-}
-
-static object_t *
-builtin_extract(builtin_func_args_t *fargs) {
-    ast_t *ref_ast = fargs->ref_ast;
-    assert(ref_ast);
-    object_t *actual_args = fargs->ref_args;
-    assert(actual_args);
-    object_array_t *args = actual_args->objarr;
-    assert(args);
-
-    if (objarr_len(args) <= 0) {
-        ast_pushb_error(ref_ast, "invalid arguments length for extract");
-        return NULL;
-    }    
-
-    for (int32_t i = 0; i < objarr_len(args); i++) {
-        const object_t *arg = objarr_getc(args, i);
-        assert(arg);
-        if (!extract_arg(ref_ast, arg)) {
-            ast_pushb_error(ref_ast, "failed to extract argument");
-            return NULL;
-        }
-    }
-
-    return obj_new_nil(ref_ast->ref_gc);
-}
-
 static builtin_func_info_t
 builtin_func_infos[] = {
     {"id", builtin_id},
