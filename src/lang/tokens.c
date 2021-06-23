@@ -9,21 +9,41 @@ token_del(token_t *self) {
 }
 
 token_t *
-token_new(int type) {
-    token_t *self = mem_ecalloc(1, sizeof(*self));
+token_new(
+    token_type_t type,
+    const char *program_filename,
+    int32_t program_lineno,
+    const char *program_source,
+    int32_t program_source_pos
+) {
+    token_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
     self->type = type;
+    self->program_filename = program_filename;
+    self->program_lineno = program_lineno;
+    self->program_source = program_source;
+    self->program_source_pos = program_source_pos;
 
     return self;
 }
 
 token_t *
 token_deep_copy(const token_t *other) {
-    token_t *self = mem_ecalloc(1, sizeof(*self));
+    token_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
     self->type = other->type;
     if (other->text) {
-        self->text = cstr_edup(other->text);
+        self->text = cstr_dup(other->text);
+        if (!self->text) {
+            token_del(self);
+            return NULL;
+        }
     } else {
         self->text = NULL;
     }
@@ -53,7 +73,7 @@ token_getc_text(const token_t *self) {
 
 char *
 token_copy_text(const token_t *self) {
-    return cstr_edup(self->text);
+    return cstr_dup(self->text);
 }
 
 /**
@@ -96,6 +116,10 @@ token_type_to_str(const token_t *self) {
         break;
     case TOKEN_TYPE_INTEGER:
         snprintf(str, sizeof str, "int[%ld]", self->lvalue);
+        return str;
+        break;
+    case TOKEN_TYPE_FLOAT:
+        snprintf(str, sizeof str, "float[%lf]", self->float_value);
         return str;
         break;
 
@@ -146,10 +170,29 @@ token_type_to_str(const token_t *self) {
     case TOKEN_TYPE_STMT_BLOCK: return "block"; break;
     case TOKEN_TYPE_STMT_INJECT: return "inject"; break;
 
+    // struct
+    case TOKEN_TYPE_STRUCT: return "struct"; break;
+
     // def
     case TOKEN_TYPE_DEF: return "def"; break;
+    case TOKEN_TYPE_MET: return "met"; break;
     case TOKEN_TYPE_EXTENDS: return "extends"; break;
     }
 
     return "unknown";
+}
+
+void
+token_dump(const token_t *self, FILE *fout) {
+    if (!self || !fout) {
+        return;
+    }
+
+    fprintf(fout, "text[%s]\n", self->text);
+    fprintf(fout, "program_filename[%s]\n", self->program_filename);
+    fprintf(fout, "program_source[%s]\n", self->program_source);
+    fprintf(fout, "program_lineno[%d]\n", self->program_lineno);
+    fprintf(fout, "program_source_pos[%d]\n", self->program_source_pos);
+    fprintf(fout, "type[%d]\n", self->type);
+    fprintf(fout, "lvalue[%ld]\n", self->lvalue);
 }

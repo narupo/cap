@@ -8,6 +8,7 @@
 #include <lang/context.h>
 #include <lang/opts.h>
 #include <lang/node_array.h>
+#include <lang/nodes.h>
 #include <lang/object.h>
 #include <lang/gc.h>
 #include <lang/chain_node.h>
@@ -18,6 +19,7 @@
  */
 enum {
     AST_ERR_DETAIL_SIZE = 1024, // ast's error message size
+    AST_ERR_TOKENS_SIZE = 256,
 };
 
 /**
@@ -47,11 +49,15 @@ struct ast {
     // reference to gc (DO NOT DELETE)
     gc_t *ref_gc;
 
-    // number of import level
-    int32_t import_level;
-
     // error stack for errors
     errstack_t *error_stack;
+
+    // error tokens for display error to developer
+    token_t *error_tokens[AST_ERR_TOKENS_SIZE];
+    int32_t error_tokens_pos;
+
+    // number of import level
+    int32_t import_level;
 
     // if do debug to true
     bool debug;
@@ -88,6 +94,12 @@ ast_del(ast_t *self);
 ast_t *
 ast_new(const config_t *ref_config);
 
+ast_t *
+ast_deep_copy(const ast_t *other);
+
+ast_t *
+ast_shallow_copy(const ast_t *other);
+
 /**
  * move opts at ast
  *
@@ -96,6 +108,12 @@ ast_new(const config_t *ref_config);
  */
 void
 ast_move_opts(ast_t *self, opts_t *move_opts);
+
+void
+ast_set_ref_context(ast_t *ast, context_t *ref_context);
+
+void
+ast_set_ref_gc(ast_t *ast, gc_t *ref_gc);
 
 /**
  * get root node read-only
@@ -110,12 +128,17 @@ ast_getc_root(const ast_t *self);
 /**
  * push back error at ast error stack
  *
- * @param[in] ast pointer to ast_t
- * @param[in] fmt format string (const char *)
- * @param[in] ... arguments of format
+ * @param[in] ast    pointer to ast_t
+ * @param[in] fname  file name of current module
+ * @param[in] lineno line number of current module
+ * @param[in] src    source string of current module
+ * @param[in] pos    number of position in src
+ * @param[in] fname  file name of module
+ * @param[in] fmt    format string (const char *)
+ * @param[in] ...   arguments of format
  */
-#define ast_pushb_error(ast, fmt, ...) \
-    errstack_pushb(ast->error_stack, fmt, ##__VA_ARGS__)
+#define ast_pushb_error(ast, fname, lineno, src, pos, fmt, ...) \
+    errstack_pushb(ast->error_stack, fname, lineno, src, pos, fmt, ##__VA_ARGS__)
 
 /**
  * clear ast state (will call ast_del_nodes)
@@ -182,7 +205,7 @@ ast_set_debug(ast_t *self, bool debug);
  * @param[in] *fout stream
  */
 void
-ast_trace_error_stack(const ast_t *self, FILE *fout);
+ast_trace_error(const ast_t *self, FILE *fout);
 
 /**
  * get error stack read only
@@ -240,3 +263,6 @@ ast_prev_ptr(ast_t *self);
  */
 gc_t *
 ast_get_ref_gc(ast_t *self);
+
+ast_t *
+ast_pushb_error_token(ast_t *self, token_t *ref_token);

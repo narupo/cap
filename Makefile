@@ -153,6 +153,7 @@ SRCS := build/lib/error.c \
 	build/lang/chain_object.c \
 	build/lang/chain_objects.c \
 	build/lang/builtin/functions.c \
+	build/lang/builtin/structs.c \
 	build/lang/builtin/modules/unicode.c \
 	build/lang/builtin/modules/array.c \
 	build/lang/builtin/modules/dict.c \
@@ -310,6 +311,8 @@ build/lang/chain_object.o: src/lang/chain_object.c src/lang/chain_object.h
 build/lang/chain_objects.o: src/lang/chain_objects.c src/lang/chain_objects.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/lang/builtin/functions.o: src/lang/builtin/functions.c src/lang/builtin/functions.h
+	$(CC) $(CFLAGS) -c $< -o $@
+build/lang/builtin/structs.o: src/lang/builtin/structs.c 
 	$(CC) $(CFLAGS) -c $< -o $@
 build/lang/builtin/modules/unicode.o: src/lang/builtin/modules/unicode.c src/lang/builtin/modules/unicode.h
 	$(CC) $(CFLAGS) -c $< -o $@

@@ -3361,7 +3361,7 @@ test_util_showargv(void) {
 }
 
 static void
-test_util_isoutofhome(void) {
+test_util_is_out_of_home(void) {
     char userhome[FILE_NPATH];
     assert(file_get_user_home(userhome, sizeof userhome) != NULL);
 
@@ -3371,8 +3371,8 @@ test_util_isoutofhome(void) {
     char caphome[FILE_NPATH];
     assert(file_readline(caphome, sizeof caphome, varhome) != NULL);
 
-    assert(isoutofhome(varhome, "/not/found/dir"));
-    assert(!isoutofhome(varhome, caphome));
+    assert(is_out_of_home(varhome, "/not/found/dir"));
+    assert(!is_out_of_home(varhome, caphome));
 }
 
 static void
@@ -3533,7 +3533,7 @@ test_util_pop_tail_slash(void) {
 }
 
 static void
-test_util_is_out_of_home(void) {
+test_util_is_out_of_home_2(void) {
     assert(!is_out_of_home(NULL, NULL));
     assert(!is_out_of_home("", NULL));
 
@@ -3727,7 +3727,8 @@ static const struct testcase
 utiltests[] = {
     {"freeargv", test_util_freeargv},
     {"showargv", test_util_showargv},
-    {"isoutofhome", test_util_isoutofhome},
+    {"is_out_of_home", test_util_is_out_of_home},
+    {"is_out_of_home", test_util_is_out_of_home_2},
     {"randrange", test_util_randrange},
     {"safesystem", test_util_safesystem},
     {"argsbyoptind", test_util_argsbyoptind},
@@ -3735,7 +3736,6 @@ utiltests[] = {
     {"escape", test_util_escape},
     {"compile_argv", test_util_compile_argv},
     {"pop_tail_slash", test_util_pop_tail_slash},
-    {"is_out_of_home", test_util_is_out_of_home},
     {"get_origin", test_util_get_origin},
     {"trim_first_line", test_util_trim_first_line},
     {"clear_screen", test_util_clear_screen},
@@ -28164,8 +28164,8 @@ test_errstack_pushb(void) {
     errstack_t *stack = errstack_new();
 
     assert(errstack_len(stack) == 0);
-    assert(_errstack_pushb(stack, "file1", 1, "func1", "this is %s", "message1"));
-    assert(_errstack_pushb(stack, "file2", 2, "func2", "this is %s", "message2"));
+    assert(_errstack_pushb(stack, "file1", 1, NULL, 0, NULL, 0, "func1", "this is %s", "message1"));
+    assert(_errstack_pushb(stack, "file2", 2, NULL, 0, NULL, 0, "func2", "this is %s", "message2"));
     assert(errstack_len(stack) == 2);
 
     const errelem_t *elem = errstack_getc(stack, 0);
@@ -28192,11 +28192,11 @@ test_errstack_resize(void) {
     errstack_t *stack = errstack_new();
 
     assert(errstack_len(stack) == 0);
-    assert(_errstack_pushb(stack, "file1", 1, "func1", "this is %s", "message1"));
-    assert(_errstack_pushb(stack, "file2", 2, "func2", "this is %s", "message2"));
-    assert(_errstack_pushb(stack, "file3", 3, "func3", "this is %s", "message3"));
-    assert(_errstack_pushb(stack, "file4", 4, "func4", "this is %s", "message4"));
-    assert(_errstack_pushb(stack, "file5", 5, "func5", "this is %s", "message5"));
+    assert(_errstack_pushb(stack, "file1", 1, NULL, 0, NULL, 0, "func1", "this is %s", "message1"));
+    assert(_errstack_pushb(stack, "file2", 2, NULL, 0, NULL, 0, "func2", "this is %s", "message2"));
+    assert(_errstack_pushb(stack, "file3", 3, NULL, 0, NULL, 0, "func3", "this is %s", "message3"));
+    assert(_errstack_pushb(stack, "file4", 4, NULL, 0, NULL, 0, "func4", "this is %s", "message4"));
+    assert(_errstack_pushb(stack, "file5", 5, NULL, 0, NULL, 0, "func5", "this is %s", "message5"));
     assert(errstack_len(stack) == 5);
 
     const errelem_t *elem = errstack_getc(stack, 0);
@@ -28241,8 +28241,8 @@ static void
 test_errstack_trace(void) {
     errstack_t *stack = errstack_new();
 
-    assert(_errstack_pushb(stack, "file1", 1, "func1", "this is %s", "message1"));
-    assert(_errstack_pushb(stack, "file2", 2, "func2", "this is %s", "message2"));
+    assert(_errstack_pushb(stack, "file1", 1, NULL, 0, NULL, 0, "func1", "this is %s", "message1"));
+    assert(_errstack_pushb(stack, "file2", 2, NULL, 0, NULL, 0, "func2", "this is %s", "message2"));
 
     char buf[BUFSIZ] = {0};
     setbuf(stderr, buf);
@@ -28259,8 +28259,8 @@ static void
 test_errelem_show(void) {
     errstack_t *stack = errstack_new();
 
-    assert(_errstack_pushb(stack, "file1", 1, "func1", "this is %s", "message1"));
-    assert(_errstack_pushb(stack, "file2", 2, "func2", "this is %s", "message2"));
+    assert(_errstack_pushb(stack, "file1", 1, NULL, 0, NULL, 0, "func1", "this is %s", "message1"));
+    assert(_errstack_pushb(stack, "file2", 2, NULL, 0, NULL, 0, "func2", "this is %s", "message2"));
 
     char buf[BUFSIZ] = {0};
     setbuf(stderr, buf);
@@ -28285,11 +28285,11 @@ test_errstack_extendf_other_0(void) {
     errstack_t *stack = errstack_new();
     errstack_t *other = errstack_new();
 
-    assert(_errstack_pushb(stack, "file3", 3, "func3", "this is %s", "message3"));
-    assert(_errstack_pushb(stack, "file4", 4, "func4", "this is %s", "message4"));
+    assert(_errstack_pushb(stack, "file3", 3, NULL, 0, NULL, 0, "func3", "this is %s", "message3"));
+    assert(_errstack_pushb(stack, "file4", 4, NULL, 0, NULL, 0, "func4", "this is %s", "message4"));
 
-    assert(_errstack_pushb(other, "file1", 1, "func1", "this is %s", "message1"));
-    assert(_errstack_pushb(other, "file2", 2, "func2", "this is %s", "message2"));
+    assert(_errstack_pushb(other, "file1", 1, NULL, 0, NULL, 0, "func1", "this is %s", "message1"));
+    assert(_errstack_pushb(other, "file2", 2, NULL, 0, NULL, 0, "func2", "this is %s", "message2"));
 
     assert(errstack_len(stack) == 2);
     assert(errstack_len(other) == 2);
@@ -28307,13 +28307,13 @@ test_errstack_extendf_other_1(void) {
     errstack_t *stack = errstack_new();
     errstack_t *other = errstack_new();
 
-    assert(_errstack_pushb(stack, "file5", 5, "func5", "this is %s", "message5"));
-    assert(_errstack_pushb(stack, "file6", 6, "func6", "this is %s", "message6"));
+    assert(_errstack_pushb(stack, "file5", 5, NULL, 0, NULL, 0, "func5", "this is %s", "message5"));
+    assert(_errstack_pushb(stack, "file6", 6, NULL, 0, NULL, 0, "func6", "this is %s", "message6"));
 
-    assert(_errstack_pushb(other, "file1", 1, "func1", "this is %s", "message1"));
-    assert(_errstack_pushb(other, "file2", 2, "func2", "this is %s", "message2"));
-    assert(_errstack_pushb(other, "file3", 3, "func3", "this is %s", "message3"));
-    assert(_errstack_pushb(other, "file4", 4, "func4", "this is %s", "message4"));
+    assert(_errstack_pushb(other, "file1", 1, NULL, 0, NULL, 0, "func1", "this is %s", "message1"));
+    assert(_errstack_pushb(other, "file2", 2, NULL, 0, NULL, 0, "func2", "this is %s", "message2"));
+    assert(_errstack_pushb(other, "file3", 3, NULL, 0, NULL, 0, "func3", "this is %s", "message3"));
+    assert(_errstack_pushb(other, "file4", 4, NULL, 0, NULL, 0, "func4", "this is %s", "message4"));
 
     assert(errstack_len(stack) == 2);
     assert(errstack_len(other) == 4);
@@ -28330,10 +28330,10 @@ static void
 test_errstack_extendf_other_2(void) {
     errstack_t *stack = errstack_new();
 
-    assert(_errstack_pushb(stack, "file1", 1, "func1", "this is %s", "message1"));
-    assert(_errstack_pushb(stack, "file2", 2, "func2", "this is %s", "message2"));
-    assert(_errstack_pushb(stack, "file3", 3, "func3", "this is %s", "message3"));
-    assert(_errstack_pushb(stack, "file4", 4, "func4", "this is %s", "message4"));
+    assert(_errstack_pushb(stack, "file1", 1, NULL, 0, NULL, 0, "func1", "this is %s", "message1"));
+    assert(_errstack_pushb(stack, "file2", 2, NULL, 0, NULL, 0, "func2", "this is %s", "message2"));
+    assert(_errstack_pushb(stack, "file3", 3, NULL, 0, NULL, 0, "func3", "this is %s", "message3"));
+    assert(_errstack_pushb(stack, "file4", 4, NULL, 0, NULL, 0, "func4", "this is %s", "message4"));
 
     assert(errstack_len(stack) == 4);
 
@@ -28348,11 +28348,11 @@ test_errstack_extendb_other_0(void) {
     errstack_t *stack = errstack_new();
     errstack_t *other = errstack_new();
 
-    assert(_errstack_pushb(stack, "file3", 3, "func3", "this is %s", "message3"));
-    assert(_errstack_pushb(stack, "file4", 4, "func4", "this is %s", "message4"));
+    assert(_errstack_pushb(stack, "file3", 3, NULL, 0, NULL, 0, "func3", "this is %s", "message3"));
+    assert(_errstack_pushb(stack, "file4", 4, NULL, 0, NULL, 0, "func4", "this is %s", "message4"));
 
-    assert(_errstack_pushb(other, "file1", 1, "func1", "this is %s", "message1"));
-    assert(_errstack_pushb(other, "file2", 2, "func2", "this is %s", "message2"));
+    assert(_errstack_pushb(other, "file1", 1, NULL, 0, NULL, 0, "func1", "this is %s", "message1"));
+    assert(_errstack_pushb(other, "file2", 2, NULL, 0, NULL, 0, "func2", "this is %s", "message2"));
 
     assert(errstack_len(stack) == 2);
     assert(errstack_len(other) == 2);
@@ -28370,13 +28370,13 @@ test_errstack_extendb_other_1(void) {
     errstack_t *stack = errstack_new();
     errstack_t *other = errstack_new();
 
-    assert(_errstack_pushb(stack, "file5", 5, "func5", "this is %s", "message5"));
-    assert(_errstack_pushb(stack, "file6", 4, "func6", "this is %s", "message6"));
+    assert(_errstack_pushb(stack, "file5", 5, NULL, 0, NULL, 0, "func5", "this is %s", "message5"));
+    assert(_errstack_pushb(stack, "file6", 4, NULL, 0, NULL, 0, "func6", "this is %s", "message6"));
 
-    assert(_errstack_pushb(other, "file1", 1, "func1", "this is %s", "message1"));
-    assert(_errstack_pushb(other, "file2", 2, "func2", "this is %s", "message2"));
-    assert(_errstack_pushb(other, "file3", 3, "func3", "this is %s", "message3"));
-    assert(_errstack_pushb(other, "file4", 4, "func4", "this is %s", "message4"));
+    assert(_errstack_pushb(other, "file1", 1, NULL, 0, NULL, 0, "func1", "this is %s", "message1"));
+    assert(_errstack_pushb(other, "file2", 2, NULL, 0, NULL, 0, "func2", "this is %s", "message2"));
+    assert(_errstack_pushb(other, "file3", 3, NULL, 0, NULL, 0, "func3", "this is %s", "message3"));
+    assert(_errstack_pushb(other, "file4", 4, NULL, 0, NULL, 0, "func4", "this is %s", "message4"));
 
     assert(errstack_len(stack) == 2);
     assert(errstack_len(other) == 4);
@@ -28393,10 +28393,10 @@ static void
 test_errstack_extendb_other_2(void) {
     errstack_t *stack = errstack_new();
 
-    assert(_errstack_pushb(stack, "file1", 1, "func1", "this is %s", "message1"));
-    assert(_errstack_pushb(stack, "file2", 2, "func2", "this is %s", "message2"));
-    assert(_errstack_pushb(stack, "file3", 3, "func3", "this is %s", "message3"));
-    assert(_errstack_pushb(stack, "file4", 4, "func4", "this is %s", "message4"));
+    assert(_errstack_pushb(stack, "file1", 1, NULL, 0, NULL, 0, "func1", "this is %s", "message1"));
+    assert(_errstack_pushb(stack, "file2", 2, NULL, 0, NULL, 0, "func2", "this is %s", "message2"));
+    assert(_errstack_pushb(stack, "file3", 3, NULL, 0, NULL, 0, "func3", "this is %s", "message3"));
+    assert(_errstack_pushb(stack, "file4", 4, NULL, 0, NULL, 0, "func4", "this is %s", "message4"));
 
     assert(errstack_len(stack) == 4);
 

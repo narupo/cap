@@ -97,6 +97,24 @@ cstr_cpywithout(char *dst, int32_t dstsz, const char *src, const char *without) 
 }
 
 char *
+cstr_dup(const char *src) {
+    if (!src) {
+        return NULL;
+    }
+
+    uint32_t nelems = strlen(src)+1;
+    char *dst = malloc(sizeof(src[0]) * nelems);
+    if (!dst) {
+        return NULL;
+    }
+
+    strcpy(dst, src);
+    dst[nelems-1] = '\0';
+
+    return dst;
+}
+
+char *
 cstr_edup(const char *src) {
     if (!src) {
         fprintf(stderr, "invalid source string in cstr_edup\n");
@@ -375,4 +393,19 @@ cstr_pop_last_newline(char *str) {
             str[len - 1] = '\0';
         } 
     }
+}
+
+char *
+cstr_rstrip_float_zero(char *n) {
+    for (char *p = n + strlen(n) - 1; p >= n; ) {
+        if (*p - '0' == 0 && *(p - 1) == '.') {
+            break;
+        } else if (*p - '0' == 0) {
+            *p = '\0';
+            --p;
+        } else {
+            break;
+        }
+    }
+    return n;
 }

@@ -9,6 +9,7 @@
 #include <lang/utils.h>
 #include <lang/importer.h>
 #include <lang/arguments.h>
+#include <lang/types.h>
 #include <lang/builtin/functions.h>
 #include <lang/builtin/modules/unicode.h>
 #include <lang/builtin/modules/array.h>
@@ -21,3 +22,6 @@ trv_traverse(ast_t *ast, context_t *context);
 
 object_t *
 _trv_traverse(ast_t *ast, trv_args_t *targs);
+
+ast_t *
+trv_import_builtin_modules(ast_t *ast);

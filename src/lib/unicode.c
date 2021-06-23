@@ -141,6 +141,9 @@ char32_strcmp(const char32_t *s1, const char32_t *s2) {
     if (!s1 || !s2) {
         return -1;
     }
+    if (char32_len(s1) != char32_len(s2)) {
+        return -1;
+    }
 
     for (const char32_t *p = s1, *q = s2; *p && *q; ++p, ++q) {
         if (*p != *q) {
@@ -156,6 +159,9 @@ char16_strcmp(const char16_t *s1, const char16_t *s2) {
     if (!s1 || !s2) {
         return -1;
     }
+    if (char16_len(s1) != char16_len(s2)) {
+        return -1;
+    }
 
     for (const char16_t *p = s1, *q = s2; *p && *q; ++p, ++q) {
         if (*p != *q) {
@@ -164,6 +170,50 @@ char16_strcmp(const char16_t *s1, const char16_t *s2) {
     }
 
     return 0;
+}
+
+int32_t
+char32_strncmp(const char32_t *s1, const char32_t *s2, int32_t n) {
+    if (!s1 || !s2) {
+        return -1;
+    }
+    int32_t s1len = u_len(s1);
+    int32_t s2len = u_len(s2);
+
+    for (int32_t i = 0; i < n && i < s1len && i < s2len; i++) {
+        if (s1[i] != s2[i]) {
+            return s1[i] - s2[i];
+        }
+    }
+
+    return 0;
+}
+
+int32_t
+char16_strncmp(const char16_t *s1, const char16_t *s2, int32_t n) {
+    if (!s1 || !s2) {
+        return -1;
+    }
+    int32_t s1len = u_len(s1);
+    int32_t s2len = u_len(s2);
+
+    for (int32_t i = 0; i < n && i < s1len && i < s2len; i++) {
+        if (s1[i] != s2[i]) {
+            return s1[i] - s2[i];
+        }
+    }
+
+    return 0;
+}
+
+bool
+char16_isspace(char16_t ch) {
+    return ch == u'\n' || ch == u'\t' || ch == u' ';
+}
+
+bool
+char32_isspace(char32_t ch) {
+    return ch == U'\n' || ch == U'\t' || ch == U' ';
 }
 
 /**********
@@ -463,6 +513,11 @@ uni_deep_copy(const unicode_t *other) {
     // self->mb = cstr_edup(other->mb);
 
     return self;
+}
+
+unicode_t *
+uni_shallow_copy(const unicode_t *other) {
+    return uni_deep_copy(other);
 }
 
 unicode_t *
@@ -946,7 +1001,11 @@ uni_split(const unicode_t *other, const unicode_type_t *sep) {
 
     int32_t capa = 4;
     int32_t cursize = 0;
-    unicode_t **arr = mem_ecalloc(capa + 1, sizeof(unicode_t *));
+    unicode_t **arr = mem_calloc(capa + 1, sizeof(unicode_t *));
+    if (!arr) {
+        return NULL;
+    }
+
     unicode_t *u = uni_new();
 
 #define store(u) \
@@ -954,17 +1013,23 @@ uni_split(const unicode_t *other, const unicode_type_t *sep) {
         if (capa >= cursize) { \
             capa *= 2; \
             int32_t nbyte = sizeof(unicode_t *); \
-            arr = mem_erealloc(arr, capa * nbyte + nbyte); \
+            unicode_t **tmp = mem_realloc(arr, capa * nbyte + nbyte); \
+            if (!tmp) { \
+                return NULL; \
+            } \
+            arr = tmp; \
         } \
         arr[cursize++] = mem_move(u); \
         arr[cursize] = NULL; \
         u = uni_new(); \
     } \
 
+    int32_t seplen = u_len(sep);
+
     for (const unicode_type_t *p = other->buffer; *p; ) {
-        if (!u_strcmp(p, sep)) {
+        if (!u_strncmp(p, sep, seplen)) {
             store(u);
-            p += u_len(sep);
+            p += seplen;
         } else {
             uni_pushb(u, *p++);
         }
@@ -974,6 +1039,51 @@ uni_split(const unicode_t *other, const unicode_type_t *sep) {
 
     uni_del(u);
     return arr;
+}
+
+bool
+uni_isdigit(const unicode_t *self) {
+    if (!self) {
+        return false;
+    }
+
+    for (const unicode_type_t *p = self->buffer; *p; ++p) {
+        if (!u_isdigit(*p)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool
+uni_isalpha(const unicode_t *self) {
+    if (!self) {
+        return false;
+    }
+
+    for (const unicode_type_t *p = self->buffer; *p; ++p) {
+        if (!u_isalpha(*p)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool
+uni_isspace(const unicode_t *self) {
+    if (!self) {
+        return false;
+    }
+
+    for (const unicode_type_t *p = self->buffer; *p; ++p) {
+        if (!u_isspace(*p)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 #undef NIL

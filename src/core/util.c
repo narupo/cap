@@ -24,59 +24,6 @@ showargv(int argc, char *argv[]) {
     }
 }
 
-bool
-isoutofhome(const char *varhome, const char *pth) {
-    char hm[FILE_NPATH];
-    if (!file_readline(hm, sizeof hm, varhome)) {
-        err_error("invalid environment variable of varhome");
-        return true;
-    }
-
-    char home[FILE_NPATH];
-    char path[FILE_NPATH];
-
-    if (!file_solve(home, sizeof home, hm) ||
-        !file_solve(path, sizeof path, pth)) {
-        return true;
-    }
-
-    if (!file_exists(path)) {
-        return true;
-    }
-
-    size_t homelen = strlen(home);
-    if (strncmp(home, path, homelen)) {
-        return true;
-    }
-
-    return false;
-}
-
-bool
-is_out_of_home(const char *homepath, const char *argpath) {
-    if (!homepath || !argpath) {
-        return false;
-    }
-
-    char home[FILE_NPATH];
-    char path[FILE_NPATH];
-
-    if (!file_solve(home, sizeof home, homepath) ||
-        !file_solve(path, sizeof path, argpath)) {
-        return true;
-    }
-
-    path_pop_tail_slash(home);
-    path_pop_tail_slash(path);
-
-    size_t homelen = strlen(home);
-    if (strncmp(home, path, homelen)) {
-        return true;
-    }
-
-    return false;
-}
-
 int
 randrange(int min, int max) {
     return min + (int)(rand() * (max - min + 1.0) / (1.0 + RAND_MAX));
@@ -88,7 +35,7 @@ safesystem(const char *cmdline, int option) {
         return system(cmdline);
     }
 
-#ifdef _CAP_WINDOWS
+#ifdef _PAD_WINDOWS
     int flag = 0;
     if (option & SAFESYSTEM_EDIT) {
         // option for edit command
@@ -218,23 +165,6 @@ argsbyoptind(int argc, char *argv[], int optind) {
     return args;
 }
 
-const char *
-get_origin(const config_t *config, const char *cap_path) {
-    if (!config || !cap_path) {
-        return NULL;
-    }
-
-    if (cap_path[0] == '/') {
-        return config->home_path;
-    } else if (config->scope == CAP_SCOPE_LOCAL) {
-        return config->cd_path;
-    } else if (config->scope == CAP_SCOPE_GLOBAL) {
-        return config->home_path;
-    }
-    err_die("impossible. invalid state in get origin");
-    return NULL;
-}
-
 char *
 trim_first_line(char *dst, int32_t dstsz, const char *text) {
     if (!dst || !dstsz || !text) {
@@ -270,7 +200,7 @@ compile_argv(const config_t *config, errstack_t *errstack, int argc, char *argv[
 
     if (!opts_parse(opts, argc, argv)) {
         if (errstack) {
-            errstack_pushb(errstack, "failed to compile argv. failed to parse options");
+            errstack_pushb(errstack, NULL, 0, NULL, 0, "failed to compile argv. failed to parse options");
         }
         return NULL;
     }
@@ -321,11 +251,234 @@ compile_argv(const config_t *config, errstack_t *errstack, int argc, char *argv[
 
 void
 clear_screen(void) {
-#ifdef _CAP_WINDOWS
+#ifdef _PAD_WINDOWS
     system("cls");
 #else
     system("clear");
 #endif
+}
+
+static char *
+read_path_var_from_resource(const config_t *config, const char *rcpath) {
+    char *src = file_readcp_from_path(rcpath);
+
+    tokenizer_t *tkr = tkr_new(tkropt_new());
+    ast_t *ast = ast_new(config);
+    gc_t *gc = gc_new();
+    context_t *ctx = ctx_new(gc);
+    opts_t *opts = opts_new();
+
+    tkr_parse(tkr, src);
+    free(src);
+    src = NULL;
+    if (tkr_has_error_stack(tkr)) {
+        err_error("%s", tkr_getc_first_error_message(tkr));
+        return NULL;
+    }
+
+    ast_clear(ast);
+    ast_move_opts(ast, opts);
+    opts = NULL;
+
+    cc_compile(ast, tkr_get_tokens(tkr));
+    if (ast_has_errors(ast)) {
+        err_error("%s", ast_getc_first_error_message(ast));
+        return NULL;
+    }
+
+    trv_traverse(ast, ctx);
+    if (ast_has_errors(ast)) {
+        err_error("%s", ast_getc_first_error_message(ast));
+        return NULL;
+    }
+
+    tkr_del(tkr);
+    ast_del(ast);
+
+    object_dict_t *varmap = ctx_get_varmap_at_global(ctx);
+    const object_dict_item_t *item = objdict_getc(varmap, "PATH");
+    if (!item) {
+        ctx_del(ctx);
+        gc_del(gc);
+        return NULL;
+    }
+
+    ctx_pop_newline_of_stdout_buf(ctx);
+    printf("%s", ctx_getc_stdout_buf(ctx));
+    fflush(stdout);
+
+    const char *s = uni_getc_mb(item->value->unicode);
+    char *path = cstr_dup(s);
+    if (!path) {
+        ctx_del(ctx);
+        gc_del(gc);
+        return NULL;        
+    }
+
+    ctx_del(ctx);
+    gc_del(gc);
+
+    return path;
+}
+
+cstring_array_t *
+split_to_array(const char *str, int ch) {
+    if (!str) {
+        return NULL;
+    }
+
+    cstring_array_t *arr = cstrarr_new();
+    string_t *s = str_new();
+
+    for (const char *p = str; *p; ++p) {
+        if (*p == ch) {
+            if (str_len(s)) {
+                cstrarr_pushb(arr, str_getc(s));
+                str_clear(s);
+            }
+        } else {
+            str_pushb(s, *p);
+        }
+    }
+
+    if (str_len(s)) {
+        cstrarr_pushb(arr, str_getc(s));
+    }
+
+    str_del(s);
+    return arr;
+}
+
+static cstring_array_t *
+split_path_var(const char *path) {
+    return split_to_array(path, ':');
+}
+
+cstring_array_t *
+pushf_argv(int argc, char *argv[], const char *front) {
+    cstring_array_t *arr = cstrarr_new();
+
+    cstrarr_pushb(arr, front);
+
+    for (int32_t i = 0; i < argc; ++i) {
+        cstrarr_pushb(arr, argv[i]);
+    }
+
+    return mem_move(arr);
+}
+
+char *
+escape(char *dst, int32_t dstsz, const char *src, const char *target) {
+    if (!dst || !dstsz || !src || !target) {
+        return NULL;
+    }
+
+    char *dp = dst;
+    char *dpend = dst + dstsz - 1;
+    const char *p = src;
+
+    for (; dp < dpend && *p; ++dp, ++p) {
+        if (strchr(target, *p)) {
+            *dp++ = '\\';
+            if (dp < dpend) {
+                *dp = *p;
+            }
+        } else {
+            *dp = *p;
+        }
+    }
+
+    *dp = '\0';
+    return dst;
+}
+
+bool
+is_dot_file(const char *path) {
+    return strcmp(path, "..") == 0 || strcmp(path, ".") == 0;
+}
+
+char *
+pop_tail_slash(char *path) {
+    int32_t pathlen = strlen(path);
+#ifdef _PAD_WINDOWS
+    if (pathlen == 3 && path[2] == '\\') {
+        return path;
+    } else {
+        return path_pop_tail_slash(path);
+    }
+#else
+    if (pathlen == 1 && path[0] == '/') {
+        return path;
+    } else {
+        return path_pop_tail_slash(path);
+    }
+#endif
+}
+
+bool
+is_out_of_home(const char *homepath, const char *argpath) {
+    if (!homepath || !argpath) {
+        return false;
+    }
+
+    char home[FILE_NPATH];
+    char path[FILE_NPATH];
+
+    if (!file_solve(home, sizeof home, homepath) ||
+        !file_solve(path, sizeof path, argpath)) {
+        return true;
+    }
+
+    path_pop_tail_slash(home);
+    path_pop_tail_slash(path);
+
+    size_t homelen = strlen(home);
+    if (strncmp(home, path, homelen)) {
+        return true;
+    }
+
+    return false;
+}
+
+char *
+solve_cmdline_arg_path(const config_t *config, char *dst, int32_t dstsz, const char *caps_arg_path) {
+    if (caps_arg_path[0] == ':') {
+        if (!file_solve(dst, dstsz, caps_arg_path+1)) {
+            return NULL;
+        }
+    } else {
+        char tmp[FILE_NPATH*2];
+        const char *org = get_origin(config, caps_arg_path);
+
+        const char *path = caps_arg_path;
+        if (caps_arg_path[0] == '/') {
+            path = caps_arg_path + 1;
+        }
+
+        snprintf(tmp, sizeof tmp, "%s/%s", org, path);
+        if (!symlink_follow_path(config, dst, dstsz, tmp)) {
+            return NULL;
+        }
+    }
+
+    return dst;
+}
+
+const char *
+get_origin(const config_t *config, const char *cap_path) {
+    if (!config || !cap_path) {
+        return NULL;
+    }
+
+    if (cap_path[0] == '/') {
+        return config->home_path;
+    } else if (config->scope == CAP_SCOPE_LOCAL) {
+        return config->cd_path;
+    } else if (config->scope == CAP_SCOPE_GLOBAL) {
+        return config->home_path;
+    }
+    err_die("impossible. invalid state in get origin");
+    return NULL;
 }
 
 /**
@@ -409,106 +562,6 @@ execute_snippet(const config_t *config, bool *found, int argc, char **argv, cons
     file_dirclose(dir);
     return *found ? 0 : -1;
 }
-
-static char *
-read_path_var_from_resource(const config_t *config, const char *rcpath) {
-    char *src = file_readcp_from_path(rcpath);
-
-    tokenizer_t *tkr = tkr_new(tkropt_new());
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
-    opts_t *opts = opts_new();
-
-    tkr_parse(tkr, src);
-    free(src);
-    src = NULL;
-    if (tkr_has_error_stack(tkr)) {
-        err_error("%s", tkr_getc_first_error_message(tkr));
-        return NULL;
-    }
-
-    ast_clear(ast);
-    ast_move_opts(ast, opts);
-    opts = NULL;
-
-    cc_compile(ast, tkr_get_tokens(tkr));
-    if (ast_has_errors(ast)) {
-        err_error("%s", ast_getc_first_error_message(ast));
-        return NULL;
-    }
-
-    trv_traverse(ast, ctx);
-    if (ast_has_errors(ast)) {
-        err_error("%s", ast_getc_first_error_message(ast));
-        return NULL;
-    }
-
-    tkr_del(tkr);
-    ast_del(ast);
-
-    object_dict_t *varmap = ctx_get_varmap_at_global(ctx);
-    const object_dict_item_t *item = objdict_getc(varmap, "PATH");
-    if (!item) {
-        ctx_del(ctx);
-        gc_del(gc);
-        return NULL;
-    }
-
-    ctx_pop_newline_of_stdout_buf(ctx);
-    printf("%s", ctx_getc_stdout_buf(ctx));
-    fflush(stdout);
-
-    const char *s = uni_getc_mb(item->value->unicode);
-    char *path = cstr_edup(s);
-
-    ctx_del(ctx);
-    gc_del(gc);
-
-    return path;
-}
-
-cstring_array_t *
-split_to_array(const char *str, int ch) {
-    if (!str) {
-        return NULL;
-    }
-
-    cstring_array_t *arr = cstrarr_new();
-    string_t *s = str_new();
-
-    for (const char *p = str; *p; ++p) {
-        if (*p == ch) {
-            if (str_len(s)) {
-                cstrarr_pushb(arr, str_getc(s));
-                str_clear(s);
-            }
-        } else {
-            str_pushb(s, *p);
-        }
-    }
-
-    if (str_len(s)) {
-        cstrarr_pushb(arr, str_getc(s));
-    }
-
-    str_del(s);
-    return arr;
-}
-
-static cstring_array_t *
-split_path_var(const char *path) {
-    return split_to_array(path, ':');
-}
-
-void
-runcmd_del(runcmd_t *self);
-
-runcmd_t *
-runcmd_new(const config_t *config, int argc, char *argv[]);
-
-int
-runcmd_run(runcmd_t *self);
 
 int
 execute_run(const config_t *config, int argc, char *argv[]) {
@@ -619,89 +672,4 @@ execute_program(const config_t *config, bool *found, int cmd_argc, char *cmd_arg
     }
 
     return 1;
-}
-
-cstring_array_t *
-pushf_argv(int argc, char *argv[], const char *front) {
-    cstring_array_t *arr = cstrarr_new();
-
-    cstrarr_pushb(arr, front);
-
-    for (int32_t i = 0; i < argc; ++i) {
-        cstrarr_pushb(arr, argv[i]);
-    }
-
-    return mem_move(arr);
-}
-
-char *
-solve_cmdline_arg_path(const config_t *config, char *dst, int32_t dstsz, const char *caps_arg_path) {
-    if (caps_arg_path[0] == ':') {
-        if (!file_solve(dst, dstsz, caps_arg_path+1)) {
-            return NULL;
-        }
-    } else {
-        char tmp[FILE_NPATH*2];
-        const char *org = get_origin(config, caps_arg_path);
-
-        const char *path = caps_arg_path;
-        if (caps_arg_path[0] == '/') {
-            path = caps_arg_path + 1;
-        }
-
-        snprintf(tmp, sizeof tmp, "%s/%s", org, path);
-        if (!symlink_follow_path(config, dst, dstsz, tmp)) {
-            return NULL;
-        }
-    }
-
-    return dst;
-}
-
-char *
-escape(char *dst, int32_t dstsz, const char *src, const char *target) {
-    if (!dst || !dstsz || !src || !target) {
-        return NULL;
-    }
-
-    char *dp = dst;
-    char *dpend = dst + dstsz - 1;
-    const char *p = src;
-
-    for (; dp < dpend && *p; ++dp, ++p) {
-        if (strchr(target, *p)) {
-            *dp++ = '\\';
-            if (dp < dpend) {
-                *dp = *p;
-            }
-        } else {
-            *dp = *p;
-        }
-    }
-
-    *dp = '\0';
-    return dst;
-}
-
-bool
-is_dot_file(const char *path) {
-    return strcmp(path, "..") == 0 || strcmp(path, ".") == 0;
-}
-
-char *
-pop_tail_slash(char *path) {
-    int32_t pathlen = strlen(path);
-#ifdef _CAP_WINDOWS
-    if (pathlen == 3 && path[2] == '\\') {
-        return path;
-    } else {
-        return path_pop_tail_slash(path);
-    }
-#else
-    if (pathlen == 1 && path[0] == '/') {
-        return path;
-    } else {
-        return path_pop_tail_slash(path);
-    }
-#endif
 }

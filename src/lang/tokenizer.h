@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include <core/error_stack.h>
 #include <lib/error.h>
@@ -67,6 +68,12 @@ tkr_del(tokenizer_t *self);
 tokenizer_t *
 tkr_new(tokenizer_option_t *move_option);
 
+tokenizer_t *
+tkr_extendb_other(tokenizer_t *self, const tokenizer_t *other);
+
+tokenizer_t *
+tkr_extendf_other(tokenizer_t *self, const tokenizer_t *other);
+
 /**
  * copy constructor
  *
@@ -76,6 +83,9 @@ tkr_new(tokenizer_option_t *move_option);
  */
 tokenizer_t *
 tkr_deep_copy(const tokenizer_t *other);
+
+tokenizer_t *
+tkr_shallow_copy(const tokenizer_t *other);
 
 /**
  * Parse string and build tokens
@@ -88,6 +98,17 @@ tkr_deep_copy(const tokenizer_t *other);
  */
 tokenizer_t *
 tkr_parse(tokenizer_t *self, const char *src);
+
+/**
+ * move option
+ * 
+ * @param[in] *self 
+ * @param[in] *move_opt  
+ * 
+ * @return 
+ */
+tokenizer_t *
+tkr_move_opt(tokenizer_t *self, tokenizer_option_t *move_opt);
 
 /**
  * Get length of tokens list
@@ -166,4 +187,7 @@ tkr_set_debug(tokenizer_t *self, bool debug);
  * @param[in] *fout
  */
 void
-tkr_trace_error_stack(const tokenizer_t *self, FILE *fout);
+tkr_trace_error(const tokenizer_t *self, FILE *fout);
+
+const char *
+tkr_set_program_filename(tokenizer_t *self, const char *program_filename);

@@ -115,6 +115,11 @@ str_deep_copy(const string_t *other) {
     return self;
 }
 
+string_t *
+str_shallow_copy(const string_t *other) {
+    return str_deep_copy(other);
+}
+
 /*************
 * str getter *
 *************/
@@ -332,7 +337,7 @@ str_app_other(string_t *self, const string_t *_other) {
     string_t *ret = NULL;
 
     if (self == other) {
-        string_type_t *buf = cstr_edup(self->buffer);
+        string_type_t *buf = cstr_dup(self->buffer);
         if (!buf) {
             str_del(other);
             return ret;
@@ -729,6 +734,50 @@ str_mul(const string_t *self, int32_t n) {
     }
 
     return buf;
+}
+
+string_t *
+str_indent(const string_t *other, int32_t ch, int32_t n, int32_t tabsize) {
+    if (!other || ch < 0 || n < 0 || tabsize < 0) {
+        return NULL;
+    }
+
+    if (tabsize == 0) {
+        tabsize = 1;
+    }
+
+    int32_t valsz = n * tabsize;
+    char value[valsz + 1];
+    if (ch == ' ') {
+        memset(value, ch, valsz);
+        value[valsz] = '\0';
+    } else {
+        memset(value, ch, valsz);
+        value[n] = '\0';
+    }
+
+    string_t *self = str_new();
+    const char *p = str_getc(other);
+
+    str_app(self, value);
+    for (; *p; ++p) {
+        if (*p == '\r' && *(p + 1) == '\n') {
+            ++p;
+            str_app(self, "\r\n");
+            if (*(p + 1)) {
+                str_app(self, value);
+            }
+        } else if (*p == '\r' || *p == '\n') {
+            str_pushb(self, *p);
+            if (*(p + 1)) {
+                str_app(self, value);
+            }
+        } else {
+            str_pushb(self, *p);
+        }
+    }
+
+    return self;
 }
 
 /**************

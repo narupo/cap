@@ -1,5 +1,7 @@
 #include <make/make.h>
 
+#define error(stack, fmt, ...) errstack_pushb(stack, NULL, 0, NULL, 0, fmt, ##__VA_ARGS__)
+
 /**
  * Structure of command
  */
@@ -54,7 +56,7 @@ make_from_args(
     if (use_stdin) {
         src = file_readcp(stdin);
         if (!src) {
-            errstack_pushb(errstack, "failed to read from stdin");
+            error(errstack, "failed to read from stdin");
             return 1;
         }
     } else {
@@ -63,7 +65,7 @@ make_from_args(
 
         if (solve_path) {
             if (!solve_cmdline_arg_path(config, path, sizeof path, cap_path)) {
-                errstack_pushb(errstack, "failed to solve cap path");
+                error(errstack, "failed to solve cap path");
                 return 1;
             }            
         } else {
@@ -72,7 +74,7 @@ make_from_args(
 
         src = file_readcp_from_path(path);
         if (!src) {
-            errstack_pushb(errstack, "failed to read from \"%s\"", path);
+            error(errstack, "failed to read from \"%s\"", path);
             return 1;
         }
     }
@@ -85,7 +87,7 @@ make_from_args(
         src
     );
     if (!compiled) {
-        errstack_pushb(
+        error(
             errstack,
             "failed to compile from \"%s\"",
             (argv[1] ? argv[1] : "stdin")

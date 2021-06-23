@@ -10,6 +10,7 @@ opts_del(opts_t *self) {
     if (!self) {
         return;
     }
+    
     dict_del(self->opts);
     cstrarr_del(self->args);
     free(self);
@@ -17,12 +18,76 @@ opts_del(opts_t *self) {
 
 opts_t *
 opts_new(void) {
-    opts_t *self = mem_ecalloc(1, sizeof(*self));
+    opts_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
     self->opts = dict_new(100);
+    if (!self->opts) {
+        opts_del(self);
+        return NULL;
+    }
+
     self->args = cstrarr_new();
+    if (!self->args) {
+        opts_del(self);
+        return NULL;
+    }
 
     return self;
+}
+
+opts_t *
+opts_deep_copy(const opts_t *other) {
+    if (!other) {
+        return NULL;
+    }
+
+    opts_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
+    self->opts = dict_deep_copy(other->opts);
+    if (!self->opts) {
+        opts_del(self);
+        return NULL;
+    }
+
+    self->args = cstrarr_deep_copy(other->args);
+    if (!self->args) {
+        opts_del(self);
+        return NULL;
+    }
+
+    return self;
+}
+
+opts_t *
+opts_shallow_copy(const opts_t *other) {
+    if (!other) {
+        return NULL;
+    }
+
+    opts_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
+    self->opts = dict_shallow_copy(other->opts);
+    if (!self->opts) {
+        opts_del(self);
+        return NULL;
+    }
+
+    self->args = cstrarr_shallow_copy(other->args);
+    if (!self->args) {
+        opts_del(self);
+        return NULL;
+    }
+
+    return self;    
 }
 
 void
@@ -46,6 +111,9 @@ opts_parse(opts_t *self, int argc, char *argv[]) {
 
     int m = 0;
     string_t *key = str_new();
+    if (!key) {
+        return NULL;
+    }
 
     cstrarr_clear(self->args);
     cstrarr_pushb(self->args, argv[0]);
@@ -61,7 +129,9 @@ opts_parse(opts_t *self, int argc, char *argv[]) {
                 str_set(key, arg+1);
                 m = 20;
             } else {
-                cstrarr_pushb(self->args, arg);
+                if (!cstrarr_pushb(self->args, arg)) {
+                    return NULL;
+                }
             }
             break;
         case 10: // found long option

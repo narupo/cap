@@ -15,7 +15,11 @@ importer_del(importer_t *self) {
 
 importer_t *
 importer_new(const config_t *ref_config) {
-    importer_t *self = mem_ecalloc(1, sizeof(*self));
+    importer_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+    
     self->ref_config = ref_config;
     return self;
 }
@@ -33,6 +37,27 @@ importer_set_error(importer_t *self, const char *fmt, ...) {
 const char *
 importer_getc_error(const importer_t *self) {
     return self->error;
+}
+
+static char *
+fix_path(importer_t *self, char *dst, int32_t dstsz, const char *path) {
+    if (!dst || dstsz <= 0 || !path) {
+        importer_set_error(self, "invalid arguments");
+        return NULL;
+    }
+
+    if (file_exists(path)) {
+        snprintf(dst, dstsz, "%s", path);
+        return dst;
+    }
+
+    if (!file_solvefmt(dst, sizeof dst, "%s/%s", self->ref_config->std_lib_dir_path, path
+    )) {
+        importer_set_error(self, "failed to solve path for standard library");
+        return NULL;
+    }
+
+    return dst;
 }
 
 static char *
@@ -73,10 +98,23 @@ create_modobj(
     importer_t *self,
     gc_t *ref_gc,
     const ast_t *ref_ast,
-    const char *cap_path
+    const char *path
 ) {
-    char *src = read_source(self, cap_path);
+    // read source
+    char src_path[FILE_NPATH];
+    if (!fix_path(self, src_path, sizeof src_path, path)) {
+        importer_set_error(self, "failed to fix path from \"%s\"", path);
+        return NULL; 
+    }
+
+    if (!file_exists(src_path)) {
+        importer_set_error(self, "\"%s\" is not found", src_path);
+        return NULL;
+    }
+
+    char *src = file_readcp_from_path(src_path);
     if (!src) {
+        importer_set_error(self, "failed to read content from \"%s\"", src_path);
         return NULL;
     }
 
@@ -84,10 +122,12 @@ create_modobj(
     tokenizer_t *tkr = tkr_new(mem_move(tkropt_new()));
     ast_t *ast = ast_new(self->ref_config);
     context_t *ctx = ctx_new(ref_gc);  // LOOK ME! gc is *REFERENCE* from arguments!
+    ctx_set_ref_prev(ctx, ref_ast->ref_context);
 
     ast->import_level = ref_ast->import_level + 1;
     ast->debug = ref_ast->debug;
 
+    tkr_set_program_filename(tkr, src_path);
     tkr_parse(tkr, src);
     if (tkr_has_error_stack(tkr)) {
         importer_set_error(self, tkr_getc_first_error_message(tkr));
@@ -112,13 +152,15 @@ create_modobj(
 
     object_t *modobj = obj_new_module_by(
         ref_gc,
-        cap_path,
+        path,  // module name
+        path,  // program_filename
+        mem_move(src),  // program_source
         mem_move(tkr),
         mem_move(ast),
+        mem_move(ctx),
         NULL
     );
 
-    free(src);
     return modobj;
 }
 
@@ -231,7 +273,7 @@ importer_from_import(
 
     // assign imported module at global varmap of current context
     obj_inc_ref(modobj);
-    objdict_move(dst_varmap, str_getc(modobj->module.name), mem_move(modobj));
+    objdict_move(dst_varmap, modobj->module.name, mem_move(modobj));
 
     return self;
 }

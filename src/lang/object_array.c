@@ -43,9 +43,17 @@ objarr_del_without_objs(object_array_t* self) {
 
 object_array_t*
 objarr_new(void) {
-    object_array_t *self = mem_ecalloc(1, sizeof(*self));
+    object_array_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
-    self->parray = mem_ecalloc(OBJARR_INIT_CAPA+1, sizeof(object_t *));
+    self->parray = mem_calloc(OBJARR_INIT_CAPA+1, sizeof(object_t *));
+    if (!self->parray) {
+        objarr_del(self);
+        return NULL;
+    }
+
     self->capa = OBJARR_INIT_CAPA;
 
     return self;
@@ -56,19 +64,62 @@ obj_deep_copy(const object_t *other);
 
 object_array_t*
 objarr_deep_copy(const object_array_t *other) {
-    object_array_t *self = mem_ecalloc(1, sizeof(*self));
+    object_array_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
-    self->parray = mem_ecalloc(other->capa+1, sizeof(object_t *));
+    self->parray = mem_calloc(other->capa+1, sizeof(object_t *));
+    if (!self->parray) {
+        objarr_del(self);
+        return NULL;
+    }
+
     self->capa = other->capa;
     self->len = other->len;
 
     for (int i = 0; i < self->len; ++i) {
         object_t *obj = obj_deep_copy(other->parray[i]);
+        if (!obj) {
+            objarr_del(self);
+            return NULL;
+        }
+
         obj_inc_ref(obj);
         self->parray[i] = obj;
     }
 
     return self;
+}
+
+object_array_t*
+objarr_shallow_copy(const object_array_t *other) {
+    object_array_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
+    self->parray = mem_calloc(other->capa+1, sizeof(object_t *));
+    if (!self->parray) {
+        objarr_del(self);
+        return NULL;
+    }
+
+    self->capa = other->capa;
+    self->len = other->len;
+
+    for (int i = 0; i < self->len; ++i) {
+        object_t *obj = obj_shallow_copy(other->parray[i]);
+        if (!obj) {
+            objarr_del(self);
+            return NULL;
+        }
+
+        obj_inc_ref(obj);
+        self->parray[i] = obj;
+    }
+
+    return self;    
 }
 
 /*********
@@ -112,7 +163,10 @@ objarr_resize(object_array_t* self, int32_t capa) {
     }
 
     int byte = sizeof(object_t *);
-    object_t **tmparr = mem_erealloc(self->parray, capa * byte + byte);
+    object_t **tmparr = mem_realloc(self->parray, capa * byte + byte);
+    if (!tmparr) {
+        return NULL;
+    }
 
     self->parray = tmparr;
     self->capa = capa;
@@ -127,10 +181,12 @@ objarr_move(object_array_t* self, int32_t index, object_t *move_obj) {
     }
 
     object_t *old = self->parray[index];
-    obj_dec_ref(old);
-    obj_del(old);
-    obj_inc_ref(move_obj);
-    self->parray[index] = move_obj;
+    if (old != move_obj) {
+        obj_dec_ref(old);
+        obj_del(old);
+        obj_inc_ref(move_obj);
+        self->parray[index] = move_obj;
+    }
 
     return self;
 }
@@ -198,13 +254,42 @@ objarr_popb(object_array_t *self) {
     return obj;
 }
 
+object_array_t *
+objarr_app_other(object_array_t *self, object_array_t *other) {
+    bool same = self == other;
+    if (same) {
+        other = objarr_shallow_copy(other);
+    }
+
+    for (int32_t i = 0; i < other->len; ++i) {
+        object_t *obj = other->parray[i];
+        obj_inc_ref(obj);
+        objarr_pushb(self, obj);
+    }
+
+    if (same) {
+        objarr_del(other);
+    }
+
+    return self;
+}
+
 object_t *
 objarr_get_last(object_array_t *self) {
     if (self->len <= 0) {
         return NULL;
     }
 
-    return self->parray[self->len-1];
+    return self->parray[self->len - 1];
+}
+
+object_t *
+objarr_get_last_2(object_array_t *self) {
+    if (self->len <= 1) {
+        return NULL;
+    }
+
+    return self->parray[self->len - 2];
 }
 
 const object_t *
@@ -225,4 +310,12 @@ objarr_dump(const object_array_t *self, FILE *fout) {
         fprintf(fout, "parray[%d] = obj[%p]\n", i, obj);
         obj_dump(obj, fout);
     }
+}
+
+void
+objarr_dump_s(const object_array_t *self, FILE *fout) {
+    for (int32_t i = 0; i < self->len; ++i) {
+        const object_t *obj = self->parray[i];
+        fprintf(fout, "[%d] = obj[%p]\n", i, obj);
+    }    
 }

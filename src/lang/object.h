@@ -4,6 +4,7 @@
 #include <assert.h>
 
 #include <lib/string.h>
+#include <lib/cstring.h>
 #include <lib/unicode.h>
 #include <lib/cstring.h>
 #include <lib/memory.h>
@@ -25,6 +26,11 @@ typedef enum {
     // 整数オブジェクト
     // 整数の範囲は lang/types.h@objint_t を参照
     OBJ_TYPE_INT,
+
+    // A float object
+    // 浮動小数点数オブジェクト
+    // 値の範囲は lang/types.h@objint_t を参照
+    OBJ_TYPE_FLOAT,
 
     // A boolean object
     // A boolean object has true or false
@@ -49,6 +55,13 @@ typedef enum {
     // A dictionary object
     OBJ_TYPE_DICT,
 
+    // A struct object
+    // これは宣言。実体ではない
+    OBJ_TYPE_DEF_STRUCT,
+
+    // A object (instance of struct and others)
+    OBJ_TYPE_OBJECT,
+
     // A function object
     // That has ref_suites of context of nodes in ast_t
     // Time to execute to execute this context
@@ -70,6 +83,12 @@ typedef enum {
     // array.push() や dict.pop("key") など、ドット演算子で繋げで呼び出すメソッド用のオブジェクト
     // owner にメソッドのオーナーオブジェクト、method_name にメソッド名が保存される
     OBJ_TYPE_OWNERS_METHOD,
+
+    // A type object
+    OBJ_TYPE_TYPE,
+
+    // A builtin function
+    OBJ_TYPE_BUILTIN_FUNC,
 } obj_type_t;
 
 /**
@@ -77,20 +96,25 @@ typedef enum {
  */
 struct object_func {
     ast_t *ref_ast;  // function object refer this reference of ast on execute
+    context_t *ref_context;  // reference of context
     object_t *name;  // type == OBJ_TYPE_IDENTIFIER
     object_t *args;  // type == OBJ_TYPE_ARRAY
     node_array_t *ref_suites;  // reference to suite (node tree) (DO NOT DELETE)
     node_dict_t *ref_blocks;  // reference to blocks (build by block-statement) in function (DO NOT DELETE)
     object_t *extends_func;  // reference to function object of extended
+    bool is_met;  // is method?
 };
 
 /**
  * A module object
  */
 struct object_module {
-    string_t *name;  // module name
+    char *name;  // module name
+    char *program_filename;
+    char *program_source;
     tokenizer_t *tokenizer;
     ast_t *ast;
+    context_t *context;
     builtin_func_info_t *builtin_func_infos;  // builtin functions
 };
 
@@ -98,7 +122,7 @@ struct object_module {
  * A identifier object
  */
 struct object_identifier {
-    ast_t *ref_ast;
+    context_t *ref_context;
     string_t *name;
 };
 
@@ -119,6 +143,35 @@ struct object_owners_method {
 };
 
 /**
+ * A struct object
+ */
+struct object_def_struct {
+    ast_t *ref_ast;  // reference
+    object_t *identifier;  // moved (type == OBJ_TYPE_UNICODE)
+    ast_t *ast;  // moved (struct's ast (node tree))
+    context_t *context;  // moved (struct's context)
+};
+
+/**
+ * A instance of struct (and class)
+ */
+struct object_object {
+    ast_t *ref_ast;  // DO NOT DELETE
+    ast_t *ref_struct_ast;  // DO NOT DELETE
+    context_t *struct_context;  // moved
+    object_t *ref_def_obj;  // DO NOT DELETE
+};
+
+struct object_type {
+    obj_type_t type;
+    const char *name;
+};
+
+struct object_builtin_func {
+    const char *funcname;
+};
+
+/**
  * A abstract object
  */
 struct object {
@@ -130,11 +183,16 @@ struct object {
     object_array_t *objarr;  // value of array (type == OBJ_TYPE_ARRAY)
     object_dict_t *objdict;  // value of dict (type == OBJ_TYPE_DICT)
     objint_t lvalue;  // value of integer (type == OBJ_TYPE_INT)
+    objfloat_t float_value;  // value of float (type == OBJ_TYPE_FLOAT)
     bool boolean;  // value of boolean (type == OBJ_TYPE_BOOL)
     object_func_t func;  // structure of function (type == OBJ_TYPE_FUNC)
+    object_def_struct_t def_struct;  // structure of pad's structure (type == OBJ_TYPE_DEF_STRUCT)
+    object_object_t object;  // structure of object (type == OBJ_TYPE_INSTANCE)
     object_module_t module;  // structure of module (type == OBJ_TYPE_MODULE)
     object_chain_t chain;  // structure of chain (type == OBJ_TYPE_CHAIN)
     object_owners_method_t owners_method;  // structure of owners_method (type == OBJ_TYPE_OWNERS_METHOD)
+    object_type_t type_obj;  // structure of type (type == OBJ_TYPE_TYPE)
+    object_builtin_func_t builtin_func;  // structure of builtin func (type == OBJ_TYPE_BUILTIN_FUNC)
 };
 
 /**
@@ -166,6 +224,16 @@ obj_new(gc_t *ref_gc, obj_type_t type);
  */
 object_t *
 obj_deep_copy(const object_t *other);
+
+/**
+ * shallow copy
+ *
+ * @param[in] *other
+ *
+ * @return
+ */
+object_t *
+obj_shallow_copy(const object_t *other);
 
 /**
  * construct nil object
@@ -220,15 +288,20 @@ obj_new_bool(gc_t *ref_gc, bool boolean);
  * construct identifier object by C string
  * if failed to allocate memory then exit from process
  *
- * @param[in]     *ref_gc     reference to gc_t (do not delete)
- * @param[in|out] *ref_ast    reference to ast_t current context (do not delete)
- * @param[in]     *identifier C strings of identifier
+ * @param[in]      *ref_gc      reference to gc_t (do not delete)
+ * @param[in|out]  *ref_ast     reference to ast_t current context (do not delete)
+ * @param [in|out] *ref_context reference to context_t
+ * @param[in]      *identifier  C strings of identifier
  *
  * @return success to pointer to object_t (new object)
  * @return failed to NULL
  */
 object_t *
-obj_new_cidentifier(gc_t *ref_gc, ast_t *ref_ast, const char *identifier);
+obj_new_cidentifier(
+    gc_t *ref_gc,
+    context_t *ref_context,
+    const char *identifier
+);
 
 /**
  * construct identifier object by string_t
@@ -236,13 +309,18 @@ obj_new_cidentifier(gc_t *ref_gc, ast_t *ref_ast, const char *identifier);
  *
  * @param[in]     *ref_gc          reference to gc_t (do not delete)
  * @param[in|out] *ref_ast         reference to ast_t current context (do not delete)
+ * @param [in|out] *ref_context    reference to context_t
  * @param[in]     *move_identifier pointer to string_t (with move semantics)
  *
  * @return success to pointer to object_t (new object)
  * @return failed to NULL
  */
 object_t *
-obj_new_identifier(gc_t *ref_gc, ast_t *ref_ast, string_t *move_identifier);
+obj_new_identifier(
+    gc_t *ref_gc,
+    context_t *ref_context,
+    string_t *move_identifier
+);
 
 /**
  * construct unicode object by C strings
@@ -282,6 +360,19 @@ obj_new_unicode(gc_t *ref_gc, unicode_t *move_unicode);
  */
 object_t *
 obj_new_int(gc_t *ref_gc, objint_t lvalue);
+
+/**
+ * construct float object by value
+ * if failed to allocate memory then exit from process
+ * 
+ * @param[in] *ref_gc reference to gc_t (do not delete)
+ * @param[in] value  value of objfloat_t
+ *
+ * @return success to pointer to object_t (new object)
+ * @return failed to NULL
+ */
+object_t *
+obj_new_float(gc_t *ref_gc, objfloat_t value);
 
 /**
  * construct array object by object_array_t
@@ -328,11 +419,13 @@ object_t *
 obj_new_func(
     gc_t *ref_gc,
     ast_t *ref_ast,
+    context_t *ref_context,
     object_t *move_name,
     object_t *move_args,
     node_array_t *ref_suites,
     node_dict_t *ref_blocks,
-    object_t *extends_func
+    object_t *extends_func,
+    bool is_met
 );
 
 /**
@@ -362,15 +455,47 @@ object_t *
 obj_new_module(gc_t *ref_gc);
 
 /**
+ * construct def-struct-object 
+ * if failed to allocate memory then exit from process
+ *
+ * @return success to pointer to object_t (new object)
+ * @return failed to NULL
+ */
+object_t *
+obj_new_def_struct(
+    gc_t *ref_gc,
+    object_t *move_idn,
+    ast_t *move_ast,
+    context_t *move_context
+);
+
+/**
+ * construct object object
+ * if failed to allocate memory then exit from process
+ * 
+ * @return success to pointer to object_t (new object)
+ * @return failed to NULL
+ */
+object_t *
+obj_new_object(
+    gc_t *ref_gc,
+    ast_t *ref_ast,
+    context_t *move_context,
+    object_t *ref_def_obj
+);
+
+/**
  * construct module object by parameters
  * if failed to allocate memory then exit from process
  *
- *
- * @param[in] *ref_gc     reference to gc_t (do not delete)
- * @param[in] *name       pointer to C strings for module name
- * @param[in] *move_tkr   pointer to tokenizer_t (with move semantics)
- * @param[in] *move_ast   pointer to ast_t (with move semantics)
- * @param[in] *func_infos array of functions
+ * @param[in] *ref_gc              reference to gc_t (do not delete)
+ * @param[in] *name                pointer to C strings for module name
+ * @param[in] *program_filename    file name
+ * @param[in] *move_program_source program source
+ * @param[in] *move_tkr            pointer to tokenizer_t (with move semantics)
+ * @param[in] *move_ast            pointer to ast_t (with move semantics)
+ * @param[in] *move_context        context
+ * @param[in] *func_infos          array of functions
  *
  * @return pointer to object_t
  */
@@ -378,8 +503,11 @@ object_t *
 obj_new_module_by(
     gc_t *ref_gc,
     const char *name,
+    const char *program_filename,
+    char *move_program_source,
     tokenizer_t *move_tkr,
     ast_t *move_ast,
+    context_t *move_context,
     builtin_func_info_t *func_infos
 );
 
@@ -395,6 +523,12 @@ obj_new_module_by(
  */
 object_t *
 obj_new_owners_method(gc_t *ref_gc, object_t *owner, string_t *move_method_name);
+
+object_t *
+obj_new_type(gc_t *ref_gc, obj_type_t type);
+
+object_t *
+obj_new_builtin_func(gc_t *ref_gc, const char *funcname);
 
 /**
  * object to string_t
@@ -475,14 +609,17 @@ const char *
 obj_getc_idn_name(const object_t *self);
 
 /**
- * get reference of ast in identifier object
+ * get def-struct identifier value
  *
  * @param[in] *self
  *
- * @return reference to ast_t (do not delete)
+ * @return pointer to strings in identifier
  */
-ast_t *
-obj_get_idn_ref_ast(const object_t *self);
+const char *
+obj_getc_def_struct_idn_name(const object_t *self);
+
+context_t *
+obj_get_idn_ref_context(const object_t *self);
 
 /**
  * get chain objects in chain object (type == OBJ_TYPE_CHAIN)
@@ -631,5 +768,11 @@ obj_get_owners_method_owner(object_t *self);
  *
  * @return pointer to C strings
  */
-const string_t *
+const char *
 obj_getc_mod_name(const object_t *self);
+
+gc_t *
+obj_get_gc(object_t *self);
+
+gc_t *
+obj_set_gc(object_t *self, gc_t *ref_gc);

@@ -33,6 +33,7 @@ typedef enum {
     TOKEN_TYPE_DQ_STRING, // '"string"'
 
     TOKEN_TYPE_INTEGER, // 123
+    TOKEN_TYPE_FLOAT, // 123.456
     TOKEN_TYPE_OP_ADD, // '+'
     TOKEN_TYPE_OP_SUB, // '-'
     TOKEN_TYPE_OP_MUL, // '*'
@@ -68,16 +69,28 @@ typedef enum {
     TOKEN_TYPE_STMT_RETURN, // 'return'
     TOKEN_TYPE_STMT_BLOCK,  // 'block'
     TOKEN_TYPE_STMT_INJECT,  // 'inject'
+
+    TOKEN_TYPE_STRUCT,  // 'struct'
+
     TOKEN_TYPE_DEF, // 'def'
+    TOKEN_TYPE_MET, // 'met'
     TOKEN_TYPE_EXTENDS,  // 'extends'
     TOKEN_TYPE_FALSE, // 'false'
     TOKEN_TYPE_TRUE, // 'true'
 } token_type_t;
 
+/**
+ * abstract token
+ */
 typedef struct token {
-    token_type_t type;
-    char *text;
-    objint_t lvalue;
+    char *text;  // value of token text (dynamic allocate memory)
+    const char *program_filename;  // pointer to program file name
+    const char *program_source;  // pointer to program source strings
+    int32_t program_lineno;  // program line number
+    int32_t program_source_pos;  // position of token in program source strings
+    token_type_t type;  // token type
+    objint_t lvalue;  // value of token value
+    objfloat_t float_value;  // value of float value
 } token_t;
 
 /**
@@ -94,7 +107,13 @@ token_del(token_t *self);
  * @param[in] type number of token type
  */
 token_t *
-token_new(int type);
+token_new(
+    token_type_t type,
+    const char *program_filename,
+    int32_t program_lineno,
+    const char *program_source,
+    int32_t program_source_pos
+);
 
 /**
  * copy constructor
@@ -153,3 +172,6 @@ token_copy_text(const token_t *self);
  */
 const char *
 token_type_to_str(const token_t *self);
+
+void
+token_dump(const token_t *self, FILE *fout);

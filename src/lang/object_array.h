@@ -27,6 +27,12 @@ objarr_new(void);
 object_array_t*
 objarr_deep_copy(const object_array_t *other);
 
+object_array_t*
+objarr_shallow_copy(const object_array_t *other);
+
+object_array_t*
+objarr_shallow_copy(const object_array_t *other);
+
 /*********
 * getter *
 *********/
@@ -84,8 +90,17 @@ objarr_popb(object_array_t *self);
 object_t *
 objarr_get_last(object_array_t *self);
 
+object_t *
+objarr_get_last_2(object_array_t *self);
+
 const object_t *
 objarr_getc_last(const object_array_t *self);
+
+/**
+ * TODO: test
+ */
+object_array_t *
+objarr_app_other(object_array_t *self, object_array_t *other);
 
 /**
  * dump object array at stream
@@ -95,3 +110,6 @@ objarr_getc_last(const object_array_t *self);
  */
 void
 objarr_dump(const object_array_t *self, FILE *fout);
+
+void
+objarr_dump_s(const object_array_t *self, FILE *fout);

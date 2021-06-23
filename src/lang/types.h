@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 struct object_dict;
 typedef struct object_dict object_dict_t;
@@ -21,11 +22,23 @@ typedef struct object_module object_module_t;
 struct object_identifier;
 typedef struct object_identifier object_identifier_t;
 
+struct object_def_struct;
+typedef struct object_def_struct object_def_struct_t;
+
+struct object_object;
+typedef struct object_object object_object_t;
+
 struct object_chain;
 typedef struct object_chain object_chain_t;
 
 struct object_owners_method;
 typedef struct object_owners_method object_owners_method_t;
+
+struct object_type;
+typedef struct object_type object_type_t;
+
+struct object_builtin_func;
+typedef struct object_builtin_func object_builtin_func_t;
 
 struct node_array;
 typedef struct node_array node_array_t;
@@ -68,6 +81,7 @@ struct gc_item;
 typedef struct gc_item gc_item_t;
 
 typedef long objint_t;
+typedef double objfloat_t;
 
 // number of depth type for function recursion
 typedef int32_t depth_t;
@@ -86,3 +100,7 @@ typedef struct chain_objects chain_objects_t;
 
 struct node;
 typedef struct node node_t;
+
+struct kit;
+typedef struct kit kit_t;
+

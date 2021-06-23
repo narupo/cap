@@ -22,11 +22,54 @@ dict_new(size_t capa) {
         return NULL;
     }
 
-    dict_t *self = mem_ecalloc(1, sizeof(*self));
+    dict_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
     self->capa = capa;
     self->len = 0;
-    self->map = mem_ecalloc(self->capa+1, sizeof(dict_item_t));
+    self->map = mem_calloc(self->capa + 1, sizeof(dict_item_t));
+    if (!self->map) {
+        free(self);
+        return NULL;
+    }
+
     return self;
+}
+
+dict_t *
+dict_deep_copy(const dict_t *other) {
+    if (!other) {
+        return NULL;
+    }
+
+    dict_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+    
+    self->capa = other->capa;
+    self->len = 0;
+    self->map = mem_calloc(other->capa + 1, sizeof(dict_item_t));
+    if (!self->map) {
+        free(self);
+        return NULL;
+    }
+
+    for (self->len = 0; self->len < other->len; ++self->len) {
+        dict_item_t *src = &other->map[self->len];
+        dict_item_t *dst = &self->map[self->len];
+        cstr_copy(dst->key, DICT_ITEM_KEY_SIZE, src->key);
+        cstr_copy(dst->value, DICT_ITEM_KEY_SIZE, src->value);
+    }
+
+    return self;
+}
+
+dict_t *
+dict_shallow_copy(const dict_t *other) {
+    return dict_deep_copy(other);
 }
 
 dict_t *
@@ -36,7 +79,11 @@ dict_resize(dict_t *self, size_t newcapa) {
     }
 
     size_t byte = sizeof(dict_t);
-    dict_item_t *tmp = mem_erealloc(self->map, newcapa*byte+byte);
+    dict_item_t *tmp = mem_realloc(self->map, newcapa*byte+byte);
+    if (!tmp) {
+        return NULL;
+    }
+
     self->map = tmp;
     self->capa = newcapa;
     return self;
@@ -56,7 +103,9 @@ dict_set(dict_t *self, const char *key, const char *value) {
     }
     
     if (self->len >= self->capa) {
-        dict_resize(self, self->capa*2);
+        if (!dict_resize(self, self->capa*2)) {
+            return NULL;
+        }
     }
 
     dict_item_t *el = &self->map[self->len++]; 

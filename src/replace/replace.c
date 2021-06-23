@@ -1,5 +1,7 @@
 #include <replace/replace.h>
 
+#define error(stack, fmt, ...) errstack_pushb(stack, NULL, 0, NULL, 0, fmt, ##__VA_ARGS__)
+
 /**
  * structure of command
  */
@@ -49,20 +51,20 @@ replace(replacecmd_t *self) {
     } else {
         cap_path = self->argv[1];
         if (!solve_cmdline_arg_path(self->config, path, sizeof path, cap_path)) {
-            errstack_pushb(self->errstack, "failed to solve cap path");
+            error(self->errstack, "failed to solve cap path");
             return 1;
         }            
 
         fin = fopen(path, "r");
         if (fin == NULL) {
-            errstack_pushb(self->errstack, "failed to open file %s", path);
+            error(self->errstack, "failed to open file %s", path);
             goto error;
         }
     }
 
     src = file_readcp(fin);
     if (src == NULL) {
-        errstack_pushb(self->errstack, "failed to read from file");
+        error(self->errstack, "failed to read from file");
         goto error;
     }
     fclose(fin);
@@ -86,12 +88,12 @@ replace(replacecmd_t *self) {
     // replace
     fout = fopen(path, "w");
     if (fout == NULL) {
-        errstack_pushb(self->errstack, "failed to open file %s for write", path);
+        error(self->errstack, "failed to open file %s for write", path);
         goto error;
     }
 
     if (fwrite(compiled, sizeof(char), strlen(compiled), fout) == 0) {
-        errstack_pushb(self->errstack, "failed to write data at %s", cap_path);
+        error(self->errstack, "failed to write data at %s", cap_path);
         goto error;
     }
 

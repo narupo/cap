@@ -36,10 +36,150 @@ scope_escdel_head_varmap(scope_t *self) {
 
 scope_t *
 scope_new(gc_t *ref_gc) {
-    scope_t *self = mem_ecalloc(1, sizeof(*self));
+    if (!ref_gc) {
+        return NULL;
+    }
+
+    scope_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
     self->ref_gc = ref_gc;
     self->varmap = objdict_new(ref_gc);
+    if (!self->varmap) {
+        scope_del(self);
+        return NULL;
+    }
+
+    return self;
+}
+
+static scope_t *
+scope_deep_copy_once(const scope_t *other) {
+    if (!other) {
+        return NULL;
+    }
+
+    scope_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
+    self->ref_gc = other->ref_gc;
+    self->varmap = objdict_deep_copy(other->varmap);
+    if (!self->varmap) {
+        scope_del(self);
+        return NULL;
+    }
+
+    return self;
+}
+
+scope_t *
+scope_deep_copy(const scope_t *other) {
+    if (!other) {
+        return NULL;
+    }
+
+    scope_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
+    self->ref_gc = other->ref_gc;
+    self->varmap = objdict_deep_copy(other->varmap);
+    if (!self->varmap) {
+        scope_del(self);
+        return NULL;
+    }
+
+    scope_t *dst = self;
+    for (scope_t *cur = other->prev; cur; cur = cur->prev) {
+        dst->prev = scope_deep_copy_once(cur);
+        if (!dst->prev) {
+            scope_del(self);
+            return NULL;
+        }
+
+        dst->prev->next = dst;
+        dst = dst->prev;
+    }
+
+    dst = self;
+    for (scope_t *cur = other->next; cur; cur = cur->next) {
+        dst->next = scope_deep_copy_once(cur);
+        if (!dst->next) {
+            scope_del(self);
+            return NULL;
+        }
+        dst->next->prev = dst;
+        dst = dst->next;
+    }
+
+    return self;
+}
+
+static scope_t *
+scope_shallow_copy_once(const scope_t *other) {
+    if (!other) {
+        return NULL;
+    }
+
+    scope_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
+    self->ref_gc = other->ref_gc;
+    self->varmap = objdict_shallow_copy(other->varmap);
+    if (!self->varmap) {
+        scope_del(self);
+        return NULL;
+    }
+
+    return self;
+}
+
+scope_t *
+scope_shallow_copy(const scope_t *other) {
+    if (!other) {
+        return NULL;
+    }
+
+    scope_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
+    self->ref_gc = other->ref_gc;
+    self->varmap = objdict_shallow_copy(other->varmap);
+    if (!self->varmap) {
+        scope_del(self);
+        return NULL;
+    }
+
+    scope_t *dst = self;
+    for (scope_t *cur = other->prev; cur; cur = cur->prev) {
+        dst->prev = scope_shallow_copy_once(cur);
+        if (!dst->prev) {
+            scope_del(self);
+            return NULL;            
+        }
+        dst->prev->next = dst;
+        dst = dst->prev;
+    }
+
+    dst = self;
+    for (scope_t *cur = other->next; cur; cur = cur->next) {
+        dst->next = scope_shallow_copy_once(cur);
+        if (!dst->next) {
+            scope_del(self);
+            return NULL;            
+        }
+        dst->next->prev = dst;
+        dst = dst->next;
+    }
 
     return self;
 }
@@ -126,7 +266,7 @@ scope_clear(scope_t *self) {
     }
 
     self->next = NULL;
-    objdict_clear(self->varmap); // clear global variables
+    objdict_clear(self->varmap);  // clear global variables
     return self;
 }
 
@@ -140,19 +280,41 @@ scope_getc_varmap(const scope_t *self) {
     return scope_get_varmap((scope_t *) self);
 }
 
+static scope_t *
+find_tail(scope_t *self) {
+    scope_t *last = self;
+    for (scope_t *cur = self; cur; cur = cur->next) {
+        if (!cur->next) {
+            last = cur;
+            break;
+        }
+    }
+
+    return last;
+}
+
 object_t *
 scope_find_var_ref(scope_t *self, const char *key) {
     if (!self) {
         return NULL;
     }
 
-    scope_t *tail = NULL;
-    for (scope_t *cur = self; cur; cur = cur->next) {
-        if (!cur->next) {
-            tail = cur;
-            break;
-        }
+    scope_t *tail = find_tail(self);
+    object_dict_item_t *item = objdict_get(tail->varmap, key);
+    if (item) {
+        return item->value;
     }
+
+    return NULL;
+}
+
+object_t *
+scope_find_var_ref_all(scope_t *self, const char *key) {
+    if (!self) {
+        return NULL;
+    }
+
+    scope_t *tail = find_tail(self);
 
     for (scope_t *cur = tail; cur; cur = cur->prev) {
         object_dict_item_t *item = objdict_get(cur->varmap, key);

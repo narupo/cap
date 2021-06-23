@@ -10,6 +10,7 @@
 #include <lang/node_dict.h>
 #include <lang/node_array.h>
 #include <lang/chain_nodes.h>
+#include <lang/tokens.h>
 
 /*************
 * node types *
@@ -44,6 +45,8 @@ typedef enum {
     NODE_TYPE_BLOCK_STMT,
     NODE_TYPE_INJECT_STMT,
 
+    NODE_TYPE_STRUCT,
+
     NODE_TYPE_CONTENT,
 
     NODE_TYPE_FORMULA,
@@ -75,6 +78,7 @@ typedef enum {
     // atoms
     NODE_TYPE_NIL,
     NODE_TYPE_DIGIT,
+    NODE_TYPE_FLOAT,
     NODE_TYPE_STRING,
     NODE_TYPE_IDENTIFIER,
     NODE_TYPE_ARRAY,
@@ -127,6 +131,7 @@ typedef enum {
 struct node {
     node_type_t type;
     void *real;
+    const token_t *ref_token;
 };
 
 typedef struct {
@@ -155,6 +160,7 @@ typedef struct {
 typedef struct {
     node_t *def;
     node_t *stmt;
+    node_t *struct_;
     node_t *formula;
     node_t *elems;
 } node_elems_t;
@@ -241,6 +247,15 @@ typedef struct {
     node_array_t *contents;
 } node_inject_stmt_t;
 
+/*********
+* struct *
+*********/
+
+typedef struct {
+    node_t *identifier;
+    node_t *elems;
+} node_struct_t;
+
 /**********
 * content *
 **********/
@@ -264,6 +279,7 @@ typedef struct {
     node_t *func_extends;  // function of extended
     node_array_t *contents;  // array of nodes
     node_dict_t *blocks;  // block nodes of block statement
+    bool is_met;
 } node_func_def_t;
 
 typedef struct {
@@ -364,6 +380,7 @@ typedef struct {
     node_t *true_;
     node_t *false_;
     node_t *digit;
+    node_t *float_;
     node_t *string;
     node_t *array;
     node_t *dict;
@@ -416,8 +433,12 @@ typedef struct {
 } node_nil_t;
 
 typedef struct {
-    objint_t lvalue;
+    objint_t lvalue;  // TODO: lvalue to value
 } node_digit_t;
+
+typedef struct {
+    objfloat_t value;
+} node_float_t;
 
 typedef struct {
     bool boolean;
@@ -456,7 +477,7 @@ node_del(node_t *self);
  * @return pointer to dynamic allocate memory of node_t
  */
 node_t *
-node_new(node_type_t type, void *real);
+node_new(node_type_t type, void *real, const token_t *ref_token);
 
 /**
  * Deep copy
@@ -468,6 +489,9 @@ node_new(node_type_t type, void *real);
  */
 node_t *
 node_deep_copy(const node_t *other);
+
+node_t *
+node_shallow_copy(const node_t *other);
 
 /**
  * Get node type
@@ -517,3 +541,6 @@ node_to_str(const node_t *self);
  */
 void
 node_dump(const node_t *self, FILE *fout);
+
+const token_t *
+node_getc_ref_token(const node_t *self);

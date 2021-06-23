@@ -260,6 +260,7 @@ ast_del_nodes(const ast_t *self, node_t *node) {
         ast_del_nodes(self, atom->true_);
         ast_del_nodes(self, atom->false_);
         ast_del_nodes(self, atom->digit);
+        ast_del_nodes(self, atom->float_);
         ast_del_nodes(self, atom->string);
         ast_del_nodes(self, atom->array);
         ast_del_nodes(self, atom->dict);
@@ -275,6 +276,9 @@ ast_del_nodes(const ast_t *self, node_t *node) {
         // nothing todo
     } break;
     case NODE_TYPE_DIGIT: {
+        // nothing todo
+    } break;
+    case NODE_TYPE_FLOAT: {
         // nothing todo
     } break;
     case NODE_TYPE_STRING: {
@@ -364,6 +368,11 @@ ast_del_nodes(const ast_t *self, node_t *node) {
         ast_del_nodes(self, content->elems);
         ast_del_nodes(self, content->blocks);
     } break;
+    case NODE_TYPE_STRUCT: {
+        node_struct_t *struct_ = node->real;
+        ast_del_nodes(self, struct_->identifier);
+        ast_del_nodes(self, struct_->elems);
+    } break;
     }
 
     node_del(node);
@@ -383,13 +392,107 @@ ast_del(ast_t *self) {
 
 ast_t *
 ast_new(const config_t *ref_config) {
-    ast_t *self = mem_ecalloc(1, sizeof(*self));
+    ast_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
     self->ref_config = ref_config;
     self->opts = opts_new();
+    if (!self->opts) {
+        ast_del(self);
+        return NULL;
+    }
+
     self->error_stack = errstack_new();
+    if (!self->error_stack) {
+        ast_del(self);
+        return NULL;
+    }
 
     return self;
+}
+
+ast_t *
+ast_deep_copy(const ast_t *other) {
+    if (!other) {
+        return NULL;
+    }
+
+    ast_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
+    self->ref_config = other->ref_config;
+    self->ref_tokens = other->ref_tokens;
+    self->ref_ptr = other->ref_ptr;
+    self->root = node_deep_copy(other->root);
+    if (!self->root) {
+        ast_del(self);
+        return NULL;
+    }
+
+    self->ref_context = other->ref_context;
+    self->opts = opts_deep_copy(other->opts);
+    if (!self->opts) {
+        ast_del(self);
+        return NULL;
+    }
+
+    self->ref_gc = other->ref_gc;
+    self->import_level = other->import_level;
+    self->error_stack = errstack_deep_copy(other->error_stack);
+    if (!self->error_stack) {
+        ast_del(self);
+        return NULL;
+    }
+
+    self->debug = other->debug;
+    self->is_in_loop = other->is_in_loop;
+
+    return self;
+}
+
+ast_t *
+ast_shallow_copy(const ast_t *other) {
+    if (!other) {
+        return NULL;
+    }
+
+    ast_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
+    self->ref_config = other->ref_config;
+    self->ref_tokens = other->ref_tokens;
+    self->ref_ptr = other->ref_ptr;
+    self->root = node_shallow_copy(other->root);
+    if (!self->root) {
+        ast_del(self);
+        return NULL;
+    }
+
+    self->ref_context = other->ref_context;
+    self->opts = opts_shallow_copy(other->opts);
+    if (!self->opts) {
+        ast_del(self);
+        return NULL;
+    }
+
+    self->ref_gc = other->ref_gc;
+    self->import_level = other->import_level;
+    self->error_stack = errstack_shallow_copy(other->error_stack);
+    if (!self->error_stack) {
+        ast_del(self);
+        return NULL;
+    }
+    
+    self->debug = other->debug;
+    self->is_in_loop = other->is_in_loop;
+
+    return self;    
 }
 
 void
@@ -476,10 +579,27 @@ ast_set_debug(ast_t *self, bool debug) {
 }
 
 void
-ast_trace_error_stack(const ast_t *self, FILE *fout) {
+ast_trace_error_tokens(const ast_t *self, FILE *fout) {
     if (!self || !fout) {
         return;
     }
+
+    if (!self->error_tokens_pos) {
+        return;
+    }
+
+    token_t *token = self->error_tokens[0];
+    // TODO: fix me!
+    fprintf(fout, "[%s] pos[%d]\n", token->program_source, token->program_source_pos);
+}
+
+void
+ast_trace_error(const ast_t *self, FILE *fout) {
+    if (!self || !fout) {
+        return;
+    }
+
+    ast_trace_error_tokens(self, fout);
     errstack_trace(self->error_stack, fout);
 }
 
@@ -507,6 +627,16 @@ ast_get_ref_context(ast_t *self) {
     return self->ref_context;
 }
 
+void
+ast_set_ref_context(ast_t *ast, context_t *ref_context) {
+    ast->ref_context = ref_context;
+}
+
+void
+ast_set_ref_gc(ast_t *ast, gc_t *ref_gc) {
+    ast->ref_gc = ref_gc;
+}
+
 token_t *
 ast_read_token(ast_t *self) {
     if (!self || !self->ref_ptr) {
@@ -528,4 +658,18 @@ ast_prev_ptr(ast_t *self) {
 gc_t *
 ast_get_ref_gc(ast_t *self) {
     return self->ref_gc;
+}
+
+ast_t *
+ast_pushb_error_token(ast_t *self, token_t *ref_token) {
+    if (!self || !ref_token) {
+        return NULL;
+    }
+
+    if (self->error_tokens_pos >= AST_ERR_TOKENS_SIZE) {
+        return NULL;
+    }
+
+    self->error_tokens[self->error_tokens_pos++] = ref_token;
+    return self;
 }

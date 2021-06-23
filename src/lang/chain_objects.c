@@ -10,6 +10,9 @@ chain_obj_del(chain_object_t *self);
 chain_object_t *
 chain_obj_deep_copy(const chain_object_t *other);
 
+chain_object_t *
+chain_obj_shallow_copy(const chain_object_t *other);
+
 void
 chain_obj_dump(const chain_object_t *self, FILE *fout);
 
@@ -51,16 +54,24 @@ chain_objs_del(chain_objects_t *self) {
 
 chain_objects_t *
 chain_objs_new(void) {
-    chain_objects_t *self = mem_ecalloc(1, sizeof(*self));
+    chain_objects_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
-    self->chain_objs = mem_ecalloc(CHAIN_OBJS_INIT_CAPA+1, sizeof(chain_objects_t *));  // +1 for final null
+    self->chain_objs = mem_calloc(CHAIN_OBJS_INIT_CAPA+1, sizeof(chain_objects_t *));  // +1 for final null
+    if (!self->chain_objs) {
+        chain_objs_del(self);
+        return NULL;
+    }
+
     self->capa = CHAIN_OBJS_INIT_CAPA;
 
     return self;
 }
 
 chain_objects_t *
-chain_objs_deep_copy(const chain_objects_t *other) {
+_chain_objs_copy(const chain_objects_t *other, bool deep) {
     if (!other) {
         return NULL;
     }
@@ -71,19 +82,39 @@ chain_objs_deep_copy(const chain_objects_t *other) {
         return NULL;
     }
 
-    for (int32_t i = 0; i < other->len; ++i) {
-        chain_object_t *co = other->chain_objs[i];
-        self->chain_objs[i] = chain_obj_deep_copy(co);
-        self->chain_objs[i+1] = NULL;
+    for (self->len = 0; self->len < other->len; ++self->len) {
+        chain_object_t *co = other->chain_objs[self->len];
+        if (deep) {
+            self->chain_objs[self->len] = chain_obj_deep_copy(co);
+        } else {
+            self->chain_objs[self->len] = chain_obj_shallow_copy(co);
+        }
+        self->chain_objs[self->len + 1] = NULL;
     }
 
     return self;
 }
 
 chain_objects_t *
+chain_objs_deep_copy(const chain_objects_t *other) {
+    return _chain_objs_copy(other, true);
+}
+
+chain_objects_t *
+chain_objs_shallow_copy(const chain_objects_t *other) {
+    return _chain_objs_copy(other, false);
+}
+
+chain_objects_t *
 chain_objs_resize(chain_objects_t *self, int32_t newcapa) {
     int32_t nbyte = sizeof(chain_objects_t *);
-    self->chain_objs = mem_erealloc(self->chain_objs, nbyte * newcapa + nbyte);  // +nbyte is final null
+
+    chain_object_t **tmp = mem_realloc(self->chain_objs, nbyte * newcapa + nbyte);  // +nbyte is final null
+    if (!tmp) {
+        return NULL;
+    }
+    
+    self->chain_objs = tmp;
     self->capa = newcapa;
     return self;
 }
@@ -121,6 +152,24 @@ chain_objs_get(chain_objects_t *self, int32_t idx) {
     }
 
     return self->chain_objs[idx];
+}
+
+chain_object_t *
+chain_objs_get_last(chain_objects_t *self) {
+    if (self->len <= 0) {
+        return NULL;
+    }
+
+    return self->chain_objs[self->len - 1];
+}
+
+chain_object_t *
+chain_objs_get_last_2(chain_objects_t *self) {
+    if (self->len <= 1) {
+        return NULL;
+    }
+
+    return self->chain_objs[self->len - 2];
 }
 
 void

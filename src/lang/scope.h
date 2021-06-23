@@ -16,6 +16,18 @@ scope_escdel_head_varmap(scope_t *self);
 scope_t *
 scope_new(gc_t *gc);
 
+/**
+ * !!! WARNING !!!
+ *
+ * this function may be to recursion loop of deep copy
+ * because varmap has objects of def_struct and module
+ */
+scope_t *
+scope_deep_copy(const scope_t *other);
+
+scope_t *
+scope_shallow_copy(const scope_t *other);
+
 scope_t *
 scope_moveb(scope_t *self, scope_t *move_scope);
 
@@ -43,6 +55,9 @@ scope_clear(scope_t *self);
  */
 object_t *
 scope_find_var_ref(scope_t *self, const char *key);
+
+object_t *
+scope_find_var_ref_all(scope_t *self, const char *key);
 
 /**
  * dump scope_t at stream

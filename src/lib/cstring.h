@@ -85,6 +85,17 @@ char *
 cstr_edup(const char *src);
 
 /**
+ * Duplicate string
+ *
+ * @param[in] src source string
+ *
+ * @return success to pointer to string of dynamic allocate memory
+ * @return failed to pointer to NULL
+ */
+char *
+cstr_dup(const char *src);
+
+/**
  * Split path by separator character
  *
  * @param[in] *str pointer to string
@@ -138,3 +149,15 @@ cstr_isdigit(const char *str);
  */
 void
 cstr_pop_last_newline(char *str);
+
+/**
+ * right strip zero of float value
+ *
+ * 1.230000 -> 1.23
+ * 1.0 -> 1.0
+ *
+ * @param[in|out] n pointer to strings
+ * @return pointer to n
+ */
+char *
+cstr_rstrip_float_zero(char *n);

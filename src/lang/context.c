@@ -7,14 +7,30 @@ enum {
 };
 
 struct context {
+    // ref_prevにはコンテキストをつなげたい時に、親のコンテキストを設定する
+    // contextはこのref_prevを使い親のコンテキストを辿れるようになっている
+    // これによってルートのコンテキストや1つ前のコンテキストを辿れる
+    context_t *ref_prev;  // reference to previous context
+
     gc_t *ref_gc;  // reference to gc (DO NOT DELETE)
     alinfo_t *alinfo;  // alias info for builtin alias module
+
+    // ルートのcontextのstdout_buf, stderr_bufにputsなどの組み込み関数の出力が保存される
+    // その他ref_blockやtext_blockなどの出力もルートのcontextに保存されるようになっている
+    // 2020/10/06以前はコンテキストごとにputsの出力を保存していた
     string_t *stdout_buf;  // stdout buffer in context
     string_t *stderr_buf;  // stderr buffer in context
+
+    // コンテキストはスコープを管理する
+    // 関数などのブロックに入るとスコープがプッシュされ、関数のスコープになる
+    // 関数から出るとこのスコープがポップされ、スコープから出る
     scope_t *scope;  // scope in context
+
     bool do_break;  // if do break from current context then store true
     bool do_continue;  // if do continue on current context then store
     bool do_return;
+
+    bool is_use_buf;  // if true then context use stdout/stderr buffer
 };
 
 void
@@ -46,32 +62,39 @@ ctx_escdel_global_varmap(context_t *self) {
     return varmap;
 }
 
-/**
- * set default global variables at global scope
- *
- * PATH, etc...
- *
- * @param[in] self
- */
-static void
-set_default_global_vars(context_t *self) {
-    // set PATH string variable
-    object_dict_t *varmap = scope_get_varmap(self->scope); // get global varmap
-    object_t *path = obj_new_unicode_cstr(self->ref_gc, "");
-    obj_inc_ref(path);
-    objdict_move(varmap, "PATH", mem_move(path));
-}
-
 context_t *
 ctx_new(gc_t *ref_gc) {
-    context_t *self = mem_ecalloc(1, sizeof(*self));
+    context_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
     self->ref_gc = ref_gc;
     self->alinfo = alinfo_new();
+    if (!self->alinfo) {
+        ctx_del(self);
+        return NULL;
+    }
+
     self->stdout_buf = str_new();
+    if (!self->stdout_buf) {
+        ctx_del(self);
+        return NULL;
+    }
+
     self->stderr_buf = str_new();
+    if (!self->stderr_buf) {
+        ctx_del(self);
+        return NULL;
+    }
+
     self->scope = scope_new(ref_gc);
-    set_default_global_vars(self);
+    if (!self->scope) {
+        ctx_del(self);
+        return NULL;
+    }
+    
+    self->is_use_buf = true;
 
     return self;
 }
@@ -82,7 +105,7 @@ ctx_clear(context_t *self) {
     str_clear(self->stdout_buf);
     str_clear(self->stderr_buf);
     scope_clear(self->scope);
-    set_default_global_vars(self);
+    self->is_use_buf = true;
 }
 
 context_t *
@@ -112,13 +135,21 @@ ctx_get_alias_desc(context_t *self, const char *key) {
 
 context_t *
 ctx_pushb_stdout_buf(context_t *self, const char *str) {
-    str_app(self->stdout_buf, str);
+    if (self->is_use_buf) {
+        str_app(self->stdout_buf, str);
+    } else {
+        fprintf(stdout, "%s", str);
+    }
     return self;
 }
 
 context_t *
 ctx_pushb_stderr_buf(context_t *self, const char *str) {
-    str_app(self->stderr_buf, str);
+    if (self->is_use_buf) {
+        str_app(self->stderr_buf, str);
+    } else {
+        fprintf(stderr, "%s", str);
+    }
     return self;
 }
 
@@ -199,7 +230,27 @@ ctx_popb_scope(context_t *self) {
 
 object_t *
 ctx_find_var_ref(context_t *self, const char *key) {
+    if (!self || !key) {
+        return NULL;
+    }
+
     return scope_find_var_ref(self->scope, key);
+}
+
+object_t *
+ctx_find_var_ref_all(context_t *self, const char *key) {
+    if (!self || !key) {
+        return NULL;
+    }
+    
+    for (context_t *cur = self; cur; cur = cur->ref_prev) {
+        object_t *ref = scope_find_var_ref_all(cur->scope, key);
+        if (ref) {
+            return ref;
+        }
+    }
+
+    return NULL;
 }
 
 gc_t *
@@ -238,6 +289,7 @@ ctx_dump(const context_t *self, FILE *fout) {
     }
 
     fprintf(fout, "context[%p]\n", self);
+    fprintf(fout, "ref_prev[%p]\n", self->ref_prev);
     scope_dump(self->scope, fout);
 }
 
@@ -289,4 +341,119 @@ ctx_pop_newline_of_stdout_buf(context_t *self) {
             str_popb(self->stdout_buf);
         } 
     }
+}
+
+void
+ctx_set_ref_prev(context_t *self, context_t *ref_prev) {
+    if (!self) {
+        return;
+    }
+
+    self->ref_prev = ref_prev;
+}
+
+context_t *
+ctx_get_ref_prev(const context_t *self) {
+    if (!self) {
+        return NULL;
+    }
+
+    return self->ref_prev;
+}
+
+context_t *
+ctx_find_most_prev(context_t *self) {
+    if (!self) {
+        return NULL;
+    }
+
+    context_t *most_prev = self;
+    for (context_t *cur = self; cur; cur = cur->ref_prev) {
+        most_prev = cur;
+    }
+
+    return most_prev;
+}
+
+context_t *
+ctx_deep_copy(const context_t *other) {
+    if (!other) {
+        return NULL;
+    }
+    
+    context_t *self = ctx_new(other->ref_gc);
+
+    self->ref_prev = other->ref_prev;
+    self->ref_gc = other->ref_gc;
+    self->alinfo = alinfo_deep_copy(other->alinfo);
+    self->stdout_buf = str_deep_copy(other->stdout_buf);
+    self->stderr_buf = str_deep_copy(other->stderr_buf);
+    self->scope = scope_deep_copy(other->scope);
+    self->do_break = other->do_break;
+    self->do_continue = other->do_continue;
+    self->do_return = other->do_return;
+    self->is_use_buf = other->is_use_buf;
+
+    return self;
+}
+
+context_t *
+ctx_shallow_copy(const context_t *other) {
+    if (!other) {
+        return NULL;
+    }
+    
+    context_t *self = ctx_new(other->ref_gc);
+
+    self->ref_prev = other->ref_prev;
+    self->ref_gc = other->ref_gc;
+    self->alinfo = alinfo_shallow_copy(other->alinfo);
+    self->stdout_buf = str_shallow_copy(other->stdout_buf);
+    self->stderr_buf = str_shallow_copy(other->stderr_buf);
+    self->scope = scope_shallow_copy(other->scope);
+    self->do_break = other->do_break;
+    self->do_continue = other->do_continue;
+    self->do_return = other->do_return;
+    self->is_use_buf = other->is_use_buf;
+
+    return self;
+}
+
+context_t *
+ctx_unpack_objarr_to_cur_scope(context_t *self, object_array_t *arr) {
+    if (!self || !arr) {
+        return NULL;
+    }
+
+    scope_t *scope = self->scope;
+    object_dict_t *varmap = scope_get_varmap(scope);
+
+    for (int32_t i = 0; i < objdict_len(varmap) && i < objarr_len(arr); ++i) {
+        object_dict_item_t *item = objdict_get_index(varmap, i);
+        object_t *obj = objarr_get(arr, i);
+        if (item->value == obj) {
+            continue;
+        }
+
+        obj_dec_ref(item->value);
+        obj_del(item->value);
+        obj_inc_ref(obj);
+        item->value = obj;
+    }
+
+    return self;
+}
+
+void
+ctx_set_use_buf(context_t *self, bool is_use_buf) {
+    if (!self) {
+        return;
+    }
+
+    self->is_use_buf = is_use_buf;
+}
+
+bool
+ctx_get_is_use_buf(const context_t *self) {
+    return self->is_use_buf;
 }

@@ -208,6 +208,36 @@ char32_strcmp(const char32_t *s1, const char32_t *s2);
 int32_t
 char16_strcmp(const char16_t *s1, const char16_t *s2);
 
+/**
+ * TODO: test
+ * 
+ * @param[in] *s1 
+ * @param[in] *s2 
+ * @param[in] n   
+ * 
+ * @return 
+ */
+int32_t
+char32_strncmp(const char32_t *s1, const char32_t *s2, int32_t n);
+
+/**
+ * TODO: test
+ * 
+ * @param[in] *s1 
+ * @param[in] *s2 
+ * @param[in] n   
+ * 
+ * @return 
+ */
+int32_t
+char16_strncmp(const char16_t *s1, const char16_t *s2, int32_t n);
+
+bool
+char16_isspace(char16_t ch);
+
+bool
+char32_isspace(char32_t ch);
+
 #define u_len(str) _Generic((str[0]), \
     char32_t: char32_len, \
     char16_t: char16_len \
@@ -252,6 +282,16 @@ char16_strcmp(const char16_t *s1, const char16_t *s2);
   char32_t: char32_strcmp, \
   char16_t: char16_strcmp \
 )(s1, s2)
+
+#define u_strncmp(s1, s2, n) _Generic((s1[0]), \
+  char32_t: char32_strncmp, \
+  char16_t: char16_strncmp \
+)(s1, s2, n)
+
+#define u_isspace(ch) _Generic((ch), \
+  char32_t: char32_isspace, \
+  char16_t: char16_isspace \
+)(ch)
 
 /**********
 * unicode *
@@ -437,6 +477,9 @@ uni_app_stream(unicode_t *self, FILE *fin);
 unicode_t *
 uni_deep_copy(const unicode_t *other);
 
+unicode_t *
+uni_shallow_copy(const unicode_t *other);
+
 /**
  * append other object at tail of buffer
  *
@@ -615,3 +658,12 @@ uni_mul(const unicode_t *other, int32_t n);
  */
 unicode_t **
 uni_split(const unicode_t *other, const unicode_type_t *sep);
+
+bool
+uni_isdigit(const unicode_t *self);
+
+bool
+uni_isalpha(const unicode_t *self);
+
+bool
+uni_isspace(const unicode_t *self);

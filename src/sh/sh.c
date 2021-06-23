@@ -337,10 +337,10 @@ shcmd_update(shcmd_t *self) {
     if (strstr(self->line_buf, "{@")) {
         kit_clear_context_buffer(self->kit);
         if (!kit_compile_from_string(self->kit, self->line_buf)) {
-            err_error(kit_getc_error(self->kit));
+            kit_trace_error(self->kit, stderr);
             return 1;
         }
-        const char *result = kit_getc_compiled(self->kit);
+        const char *result = kit_getc_stdout_buf(self->kit);
         printf("%s", result);
         fflush(stdout);
         return 0;

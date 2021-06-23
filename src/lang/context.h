@@ -65,6 +65,9 @@ ctx_clear(context_t *self);
 context_t *
 ctx_set_alias(context_t *self, const char *key, const char *value, const char *desc);
 
+void
+ctx_set_default_global_vars(context_t *self);
+
 /**
  * get alias value of key
  *
@@ -257,6 +260,19 @@ object_t *
 ctx_find_var_ref(context_t *self, const char *key);
 
 /**
+ * find variable from varmap of scope at tail to head in scope chain
+ * traverse previous context on find
+ *
+ * @param[in] *self pointer to context_t
+ * @param[in] *key  key strings
+ *
+ * @return found to poitner to object_t
+ * @return not found to pointer to NULL
+ */
+object_t *
+ctx_find_var_ref_all(context_t *self, const char *key);
+
+/**
  * get reference of gc_t in context
  *
  * @param[in] *self pointer to context_t
@@ -340,3 +356,27 @@ ctx_get_ref_varmap_cur_scope(const context_t *self);
  */
 void
 ctx_pop_newline_of_stdout_buf(context_t *self);
+
+void
+ctx_set_ref_prev(context_t *self, context_t *ref_prev);
+
+context_t *
+ctx_get_ref_prev(const context_t *self);
+
+context_t *
+ctx_find_most_prev(context_t *self);
+
+context_t *
+ctx_deep_copy(const context_t *other);
+
+context_t *
+ctx_shallow_copy(const context_t *other);
+
+context_t *
+ctx_unpack_objarr_to_cur_scope(context_t *self, object_array_t *arr);
+
+void
+ctx_set_use_buf(context_t *self, bool is_use_buf);
+
+bool
+ctx_get_is_use_buf(const context_t *self);

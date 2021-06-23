@@ -72,6 +72,9 @@ str_new(void);
 string_t *
 str_deep_copy(const string_t *other);
 
+string_t *
+str_shallow_copy(const string_t *other);
+
 /**
  * construct from C strings
  *
@@ -377,6 +380,9 @@ str_hacker(const string_t *other);
  */
 string_t *
 str_mul(const string_t *self, int32_t n);
+
+string_t *
+str_indent(const string_t *other, int32_t ch, int32_t n, int32_t tabsize);
 
 /********
 * uint8 *

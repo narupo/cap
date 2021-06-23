@@ -14,24 +14,28 @@ extract_unicode_object(ast_t *ref_ast, object_array_t *ref_owners, const char *m
 again:
     switch (owner->type) {
     default:
-        ast_pushb_error(ref_ast, "can't call %s method", method_name);
+        ast_pushb_error(ref_ast, NULL, 0, NULL, 0, "can't call %s method", method_name);
         return NULL;
         break;
     case OBJ_TYPE_UNICODE: {
         return owner;
     } break;
+    case OBJ_TYPE_OWNERS_METHOD: {
+        owner = owner->owners_method.owner;
+        goto again;
+    } break;
     case OBJ_TYPE_IDENTIFIER: {
         owner = ctx_find_var_ref(ref_ast->ref_context, obj_getc_idn_name(owner));
         if (!owner) {
-            ast_pushb_error(ref_ast, "not found \"%s\" in %s method", owner->identifier, method_name);
+            ast_pushb_error(ref_ast, NULL, 0, NULL, 0, "not found \"%s\" in %s method", owner->identifier, method_name);
             return NULL;
         }
         goto again;
     } break;
     case OBJ_TYPE_CHAIN: {
-        owner = refer_chain_obj_with_ref(ref_ast, owner);
+        owner = refer_chain_obj_with_ref(ref_ast, ref_ast->error_stack, ref_ast->ref_gc, ref_ast->ref_context, NULL, owner);
         if (!owner) {
-            ast_pushb_error(ref_ast, "failed to refer index");
+            ast_pushb_error(ref_ast, NULL, 0, NULL, 0, "failed to refer index");
             return NULL;
         }
         goto again;
@@ -54,7 +58,7 @@ call_basic_unicode_func(const char *method_name, builtin_func_args_t *fargs) {
         method_name
     );
     if (!owner) {
-        ast_pushb_error(fargs->ref_ast, "failed to extract unicode object");
+        ast_pushb_error(fargs->ref_ast, NULL, 0, NULL, 0, "failed to extract unicode object");
         return NULL;
     }
 
@@ -72,7 +76,7 @@ call_basic_unicode_func(const char *method_name, builtin_func_args_t *fargs) {
     } else if (cstr_eq(method_name, "hacker")) {
         result = uni_hacker(owner->unicode);
     } else {
-        ast_pushb_error(fargs->ref_ast, "invalid method name \"%s\" for call basic unicode method", method_name);
+        ast_pushb_error(fargs->ref_ast, NULL, 0, NULL, 0, "invalid method name \"%s\" for call basic unicode method", method_name);
         return NULL;
     }
 
@@ -119,7 +123,7 @@ builtin_unicode_split(builtin_func_args_t *fargs) {
     assert(args);
     const object_t *sep = objarr_getc(args, 0);
     if (sep->type != OBJ_TYPE_UNICODE) {
-        ast_pushb_error(fargs->ref_ast, "invalid argument");
+        ast_pushb_error(fargs->ref_ast, NULL, 0, NULL, 0, "invalid argument");
         return NULL;
     }
     const unicode_type_t *unisep = uni_getc(sep->unicode);
@@ -130,13 +134,13 @@ builtin_unicode_split(builtin_func_args_t *fargs) {
         "split"
     );
     if (!owner) {
-        ast_pushb_error(fargs->ref_ast, "failed to extract unicode object");
+        ast_pushb_error(fargs->ref_ast, NULL, 0, NULL, 0, "failed to extract unicode object");
         return NULL;
     }
 
     unicode_t ** arr = uni_split(owner->unicode, unisep);
     if (!arr) {
-        ast_pushb_error(fargs->ref_ast, "failed to split");
+        ast_pushb_error(fargs->ref_ast, NULL, 0, NULL, 0, "failed to split");
         return NULL;
     }
 
@@ -164,7 +168,7 @@ strip_work(const char *method_name, builtin_func_args_t *fargs) {
     if (objarr_len(args)) {
         const object_t *rems = objarr_getc(args, 0);
         if (rems->type != OBJ_TYPE_UNICODE) {
-            ast_pushb_error(fargs->ref_ast, "invalid argument");
+            ast_pushb_error(fargs->ref_ast, NULL, 0, NULL, 0, "invalid argument");
             return NULL;
         }
         unirems = uni_getc(rems->unicode);
@@ -178,7 +182,7 @@ strip_work(const char *method_name, builtin_func_args_t *fargs) {
         method_name
     );
     if (!owner) {
-        ast_pushb_error(fargs->ref_ast, "failed to extract unicode object");
+        ast_pushb_error(fargs->ref_ast, NULL, 0, NULL, 0, "failed to extract unicode object");
         return NULL;
     }
 
@@ -190,12 +194,12 @@ strip_work(const char *method_name, builtin_func_args_t *fargs) {
     } else if (cstr_eq(method_name, "strip")) {
         result = uni_strip(owner->unicode, unirems);
     } else {
-        ast_pushb_error(fargs->ref_ast, "invalid method name \"%s\"", method_name);
+        ast_pushb_error(fargs->ref_ast, NULL, 0, NULL, 0, "invalid method name \"%s\"", method_name);
         return NULL;
     }
 
     if (!result) {
-        ast_pushb_error(fargs->ref_ast, "failed to rstrip");
+        ast_pushb_error(fargs->ref_ast, NULL, 0, NULL, 0, "failed to rstrip");
         return NULL;
     }
 
@@ -217,6 +221,52 @@ static object_t *
 builtin_unicode_strip(builtin_func_args_t *fargs) {
     return strip_work("strip", fargs);
 }
+
+static object_t *
+builtin_unicode_is(const char *method_name, builtin_func_args_t *fargs) {
+    if (!fargs) {
+        return NULL;
+    }
+    ast_t *ref_ast = fargs->ref_ast;
+
+    object_t *owner = extract_unicode_object(
+        fargs->ref_ast,
+        fargs->ref_owners,
+        method_name
+    );
+    if (!owner) {
+        ast_pushb_error(ref_ast, NULL, 0, NULL, 0, "failed to extract unicode object");
+        return NULL;
+    }
+
+    bool boolean = false;
+    if (cstr_eq(method_name, "isdigit")) {
+        boolean = uni_isdigit(owner->unicode);
+    } else if (cstr_eq(method_name, "isalpha")) {
+        boolean = uni_isalpha(owner->unicode);
+    } else if (cstr_eq(method_name, "isspace")) {
+        boolean = uni_isspace(owner->unicode);
+    } else {
+        ast_pushb_error(ref_ast, NULL, 0, NULL, 0, "unsupported method \"%s\"", method_name);
+    }
+
+    return obj_new_bool(ref_ast->ref_gc, boolean);
+}
+ 
+static object_t *
+builtin_unicode_isdigit(builtin_func_args_t *fargs) {
+    return builtin_unicode_is("isdigit", fargs);
+}
+ 
+static object_t *
+builtin_unicode_isalpha(builtin_func_args_t *fargs) {
+    return builtin_unicode_is("isalpha", fargs);
+}
+ 
+static object_t *
+builtin_unicode_isspace(builtin_func_args_t *fargs) {
+    return builtin_unicode_is("isspace", fargs);
+}
  
 static builtin_func_info_t
 builtin_func_infos[] = {
@@ -230,6 +280,9 @@ builtin_func_infos[] = {
     {"rstrip", builtin_unicode_rstrip},
     {"lstrip", builtin_unicode_lstrip},
     {"strip", builtin_unicode_strip},
+    {"isdigit", builtin_unicode_isdigit},
+    {"isalpha", builtin_unicode_isalpha},
+    {"isspace", builtin_unicode_isspace},
     {0},
 };
 
@@ -243,8 +296,11 @@ builtin_unicode_module_new(const config_t *ref_config, gc_t *ref_gc) {
     return obj_new_module_by(
         ref_gc,
         "__unicode__",
+        NULL,
+        NULL,
         mem_move(tkr),
         mem_move(ast),
+        mem_move(ctx),
         builtin_func_infos
     );
 }

@@ -25,8 +25,10 @@ objdict_del(object_dict_t *self) {
 
     for (int32_t i = 0; i < self->len; ++i) {
         object_t *obj = self->map[i].value;
-        obj_dec_ref(obj);
-        obj_del(obj);
+        if (obj) {
+            obj_dec_ref(obj);
+            obj_del(obj);
+        }
     }
 
     free(self->map);
@@ -52,12 +54,19 @@ objdict_new(gc_t *ref_gc) {
         return NULL;
     }
 
-    object_dict_t *self = mem_ecalloc(1, sizeof(*self));
+    object_dict_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
     self->ref_gc = ref_gc;
     self->capa = OBJDICT_INIT_CAPA;
     self->len = 0;
-    self->map = mem_ecalloc(self->capa+1, sizeof(object_dict_item_t));
+    self->map = mem_calloc(self->capa+1, sizeof(object_dict_item_t));
+    if (!self->map) {
+        objdict_del(self);
+        return NULL;
+    }
 
     return self;
 }
@@ -71,17 +80,28 @@ objdict_deep_copy(const object_dict_t *other) {
         return NULL;
     }
 
-    object_dict_t *self = mem_ecalloc(1, sizeof(*self));
+    object_dict_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
     self->capa = other->capa;
     self->len = other->len;
-    self->map = mem_ecalloc(self->capa + 1, sizeof(object_dict_item_t));
+    self->map = mem_calloc(self->capa + 1, sizeof(object_dict_item_t));
+    if (!self->map) {
+        objdict_del(self);
+        return NULL;
+    }
 
     for (int32_t i = 0; i < other->len; ++i) {
         object_dict_item_t *dstitem = &self->map[i];
         object_dict_item_t *srcitem = &other->map[i];
         strcpy(dstitem->key, srcitem->key);
         object_t *obj = obj_deep_copy(srcitem->value);
+        if (!obj) {
+            objdict_del(self);
+            return NULL;
+        }
         obj_inc_ref(obj);
         dstitem->value = obj;
     }
@@ -95,11 +115,18 @@ objdict_shallow_copy(const object_dict_t *other) {
         return NULL;
     }
 
-    object_dict_t *self = mem_ecalloc(1, sizeof(*self));
+    object_dict_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
 
     self->capa = other->capa;
     self->len = other->len;
-    self->map = mem_ecalloc(self->capa + 1, sizeof(object_dict_item_t));
+    self->map = mem_calloc(self->capa + 1, sizeof(object_dict_item_t));
+    if (!self->map) {
+        objdict_del(self);
+        return NULL;
+    }
 
     for (int32_t i = 0; i < other->len; ++i) {
         object_dict_item_t *dstitem = &self->map[i];
@@ -120,7 +147,10 @@ objdict_resize(object_dict_t *self, int32_t newcapa) {
     }
 
     int32_t byte = sizeof(object_dict_item_t);
-    object_dict_item_t *tmpmap = mem_erealloc(self->map, newcapa*byte + byte);
+    object_dict_item_t *tmpmap = mem_realloc(self->map, newcapa*byte + byte);
+    if (!tmpmap) {
+        return NULL;
+    }
     self->map = tmpmap;
     self->capa = newcapa;
 
@@ -129,7 +159,6 @@ objdict_resize(object_dict_t *self, int32_t newcapa) {
 
 object_dict_t *
 objdict_move(object_dict_t *self, const char *key, struct object *move_value) {
-    // printf("objdict_move (%p) key (%s) val (%p)\n", self, key, move_value);
     if (!self || !key || !move_value) {
         return NULL;
     }
@@ -138,17 +167,21 @@ objdict_move(object_dict_t *self, const char *key, struct object *move_value) {
     for (int i = 0; i < self->len; ++i) {
         if (cstr_eq(self->map[i].key, key)) {
             // over write
-            obj_dec_ref(self->map[i].value);
-            obj_del(self->map[i].value);
-            obj_inc_ref(move_value);
-            self->map[i].value = mem_move(move_value);
+            if (self->map[i].value != move_value) {
+                obj_dec_ref(self->map[i].value);
+                obj_del(self->map[i].value);
+                obj_inc_ref(move_value);
+                self->map[i].value = mem_move(move_value);
+            }
             return self;
         }
     }
 
     // add value at tail of map
     if (self->len >= self->capa) {
-        objdict_resize(self, self->capa*2);
+        if (!objdict_resize(self, self->capa*2)) {
+            return NULL;
+        }
     }
 
     object_dict_item_t *el = &self->map[self->len++];
@@ -215,17 +248,21 @@ objdict_len(const object_dict_t *self) {
     return self->len;
 }
 
-const object_dict_item_t *
-objdict_getc_index(const object_dict_t *self, int32_t index) {
+object_dict_item_t *
+objdict_get_index(object_dict_t *self, int32_t index) {
     if (!self) {
         return NULL;
     }
-
     if (index < 0 || index >= self->len) {
         return NULL;
     }
 
     return &self->map[index];
+}
+
+const object_dict_item_t *
+objdict_getc_index(const object_dict_t *self, int32_t index) {
+    return objdict_get_index((object_dict_t *) self, index);
 }
 
 object_t *

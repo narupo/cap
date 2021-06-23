@@ -20,7 +20,6 @@
 #include <core/types.h>
 #include <core/constant.h>
 #include <core/config.h>
-#include <core/symlink.h>
 #include <core/error_stack.h>
 #include <lang/gc.h>
 #include <lang/tokenizer.h>
@@ -28,10 +27,24 @@
 #include <lang/compiler.h>
 #include <lang/traverser.h>
 #include <lang/context.h>
+#include <run/run.h>
 
-#ifdef _CAP_WINDOWS
+#ifdef _PAD_WINDOWS
 # include <windows.h>
 #endif
+
+/*********
+* macros *
+*********/
+
+#undef safe_free
+#define safe_free(ptr) \
+    free(ptr); \
+    ptr = NULL;
+
+/**********
+* numbers *
+**********/
 
 enum {
     SAFESYSTEM_DEFAULT = 1 << 0,
@@ -39,6 +52,10 @@ enum {
     SAFESYSTEM_DETACH = 1 << 2,
     SAFESYSTEM_UNSAFE = 1 << 3,
 };
+
+/************
+* functions *
+************/
 
 /**
  * Free allocate memory of argv.
@@ -57,32 +74,6 @@ freeargv(int argc, char *argv[]);
  */
 void
 showargv(int argc, char *argv[]);
-
-/**
- * @deprecated
- *
- * Check path is out of cap's home?
- *
- * @param[in] string varhome path of var home
- * @param[in] string path check path
- *
- * @return bool is out of home to true
- * @return bool is not out of home to false
- */
-bool
-isoutofhome(const char *varhome, const char *path);
-
-/**
- * Check path is out of cap's home?
- *
- * @param[in] string varhome path of var home
- * @param[in] string path check path
- *
- * @return bool is out of home to true
- * @return bool is not out of home to false
- */
-bool
-is_out_of_home(const char *homepath, const char *path);
 
 /**
  * Get random number of range.
@@ -121,22 +112,6 @@ cstring_array_t *
 argsbyoptind(int argc, char *argv[], int optind);
 
 /**
- * cap_pathとconfigのscopeから基点となるパスを取得する
- * 取得するパスはconfig->home_pathかconfig->cd_pathのいずれかである
- * cap_pathの先頭がセパレータ、つまりcap_pathが絶対パスであるとき、戻り値はconfig->home_pathである
- * このcap_pathはCap環境上のパスである
- * つまり、cap_pathが絶対パスの場合、cap_path[0]は必ず'/'になる
- * scopeが不正の場合、プログラムを終了する
- *
- * @param[in] *config pointer to config_t
- * @param[in] *cap_path pointer to cap_path
- *
- * @return
- */
-const char *
-get_origin(const config_t *config, const char *cap_path);
-
-/**
  * trim first line of text
  *
  * @param[in] *dst  pointer to destination buffer
@@ -170,6 +145,115 @@ compile_argv(const config_t *config, errstack_t *errstack, int argc, char *argv[
  */
 void
 clear_screen(void);
+
+/**
+ * push to front of argv and re-build array and return
+ *
+ * @param[in] argc
+ * @param[in] *argv[]
+ * @param[in] *front
+ *
+ * @return success to pointer to cstring_array_t
+ * @return failed to NULL
+ */
+cstring_array_t *
+pushf_argv(int argc, char *argv[], const char *front);
+
+/**
+ * copy string of src with escape character by target
+ *
+ * @param[in] *dst    destination buffer
+ * @param[in] dstsz   destination buffer size
+ * @param[in] *src    source string
+ * @param[in] *target target string like a ("abc")
+ *
+ * @return failed to NULL
+ * @return success to pointer to destination buffer
+ */
+char *
+escape(char *dst, int32_t dstsz, const char *src, const char *target);
+
+/**
+ * If path is ".." or "." then return true
+ *
+ * @param[in] path path of string
+ *
+ * @return true or false
+ */
+bool
+is_dot_file(const char *path);
+
+/**
+ * split string to cstring array
+ *
+ * @param[in] *str
+ * @param[in] ch
+ *
+ * @return success to pointer to cstring_array_t
+ * @return failed to NULL
+ */
+cstring_array_t *
+split_to_array(const char *str, int ch);
+
+/**
+ * pop tail slash (/ or \\) from path
+ * if path is root (/ or C:\\) then don't pop tail slash
+ *
+ * @param[in] *path
+ *
+ * @return success to pointer to path
+ * @return failed to NULL
+ */
+char *
+pop_tail_slash(char *path);
+
+/**
+ * Check path is out of cap's home?
+ *
+ * @param[in] string varhome path of var home
+ * @param[in] string path check path
+ *
+ * @return bool is out of home to true
+ * @return bool is not out of home to false
+ */
+bool
+is_out_of_home(const char *homepath, const char *path);
+
+/**
+ * solve path of comannd line argument
+ *
+ * like the following
+ *
+ *     path/to/file  -> /caps/environment/path/to/file
+ *     /path/to/file -> /caps/environment/path/to/file
+ *     :path/to/file -> /users/file/system/path/to/file
+ *
+ * @param[in]  *config        pointer to config_t read-only
+ * @param[out] *dst           pointer to destination
+ * @param[in]  dstsz          number of size of destination
+ * @param[in]  *caps_arg_path path of command line argument of cap (not contain windows path. cap's path is unix like)
+ *
+ * @return success to pointer to dst
+ * @return failed to pointer to NULL
+ */
+char *
+solve_cmdline_arg_path(const config_t *config, char *dst, int32_t dstsz, const char *caps_arg_path);
+
+/**
+ * cap_pathとconfigのscopeから基点となるパスを取得する
+ * 取得するパスはconfig->home_pathかconfig->cd_pathのいずれかである
+ * cap_pathの先頭がセパレータ、つまりcap_pathが絶対パスであるとき、戻り値はconfig->home_pathである
+ * このcap_pathはCap環境上のパスである
+ * つまり、cap_pathが絶対パスの場合、cap_path[0]は必ず'/'になる
+ * scopeが不正の場合、プログラムを終了する
+ *
+ * @param[in] *config pointer to config_t
+ * @param[in] *cap_path pointer to cap_path
+ *
+ * @return
+ */
+const char *
+get_origin(const config_t *config, const char *cap_path);
 
 /**
  * Show snippet code by name
@@ -210,85 +294,3 @@ execute_program(const config_t *config, bool *found, int argc, char *argv[], con
  */
 int
 execute_run(const config_t *config, int argc, char *argv[]);
-
-/**
- * push to front of argv and re-build array and return
- *
- * @param[in] argc
- * @param[in] *argv[]
- * @param[in] *front
- *
- * @return success to pointer to cstring_array_t
- * @return failed to NULL
- */
-cstring_array_t *
-pushf_argv(int argc, char *argv[], const char *front);
-
-/**
- * solve path of comannd line argument
- *
- * like the following
- *
- *     path/to/file  -> /caps/environment/path/to/file
- *     /path/to/file -> /caps/environment/path/to/file
- *     :path/to/file -> /users/file/system/path/to/file
- *
- * @param[in]  *config        pointer to config_t read-only
- * @param[out] *dst           pointer to destination
- * @param[in]  dstsz          number of size of destination
- * @param[in]  *caps_arg_path path of command line argument of cap (not contain windows path. cap's path is unix like)
- *
- * @return success to pointer to dst
- * @return failed to pointer to NULL
- */
-char *
-solve_cmdline_arg_path(const config_t *config, char *dst, int32_t dstsz, const char *caps_arg_path);
-
-/**
- * copy string of src with escape character by target
- *
- * @param[in] *dst    destination buffer
- * @param[in] dstsz   destination buffer size
- * @param[in] *src    source string
- * @param[in] *target target string like a ("abc")
- *
- * @return failed to NULL
- * @return success to pointer to destination buffer
- */
-char *
-escape(char *dst, int32_t dstsz, const char *src, const char *target);
-
-/**
- * If path is ".." or "." then return true
- *
- * @param[in] path path of string
- *
- * @return true or false
- */
-bool
-is_dot_file(const char *path);
-
-
-/**
- * split string to cstring array
- *
- * @param[in] *str
- * @param[in] ch
- *
- * @return success to pointer to cstring_array_t
- * @return failed to NULL
- */
-cstring_array_t *
-split_to_array(const char *str, int ch);
-
-/**
- * pop tail slash (/ or \\) from path
- * if path is root (/ or C:\\) then don't pop tail slash
- *
- * @param[in] *path
- *
- * @return success to pointer to path
- * @return failed to NULL
- */
-char *
-pop_tail_slash(char *path);

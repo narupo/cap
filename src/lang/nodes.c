@@ -15,22 +15,52 @@ node_del(node_t *self) {
 }
 
 node_t *
-node_new(node_type_t type, void *real) {
-    node_t *self = mem_ecalloc(1, sizeof(*self));
+node_new(node_type_t type, void *real, const token_t *ref_token) {
+    assert(ref_token);
+    if (!real || !ref_token) {
+        return NULL;
+    }
+
+    node_t *self = mem_calloc(1, sizeof(*self));
+    if (!self) {
+        return NULL;
+    }
+
     self->type = type;
     self->real = real;
+    self->ref_token = ref_token;
+
     return self;
 }
 
 node_t *
 node_deep_copy(const node_t *other) {
-#define declare(T, name) T *name = mem_ecalloc(1, sizeof(*name))
+#define declare_first(T, name) \
+    T *name = mem_calloc(1, sizeof(*name)); \
+    if (!name) { \
+        return NULL; \
+    } \
+
+#define declare(T, name) \
+    T *name = mem_calloc(1, sizeof(*name)); \
+    if (!name) { \
+        node_del(self); \
+        return NULL; \
+    } \
 
 #define copy_node_array(dst, src, member) \
     dst->member = nodearr_new(); \
+    if (!dst->member) { \
+        node_del(self); \
+        return NULL; \
+    } \
     for (int32_t i = 0; i < nodearr_len(src->member); ++i) { \
         node_t *node = nodearr_get(src->member, i); \
         node = node_deep_copy(node); \
+        if (!node) { \
+            node_del(self); \
+            return NULL; \
+        } \
         nodearr_moveb(dst->member, node); \
     } \
 
@@ -40,6 +70,10 @@ node_deep_copy(const node_t *other) {
         const node_dict_item_t *item = nodedict_getc_index(src->member, i); \
         assert(item); \
         node_t *node = node_deep_copy(item->value); \
+        if (!node) { \
+            node_del(self); \
+            return NULL; \
+        } \
         nodedict_move(dst->member, item->key, mem_move(node)); \
     } \
 
@@ -47,8 +81,10 @@ node_deep_copy(const node_t *other) {
         return NULL;
     }
 
-    declare(node_t, self);
+    declare_first(node_t, self);
+
     self->type = other->type;
+    self->ref_token = other->ref_token;
 
     switch (other->type) {
     case NODE_TYPE_INVALID:
@@ -83,7 +119,11 @@ node_deep_copy(const node_t *other) {
     case NODE_TYPE_TEXT_BLOCK: {
         declare(node_text_block_t, dst);
         node_text_block_t *src = other->real;
-        dst->text = cstr_edup(src->text);
+        dst->text = cstr_dup(src->text);
+        if (!dst->text) {
+            node_del(self);
+            return NULL;
+        }
         self->real = dst;
     } break;
     case NODE_TYPE_ELEMS: {
@@ -205,6 +245,13 @@ node_deep_copy(const node_t *other) {
         node_inject_stmt_t *src = other->real;
         dst->identifier = node_deep_copy(src->identifier);
         copy_node_array(dst, src, contents);
+        self->real = dst;
+    } break;
+    case NODE_TYPE_STRUCT: {
+        declare(node_struct_t, dst);
+        node_struct_t *src = other->real;
+        dst->identifier = node_deep_copy(src->identifier);
+        dst->elems = node_deep_copy(src->elems);
         self->real = dst;
     } break;
     case NODE_TYPE_CONTENT: {
@@ -334,6 +381,7 @@ node_deep_copy(const node_t *other) {
         dst->true_ = node_deep_copy(src->true_);
         dst->false_ = node_deep_copy(src->false_);
         dst->digit = node_deep_copy(src->digit);
+        dst->float_ = node_deep_copy(src->float_);
         dst->string = node_deep_copy(src->string);
         dst->array = node_deep_copy(src->array);
         dst->dict = node_deep_copy(src->dict);
@@ -382,22 +430,43 @@ node_deep_copy(const node_t *other) {
         dst->lvalue = src->lvalue;
         self->real = dst;
     } break;
+    case NODE_TYPE_FLOAT: {
+        declare(node_float_t, dst);
+        node_float_t *src = other->real;
+        dst->value = src->value;
+        self->real = dst;
+    } break;
     case NODE_TYPE_STRING: {
         declare(node_string_t, dst);
         node_string_t *src = other->real;
-        dst->string = cstr_edup(src->string);
+        dst->string = cstr_dup(src->string);
+        if (!dst->string) {
+            free(dst);
+            node_del(self);
+            return NULL;
+        }
         self->real = dst;
     } break;
     case NODE_TYPE_IDENTIFIER: {
         declare(node_identifier_t, dst);
         node_identifier_t *src = other->real;
-        dst->identifier = cstr_edup(src->identifier);
+        dst->identifier = cstr_dup(src->identifier);
+        if (!dst->identifier) {
+            free(dst);
+            node_del(self);
+            return NULL;
+        }
         self->real = dst;
     } break;
     case NODE_TYPE_ARRAY: {
         declare(node_array_t_, dst);
         node_array_t_ *src = other->real;
         dst->array_elems = node_deep_copy(src->array_elems);
+        if (!dst->array_elems) {
+            free(dst);
+            node_del(self);
+            return NULL;
+        }
         self->real = dst;
     } break;
     case NODE_TYPE_ARRAY_ELEMS: {
@@ -476,6 +545,12 @@ node_deep_copy(const node_t *other) {
     return self;
 }
 
+node_t *
+node_shallow_copy(const node_t *other) {
+    return node_deep_copy(other);
+}
+
+
 node_type_t
 node_getc_type(const node_t *self) {
     if (self == NULL) {
@@ -526,6 +601,7 @@ node_to_str(const node_t *self) {
     case NODE_TYPE_RETURN_STMT: str_set(s, "return"); break;
     case NODE_TYPE_BLOCK_STMT: str_set(s, "block"); break;
     case NODE_TYPE_INJECT_STMT: str_set(s, "inject"); break;
+    case NODE_TYPE_STRUCT: str_set(s, "struct"); break;
     case NODE_TYPE_CONTENT: str_set(s, "content"); break;
     case NODE_TYPE_FORMULA: str_set(s, "formula"); break;
     case NODE_TYPE_MULTI_ASSIGN: str_set(s, "multi assign"); break;
@@ -550,6 +626,7 @@ node_to_str(const node_t *self) {
     case NODE_TYPE_COMP_OP: str_set(s, "comp op"); break;
     case NODE_TYPE_NIL: str_set(s, "nil"); break;
     case NODE_TYPE_DIGIT: str_set(s, "digit"); break;
+    case NODE_TYPE_FLOAT: str_set(s, "float"); break;
     case NODE_TYPE_STRING: str_set(s, "string"); break;
     case NODE_TYPE_IDENTIFIER: str_set(s, "identifier"); break;
     case NODE_TYPE_ARRAY: str_set(s, "array"); break;
@@ -579,6 +656,20 @@ node_dump(const node_t *self, FILE *fout) {
     }
 
     fprintf(fout, "node_t\n");
-    fprintf(fout, "type: %d\n", self->type);
-    fprintf(fout, "real: %p\n", self->real);
+    fprintf(fout, "type[%d]\n", self->type);
+    fprintf(fout, "real[%p]\n", self->real);
+    if (self->ref_token) {
+        token_dump(self->ref_token, fout);
+    } else {
+        fprintf(fout, "ref_token[%p]\n", self->ref_token);
+    }
+}
+
+const token_t *
+node_getc_ref_token(const node_t *self) {
+    if (!self) {
+        return NULL;
+    }
+
+    return self->ref_token;
 }

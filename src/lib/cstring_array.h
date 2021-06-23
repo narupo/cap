@@ -53,6 +53,12 @@ cstrarr_escdel(cstring_array_t *self);
 cstring_array_t *
 cstrarr_new(void);
 
+cstring_array_t *
+cstrarr_deep_copy(const cstring_array_t *other);
+
+cstring_array_t *
+cstrarr_shallow_copy(const cstring_array_t *other);
+
 /**
  * @deprecated
  *
