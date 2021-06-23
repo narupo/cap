@@ -287,6 +287,7 @@ app_usage(app_t *app) {
         "    link       create symbolic link\n"
         "    sh         run shell\n"
         "    find       find snippet\n"
+        "    replace    make and replace file\n"
     ;
     static const char *examples[] = {
         "    $ cap home\n"
@@ -363,6 +364,7 @@ app_is_cap_cmdname(const app_t *self, const char *cmdname) {
         "cook",
         "sh",
         "find",
+        "replace",
         NULL,
     };
 
@@ -445,6 +447,8 @@ app_execute_command_by_name(app_t *self, const char *name) {
         routine(shcmd);
     } else if (cstr_eq(name, "find")) {
         routine(findcmd);
+    } else if (cstr_eq(name, "replace")) {
+        routine(replacecmd);
     } else {
         errstack_pushb(self->errstack, "invalid command name \"%s\"", name);
         result = 1;

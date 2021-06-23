@@ -74,6 +74,7 @@ init:
 	build$(SEP)cook \
 	build$(SEP)sh \
 	build$(SEP)find \
+	build$(SEP)replace \
 	build$(SEP)lang$(SEP) \
 	build$(SEP)lang$(SEP)builtin \
 	build$(SEP)lang$(SEP)builtin$(SEP)modules
@@ -127,6 +128,7 @@ SRCS := build/lib/error.c \
 	build/sh/sh.c \
 	build/find/find.c \
 	build/find/arguments_manager.c \
+	build/replace/replace.c \
 	build/lang/tokens.c \
 	build/lang/tokenizer.c \
 	build/lang/nodes.c \
@@ -256,6 +258,8 @@ build/cook/cook.o: src/cook/cook.c src/cook/cook.h
 build/sh/sh.o: src/sh/sh.c src/sh/sh.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/find/find.o: src/find/find.c src/find/find.h
+	$(CC) $(CFLAGS) -c $< -o $@
+build/replace/replace.o: src/replace/replace.c src/replace/replace.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/find/arguments_manager.o: src/find/arguments_manager.c src/find/arguments_manager.h
 	$(CC) $(CFLAGS) -c $< -o $@
