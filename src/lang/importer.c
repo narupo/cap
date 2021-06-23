@@ -40,21 +40,29 @@ importer_getc_error(const importer_t *self) {
 }
 
 static char *
-fix_path(importer_t *self, char *dst, int32_t dstsz, const char *path) {
-    if (!dst || dstsz <= 0 || !path) {
+fix_path(importer_t *self, char *dst, int32_t dstsz, const char *cap_path) {
+    if (!dst || dstsz <= 0 || !cap_path) {
         importer_set_error(self, "invalid arguments");
         return NULL;
     }
 
-    if (file_exists(path)) {
-        snprintf(dst, dstsz, "%s", path);
-        return dst;
+    if (!solve_cmdline_arg_path(self->ref_config, dst, dstsz, cap_path)) {
+        importer_set_error(self, "failed to solve cap path of \"%s\"", cap_path);
+        return NULL;
     }
 
-    if (!file_solvefmt(dst, sizeof dst, "%s/%s", self->ref_config->std_lib_dir_path, path
-    )) {
-        importer_set_error(self, "failed to solve path for standard library");
-        return NULL;
+    // check cap_path
+    if (!file_exists(dst)) {
+        // create cap_path of standard libraries
+        // will read source from standard library module
+        if (!file_solvefmt(dst, dstsz, "%s/%s", self->ref_config->std_lib_dir_path, cap_path)) {
+            importer_set_error(self, "failed to solve path for standard library");
+            return NULL;
+        }
+        if (!file_exists(dst)) {
+            importer_set_error(self, "\"%s\" is not found", cap_path);
+            return NULL;
+        }
     }
 
     return dst;
@@ -98,12 +106,12 @@ create_modobj(
     importer_t *self,
     gc_t *ref_gc,
     const ast_t *ref_ast,
-    const char *path
+    const char *cap_path
 ) {
     // read source
     char src_path[FILE_NPATH];
-    if (!fix_path(self, src_path, sizeof src_path, path)) {
-        importer_set_error(self, "failed to fix path from \"%s\"", path);
+    if (!fix_path(self, src_path, sizeof src_path, cap_path)) {
+        importer_set_error(self, "failed to fix path from \"%s\"", cap_path);
         return NULL; 
     }
 
@@ -152,8 +160,8 @@ create_modobj(
 
     object_t *modobj = obj_new_module_by(
         ref_gc,
-        path,  // module name
-        path,  // program_filename
+        cap_path,  // module name
+        cap_path,  // program_filename
         mem_move(src),  // program_source
         mem_move(tkr),
         mem_move(ast),
