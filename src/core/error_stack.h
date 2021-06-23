@@ -31,6 +31,20 @@
         ##__VA_ARGS__ \
     )
 
+#define errstack_add(stack, fmt, ...) \
+    _errstack_pushb( \
+        stack, \
+        NULL, \
+        0, \
+        NULL, \
+        0, \
+        __FILE__, \
+        __LINE__, \
+        __func__, \
+        fmt, \
+        ##__VA_ARGS__ \
+    )
+
 /**********
 * errelem *
 **********/

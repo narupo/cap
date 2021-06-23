@@ -7,7 +7,7 @@
  */
 #include <app.h>
 
-#define error(fmt, ...) errstack_pushb(self->errstack, NULL, 0, NULL, 0, fmt, ##__VA_ARGS__)
+#define error(fmt, ...) errstack_add(self->errstack, fmt, ##__VA_ARGS__)
 
 /**
  * numbers
