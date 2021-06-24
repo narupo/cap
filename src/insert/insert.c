@@ -292,11 +292,15 @@ insert_at(insertcmd_t *self, const char *path, int32_t pos, const char *elem) {
     }
 
     char *p = s;
-    for (int32_t curpos = 0; *p; p += 1, curpos += 1) {
+    for (int32_t curpos = 0; ; p += 1, curpos += 1) {
         if (curpos == pos) {
             for (const char *q = elem; *q; q += 1) {
                 fputc(*q, fout);
             }
+        }
+
+        if (*p == '\0') {
+            break;
         }
 
         fputc(*p, fout);
@@ -307,39 +311,44 @@ insert_at(insertcmd_t *self, const char *path, int32_t pos, const char *elem) {
     return 0;
 }
 
-static void
-fix_elem(insertcmd_t *self, char *dst, int32_t dstsz, const char *raw) {
-    char *d = dst;
-    char *dend = dst + dstsz - 1;
+static char *
+fix_elem(insertcmd_t *self, const char *raw) {
+    string_t *s = str_new();
 
-    for (const char *p = raw; *p && d < dend; p += 1, d += 1) {
+    for (const char *p = raw; *p; p += 1) {
         switch (*p) {
         default:
-            *d = *p;
+            str_pushb(s, *p);
             break;
         case '\\':
-            switch (*(p + 1)) {
-            case 'n':
-                *d = '\n';
-                p += 1;
-                break;
-            case 't':
-                *d = '\t';
-                p += 1;
-                break;
+            p += 1;
+            switch (*p) {
+            default: p -= 1; break;
+            case 'a': str_pushb(s, '\a'); break;
+            case 'b': str_pushb(s, '\b'); break;
+            case 'n': str_pushb(s, '\n'); break;
+            case 'r': str_pushb(s, '\r'); break;
+            case 'f': str_pushb(s, '\f'); break;
+            case 't': str_pushb(s, '\t'); break;
+            case 'v': str_pushb(s, '\v'); break;
+            case '\\': str_pushb(s, '\\'); break;
+            case '?': str_pushb(s, '\?'); break;
+            case '\'': str_pushb(s, '\''); break;
+            case '"': str_pushb(s, '"'); break;
+            case '0': str_pushb(s, '\0'); break;
             }
             break;
         }
     }
 
-    *d = '\0';
+    return str_esc_del(s);
 }
 
 static int
 insert(insertcmd_t *self) {
     const char *cap_path = NULL;
     const char *raw_elem = NULL;
-    char elem[1024];
+    char *elem = NULL;
     char path[FILE_NPATH];
     int result = 0;
 
@@ -354,7 +363,7 @@ insert(insertcmd_t *self) {
         }
 
         raw_elem = self->argv[optind + 1];
-        fix_elem(self, elem, sizeof elem, raw_elem);
+        elem = fix_elem(self, raw_elem);
     }
 
     int32_t pos = find_insert_pos(self, path);
@@ -364,8 +373,10 @@ insert(insertcmd_t *self) {
         result = insert_at(self, path, pos, elem);
     }
 
+    free(elem);
     return result;
 error:
+    free(elem);
     return 1;
 }
 
