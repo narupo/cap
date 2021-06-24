@@ -291,6 +291,7 @@ app_usage(app_t *app) {
         "    find       find snippet\n"
         "    replace    make and replace file\n"
         "    insert     insert code at label\n"
+        "    clone      clone git repository\n"
     ;
     static const char *examples[] = {
         "    $ cap home\n"
@@ -369,6 +370,7 @@ app_is_cap_cmdname(const app_t *self, const char *cmdname) {
         "find",
         "replace",
         "insert",
+        "clone",
         NULL,
     };
 
@@ -455,6 +457,8 @@ app_execute_command_by_name(app_t *self, const char *name) {
         routine(replacecmd);
     } else if (cstr_eq(name, "insert")) {
         routine(insertcmd);
+    } else if (cstr_eq(name, "clone")) {
+        routine(clonecmd);
     } else {
         error("invalid command name \"%s\"", name);
         result = 1;
