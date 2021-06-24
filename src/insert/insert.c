@@ -44,8 +44,9 @@ insertcmd_show_usage(insertcmd_t *self) {
         "\n"
         "The options are:\n"
         "\n"
-        "    -h, --help     Show usage\n"
-        "    -a, --after    Insert after position of label or line no\n"
+        "    -h, --help      Show usage\n"
+        "    -a, --after     Insert after position of label or line no\n"
+        "    -b, --before    Insert before position of label or line no\n"
         "\n"
     );
     fflush(stderr);
