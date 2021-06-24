@@ -148,7 +148,7 @@ static execcmd_t *
 execcmd_exec_first(execcmd_t *self) {
     const cmdline_object_t *first = cmdline_getc(self->cmdline, 0);
     const char *cmd = str_getc(first->command);
-    printf("cmd[%s]\n", cmd);
+    // printf("cmd[%s]\n", cmd);
     safesystem(cmd, SAFESYSTEM_DEFAULT);
     return self;
 }
@@ -732,8 +732,8 @@ execcmd_run(execcmd_t *self) {
     for (int32_t i = self->optind; i < self->argc; ++i) {
         const char *escaped_cltxt = self->argv[i];
         char *cltxt = unescape_cl(escaped_cltxt);
-        printf("escaped_cltxt[%s]\n", escaped_cltxt);
-        printf("cltxt[%s]\n", cltxt);
+        // printf("escaped_cltxt[%s]\n", escaped_cltxt);
+        // printf("cltxt[%s]\n", cltxt);
 
         if (!execcmd_exec(self, cltxt)) {
             free(cltxt);
