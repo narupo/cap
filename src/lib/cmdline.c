@@ -195,12 +195,7 @@ cmdline_parse(cmdline_t *self, const char *line) {
         switch (m) {
         case 0: // first
             if (*p == '\\') {
-                ++p;
-                if (*p != '\0') {
-                    str_pushb(buf, *p);
-                } else {
-                    --p;
-                }
+                unescape(buf, &p, "\"'");
             } else if (*p == '"') {
                 str_pushb(buf, *p);
                 m = 10;
@@ -326,12 +321,7 @@ cmdline_parse(cmdline_t *self, const char *line) {
             break;
         case 10: // found "
             if (*p == '\\') {
-                ++p;
-                if (*p != '\0') {
-                    str_pushb(buf, *p);
-                } else {
-                    --p;
-                }
+                unescape(buf, &p, "\"'");
             } else if (*p == '"') {
                 str_pushb(buf, *p);
                 m = 0;

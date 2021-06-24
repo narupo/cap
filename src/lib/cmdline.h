@@ -14,6 +14,7 @@
 #include <lib/memory.h>
 #include <lib/cl.h>
 #include <lib/string.h>
+#include <core/util.h>
 
 /**
  * number of type of cmdline objects

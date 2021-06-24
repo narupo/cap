@@ -294,3 +294,7 @@ execute_program(const config_t *config, bool *found, int argc, char *argv[], con
  */
 int
 execute_run(const config_t *config, int argc, char *argv[]);
+
+void
+unescape(string_t *dst, const char **p, const char *ignore);
+

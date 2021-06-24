@@ -165,17 +165,41 @@ find_insert_lieno(insertcmd_t *self, FILE *fp, int32_t lineno, Pos insert_pos) {
     return pos;
 }
 
+static bool
+read_line(char *dst, int32_t dstsz, FILE *fin) {
+    char *dp = dst;
+    char *dend = dst + dstsz - 1;
+
+    for (; dp < dend; ) {
+        int32_t c = fgetc(fin);
+        if (c == EOF) {
+            goto end;
+        } else if (c == '\n') {
+            goto ok;
+        }
+
+        *dp++ = c;
+    }
+
+ok:
+    *dp = '\0';
+    return true;
+end:
+    *dp = '\0';
+    return false;
+}
+
 static int32_t
 find_insert_label(insertcmd_t *self, FILE *fp, const char *label, Pos insert_pos) {
-    char line[1024];
     char lbl[1024];
+    char line[1024];
     int32_t pos = 0;
     int32_t before_pos = 0;
 
     snprintf(lbl, sizeof lbl, "@cap.label=%s", label);
 
     for (;;) {
-        if (!fgets(line, sizeof line, fp)) {
+        if (!read_line(line, sizeof line, fp)) {
             break;
         }
 
@@ -206,7 +230,7 @@ find_insert_pos(insertcmd_t *self, const char *path) {
     Pos insert_pos = AFTER;
     int32_t pos = 0;
 
-    FILE *fp = fopen(path, "r");
+    FILE *fp = fopen(path, "rb");
     if (fp == NULL) {
         error("failed to open file %s", path);
         return 1;
@@ -292,7 +316,7 @@ insert_at(insertcmd_t *self, const char *path, int32_t pos, const char *elem) {
     }
 
     char *p = s;
-    for (int32_t curpos = 0; ; p += 1, curpos += 1) {
+    for (int32_t curpos = 0; ; p += 1) {
         if (curpos == pos) {
             for (const char *q = elem; *q; q += 1) {
                 fputc(*q, fout);
@@ -304,6 +328,7 @@ insert_at(insertcmd_t *self, const char *path, int32_t pos, const char *elem) {
         }
 
         fputc(*p, fout);
+        curpos = ftell(fout);
     }
 
     fclose(fout);
@@ -321,22 +346,7 @@ fix_elem(insertcmd_t *self, const char *raw) {
             str_pushb(s, *p);
             break;
         case '\\':
-            p += 1;
-            switch (*p) {
-            default: p -= 1; break;
-            case 'a': str_pushb(s, '\a'); break;
-            case 'b': str_pushb(s, '\b'); break;
-            case 'n': str_pushb(s, '\n'); break;
-            case 'r': str_pushb(s, '\r'); break;
-            case 'f': str_pushb(s, '\f'); break;
-            case 't': str_pushb(s, '\t'); break;
-            case 'v': str_pushb(s, '\v'); break;
-            case '\\': str_pushb(s, '\\'); break;
-            case '?': str_pushb(s, '\?'); break;
-            case '\'': str_pushb(s, '\''); break;
-            case '"': str_pushb(s, '"'); break;
-            case '0': str_pushb(s, '\0'); break;
-            }
+            unescape(s, &p, NULL);
             break;
         }
     }

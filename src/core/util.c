@@ -673,3 +673,115 @@ execute_program(const config_t *config, bool *found, int cmd_argc, char *cmd_arg
 
     return 1;
 }
+
+void
+unescape(string_t *dst, const char **p, const char *ignore) {
+    if (**p != '\\') {
+        return;
+    }
+
+    *p += 1;
+
+    switch (**p) {
+    default:
+        str_pushb(dst, '\\');
+        str_pushb(dst, **p);
+        break;
+    case 'a':
+        if (!ignore || !strchr(ignore, 'a')) {
+            str_pushb(dst, '\a');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case 'b':
+        if (!ignore || !strchr(ignore, 'b')) {
+            str_pushb(dst, '\b');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case 'n':
+        if (!ignore || !strchr(ignore, 'n')) {
+            str_pushb(dst, '\n');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case 'r':
+        if (!ignore || !strchr(ignore, 'r')) {
+            str_pushb(dst, '\r');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case 'f':
+        if (!ignore || !strchr(ignore, 'f')) {
+            str_pushb(dst, '\f');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case 't':
+        if (!ignore || !strchr(ignore, 't')) {
+            str_pushb(dst, '\t');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case 'v':
+        if (!ignore || !strchr(ignore, 'v')) {
+            str_pushb(dst, '\v');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case '\\':
+        if (!ignore || !strchr(ignore, '\\')) {
+            str_pushb(dst, '\\');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case '?':
+        if (!ignore || !strchr(ignore, '?')) {
+            str_pushb(dst, '\?');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case '0':
+        if (!ignore || !strchr(ignore, '0')) {
+            str_pushb(dst, '\0');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case '\'':
+        if (!ignore || !strchr(ignore, '\'')) {
+            str_pushb(dst, '\'');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    case '"':
+        if (!ignore || !strchr(ignore, '"')) {
+            str_pushb(dst, '"');
+        } else {
+            str_pushb(dst, '\\');
+            str_pushb(dst, **p);            
+        }
+        break;
+    }
+}

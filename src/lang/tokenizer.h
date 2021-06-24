@@ -13,6 +13,7 @@
 #include <lib/memory.h>
 #include <lib/string.h>
 #include <lib/cstring.h>
+#include <core/util.h>
 #include <lang/tokens.h>
 
 /*******************

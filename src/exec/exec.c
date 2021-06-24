@@ -148,6 +148,7 @@ static execcmd_t *
 execcmd_exec_first(execcmd_t *self) {
     const cmdline_object_t *first = cmdline_getc(self->cmdline, 0);
     const char *cmd = str_getc(first->command);
+    printf("cmd[%s]\n", cmd);
     safesystem(cmd, SAFESYSTEM_DEFAULT);
     return self;
 }
@@ -711,22 +712,7 @@ unescape_cl(const char *escaped) {
 
     for (const char *p = escaped; *p; p += 1) {
         if (*p == '\\') {
-            p += 1;
-            switch (*p) {
-            default: p -= 1; break;
-            case 'a': str_pushb(s, '\a'); break;
-            case 'b': str_pushb(s, '\b'); break;
-            case 'n': str_pushb(s, '\n'); break;
-            case 'r': str_pushb(s, '\r'); break;
-            case 'f': str_pushb(s, '\f'); break;
-            case 't': str_pushb(s, '\t'); break;
-            case 'v': str_pushb(s, '\v'); break;
-            case '\\': str_pushb(s, '\\'); break;
-            case '?': str_pushb(s, '\?'); break;
-            case '\'': str_pushb(s, '\''); break;
-            case '"': str_pushb(s, '"'); break;
-            case '0': str_pushb(s, '\0'); break;
-            }
+            unescape(s, &p, "\"'");
         } else {
             str_pushb(s, *p);
         }
@@ -746,6 +732,8 @@ execcmd_run(execcmd_t *self) {
     for (int32_t i = self->optind; i < self->argc; ++i) {
         const char *escaped_cltxt = self->argv[i];
         char *cltxt = unescape_cl(escaped_cltxt);
+        printf("escaped_cltxt[%s]\n", escaped_cltxt);
+        printf("cltxt[%s]\n", cltxt);
 
         if (!execcmd_exec(self, cltxt)) {
             free(cltxt);
