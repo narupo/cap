@@ -225,6 +225,42 @@ done:
 }
 
 static object_t *
+builtin_exec(builtin_func_args_t *fargs) {
+    ast_t *ref_ast = fargs->ref_ast;
+    const node_t *ref_node = fargs->ref_node;
+    assert(ref_ast);
+    object_t *actual_args = fargs->ref_args;
+    assert(actual_args);
+    assert(actual_args->type == OBJ_TYPE_ARRAY);
+
+    object_array_t *args = actual_args->objarr;
+
+    if (objarr_len(args) != 1) {
+        push_error("invalid arguments length of builtin exec function");
+        return NULL;
+    }
+
+    object_t *cmdlineobj = objarr_get(args, 0);
+    string_t *cmdline = obj_to_string(ref_ast->error_stack, fargs->ref_node, cmdlineobj);
+    if (!cmdline) {
+        return NULL;
+    }
+
+    cstring_array_t *strarr = cstrarr_new();
+    cstrarr_push(strarr, "exec");
+    cstrarr_push(strarr, str_getc(cmdline));
+    int argc = cstrarr_len(strarr);
+    char **argv = cstrarr_escdel(strarr);
+
+    execcmd_t *execcmd = execcmd_new(ref_ast->ref_config, argc, argv);
+    int result = execcmd_run(execcmd);
+    execcmd_del(execcmd);
+
+    freeargv(argc, argv);
+    return obj_new_int(ref_ast->ref_gc, result);
+}
+
+static object_t *
 builtin_len(builtin_func_args_t *fargs) {
     ast_t *ref_ast = fargs->ref_ast;
     const node_t *ref_node = fargs->ref_node;
@@ -762,6 +798,7 @@ builtin_func_infos[] = {
     {"id", builtin_id},
     {"type", builtin_type},
     {"puts", builtin_puts},
+    {"exec", builtin_exec},
     {"eputs", builtin_eputs},
     {"len", builtin_len},
     {"die", builtin_die},

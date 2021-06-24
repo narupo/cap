@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/config.h>
+#include <exec/exec.h>
 #include <lang/types.h>
 #include <lang/object.h>
 #include <lang/ast.h>
