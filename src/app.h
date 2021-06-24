@@ -37,6 +37,7 @@
 #include <sh/sh.h>
 #include <find/find.h>
 #include <replace/replace.h>
+#include <insert/insert.h>
 #include <lang/ast.h>
 #include <lang/compiler.h>
 #include <lang/traverser.h>
