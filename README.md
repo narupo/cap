@@ -1,6 +1,7 @@
 # Cap
 
-Cap is shell for programmer's snippet codes.
+Cap is the shell for the snippet codes.
+See Wiki: https://github.com/narupo/cap/wiki
 
 # Build
 
