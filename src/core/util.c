@@ -351,7 +351,7 @@ split_to_array(const char *str, int ch) {
 
 static cstring_array_t *
 split_path_var(const char *path) {
-    return split_to_array(path, ':');
+    return split_to_array(path, ',');
 }
 
 cstring_array_t *
