@@ -260,20 +260,11 @@ find_insert_pos(insertcmd_t *self, const char *path) {
 
 static int32_t
 insert_tail(insertcmd_t *self, const char *path, const char *elem) {
-    FILE *fin = fopen(path, "rb");
-    if (fin == NULL) {
-        error("failed to open file %s", path);
-        return 1;
-    }
-
-    char *s = file_readcp(fin);
+    char *s = file_readcp_from_path(path);
     if (s == NULL) {
         error("failed to read");
-        fclose(fin);
         return 1;
     }
-
-    fclose(fin);
 
     FILE *fout = fopen(path, "wb");
     if (fout == NULL) {
