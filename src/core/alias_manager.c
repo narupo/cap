@@ -125,7 +125,7 @@ almgr_load_alias_list(almgr_t *self, int scope) {
         return NULL;
     }
     if (!file_exists(path)) {
-        almgr_set_error_detail(self, "not found file \"%s\"", path);
+        // don't write error detail
         return NULL;
     }
 
