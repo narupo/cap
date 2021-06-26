@@ -22,9 +22,7 @@ ifeq ($(OS), Windows_NT)
 		-Wno-unused-function \
 		-Wno-unused-result \
 		-D_DEBUG \
-		-I$(INCLUDE) \
-		-LD:\\lib \
-		-lws2_32
+		-I$(INCLUDE)
 else
 	CFLAGS := -Wall \
 		-g \
@@ -100,7 +98,6 @@ SRCS := build/lib/error.c \
 	build/lib/pipe.c \
 	build/lib/term.c \
 	build/lib/path.c \
-	build/lib/socket.c \
 	build/core/config.c \
 	build/core/util.c \
 	build/core/alias_manager.c \
@@ -204,8 +201,6 @@ build/lib/pipe.o: src/lib/pipe.c src/lib/pipe.h
 build/lib/term.o: src/lib/term.c src/lib/term.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/lib/path.o: src/lib/path.c src/lib/path.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/socket.o: src/lib/socket.c src/lib/socket.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/core/config.o: src/core/config.c src/core/config.h
 	$(CC) $(CFLAGS) -c $< -o $@

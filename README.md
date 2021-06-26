@@ -17,11 +17,11 @@ How to build of cap.
 
 ## Windows
 
-Using MinGW's make (recommend TDM-GCC).
+Compile by TDM-GCC.
 
     $ git clone https://github.com/narupo/cap
     $ cd cap
-    $ mingw32-make init && mingw32-make
+    $ make init && make
     $ ./build/cap -h   
 
 # How to use
