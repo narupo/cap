@@ -73,7 +73,7 @@ init:
 	build$(SEP)cook \
 	build$(SEP)sh \
 	build$(SEP)find \
-	build$(SEP)replace \
+	build$(SEP)bake \
 	build$(SEP)insert \
 	build$(SEP)clone \
 	build$(SEP)lang$(SEP) \
@@ -128,7 +128,7 @@ SRCS := build/lib/error.c \
 	build/sh/sh.c \
 	build/find/find.c \
 	build/find/arguments_manager.c \
-	build/replace/replace.c \
+	build/bake/bake.c \
 	build/insert/insert.c \
 	build/clone/clone.c \
 	build/lang/tokens.c \
@@ -260,7 +260,7 @@ build/sh/sh.o: src/sh/sh.c src/sh/sh.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/find/find.o: src/find/find.c src/find/find.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/replace/replace.o: src/replace/replace.c src/replace/replace.h
+build/bake/bake.o: src/bake/bake.c src/bake/bake.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/insert/insert.o: src/insert/insert.c src/insert/insert.h
 	$(CC) $(CFLAGS) -c $< -o $@

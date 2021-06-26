@@ -287,7 +287,7 @@ app_usage(app_t *app) {
         "    link       create symbolic link\n"
         "    sh         run shell\n"
         "    find       find snippet\n"
-        "    replace    make and replace file\n"
+        "    bake       bake file (make and replace file content)\n"
         "    insert     insert code at label\n"
         "    clone      clone git repository\n"
     ;
@@ -366,7 +366,7 @@ app_is_cap_cmdname(const app_t *self, const char *cmdname) {
         "cook",
         "sh",
         "find",
-        "replace",
+        "bake",
         "insert",
         "clone",
         NULL,
@@ -451,8 +451,8 @@ app_execute_command_by_name(app_t *self, const char *name) {
         routine(shcmd);
     } else if (cstr_eq(name, "find")) {
         routine(findcmd);
-    } else if (cstr_eq(name, "replace")) {
-        routine(replacecmd);
+    } else if (cstr_eq(name, "bake")) {
+        routine(bakecmd);
     } else if (cstr_eq(name, "insert")) {
         routine(insertcmd);
     } else if (cstr_eq(name, "clone")) {

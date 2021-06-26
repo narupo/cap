@@ -36,7 +36,7 @@
 #include <cook/cook.h>
 #include <sh/sh.h>
 #include <find/find.h>
-#include <replace/replace.h>
+#include <bake/bake.h>
 #include <insert/insert.h>
 #include <clone/clone.h>
 #include <lang/ast.h>

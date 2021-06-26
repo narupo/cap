@@ -12,16 +12,16 @@
 /**
  * structure and type of command
  */
-struct replacecmd;
-typedef struct replacecmd replacecmd_t;
+struct bakecmd;
+typedef struct bakecmd bakecmd_t;
 
 /**
  * destruct command
  *
- * @param[in] self pointer to replacecmd_t
+ * @param[in] self pointer to bakecmd_t
  */
 void
-replacecmd_del(replacecmd_t *self);
+bakecmd_del(bakecmd_t *self);
 
 /**
  * construct command
@@ -30,19 +30,19 @@ replacecmd_del(replacecmd_t *self);
  * @param[in] argc        number of arguments
  * @param[in] move_argv   pointer to array of arguments 
  *
- * @return success to pointer to replacecmd_t
+ * @return success to pointer to bakecmd_t
  * @return failed to NULL
  */
-replacecmd_t *
-replacecmd_new(const config_t *config, int argc, char **argv);
+bakecmd_t *
+bakecmd_new(const config_t *config, int argc, char **argv);
 
 /**
  * run command
  *
- * @param[in] self pointer to replacecmd_t
+ * @param[in] self pointer to bakecmd_t
  *
  * @return success to number of 0
  * @return failed to number of not 0
  */
 int
-replacecmd_run(replacecmd_t *self);
+bakecmd_run(bakecmd_t *self);

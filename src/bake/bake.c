@@ -1,11 +1,9 @@
-#include <replace/replace.h>
-
-#define error(stack, fmt, ...) errstack_pushb(stack, NULL, 0, NULL, 0, fmt, ##__VA_ARGS__)
+#include <bake/bake.h>
 
 /**
  * structure of command
  */
-struct replacecmd {
+struct bakecmd {
     const config_t *config;
     int argc;
     char **argv;
@@ -13,7 +11,7 @@ struct replacecmd {
 };
 
 void
-replacecmd_del(replacecmd_t *self) {
+bakecmd_del(bakecmd_t *self) {
     if (!self) {
         return;
     }
@@ -22,9 +20,9 @@ replacecmd_del(replacecmd_t *self) {
     free(self);
 }
 
-replacecmd_t *
-replacecmd_new(const config_t *config, int argc, char **argv) {
-    replacecmd_t *self = mem_ecalloc(1, sizeof(*self));
+bakecmd_t *
+bakecmd_new(const config_t *config, int argc, char **argv) {
+    bakecmd_t *self = mem_ecalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -35,7 +33,7 @@ replacecmd_new(const config_t *config, int argc, char **argv) {
 }
 
 static int
-replace(replacecmd_t *self) {
+bake(bakecmd_t *self) {
     FILE *fin = NULL;
     FILE *fout = NULL;
     const char *cap_path = NULL;
@@ -51,20 +49,20 @@ replace(replacecmd_t *self) {
     } else {
         cap_path = self->argv[1];
         if (!solve_cmdline_arg_path(self->config, path, sizeof path, cap_path)) {
-            error(self->errstack, "failed to solve cap path");
+            blush("failed to solve cap path");
             return 1;
         }            
 
         fin = fopen(path, "r");
         if (fin == NULL) {
-            error(self->errstack, "failed to open file %s", path);
+            blush("failed to open file %s", path);
             goto error;
         }
     }
 
     src = file_readcp(fin);
     if (src == NULL) {
-        error(self->errstack, "failed to read from file");
+        blush("failed to read from file");
         goto error;
     }
     fclose(fin);
@@ -85,15 +83,15 @@ replace(replacecmd_t *self) {
         return 0;
     }
 
-    // replace
+    // bake
     fout = fopen(path, "w");
     if (fout == NULL) {
-        error(self->errstack, "failed to open file %s for write", path);
+        blush("failed to open file %s for write", path);
         goto error;
     }
 
     if (fwrite(compiled, sizeof(char), strlen(compiled), fout) == 0) {
-        error(self->errstack, "failed to write data at %s", cap_path);
+        blush("failed to write data at %s", cap_path);
         goto error;
     }
 
@@ -113,8 +111,8 @@ error:
 }
 
 int
-replacecmd_run(replacecmd_t *self) {
-    int result = replace(self);
+bakecmd_run(bakecmd_t *self) {
+    int result = bake(self);
     if (errstack_len(self->errstack)) {
         errstack_trace(self->errstack, stderr);
         return result;
