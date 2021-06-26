@@ -7,8 +7,6 @@
  */
 #include <app.h>
 
-#define error(fmt, ...) errstack_add(self->errstack, fmt, ##__VA_ARGS__)
-
 /**
  * numbers
  */
@@ -74,7 +72,7 @@ app_parse_opts(app_t *self) {
         case 'V': self->opts.is_version = true; break;
         case '?':
         default:
-            error("invalid option");
+            blush("invalid option");
             return false; break;
         }
     }
@@ -113,20 +111,20 @@ static bool
 app_deploy_env(const app_t *self) {
     char userhome[FILE_NPATH];
     if (!file_get_user_home(userhome, sizeof userhome)) {
-        error("failed to get user's home directory. what is your file system?");
+        blush("failed to get user's home directory. what is your file system?");
         return false;
     }
 
     // make application directory
     char appdir[FILE_NPATH];
     if (!file_solvefmt(appdir, sizeof appdir, "%s/.cap", userhome)) {
-        error("faield to create application directory path");
+        blush("faield to create application directory path");
         return false;
     }
 
     if (!file_exists(appdir)) {
         if (file_mkdirq(appdir) != 0) {
-            error("failed to make application directory");
+            blush("failed to make application directory");
             return false;
         }
     }
@@ -134,13 +132,13 @@ app_deploy_env(const app_t *self) {
     // make variable directory
     char vardir[FILE_NPATH];
     if (!file_solvefmt(vardir, sizeof vardir, "%s/var", appdir)) {
-        error("failed to create path of variable");
+        blush("failed to create path of variable");
         return false;
     }
 
     if (!file_exists(vardir)) {
         if (file_mkdirq(vardir) != 0) {
-            error("failed to make variable directory");
+            blush("failed to make variable directory");
             return false;
         }
     }
@@ -148,46 +146,46 @@ app_deploy_env(const app_t *self) {
     // make variable files
     char path[FILE_NPATH];
     if (!file_solvefmt(path, sizeof path, "%s/cd", vardir)) {
-        error("failed to create path of cd variable");
+        blush("failed to create path of cd variable");
         return false;
     }
     if (!file_exists(path)) {
         if (!file_writeline(userhome, path)) {
-            error("failed to write line to cd of variable");
+            blush("failed to write line to cd of variable");
             return false;
         }
     }
 
     if (!file_solvefmt(path, sizeof path, "%s/home", vardir)) {
-        error("failed to create path of home variable");
+        blush("failed to create path of home variable");
         return false;
     }
     if (!file_exists(path)) {
         if (!file_writeline(userhome, path)) {
-            error("failed to write line to home of variable");
+            blush("failed to write line to home of variable");
             return false;
         }
     }
 
     if (!file_solvefmt(path, sizeof path, "%s/editor", vardir)) {
-        error("failed to create path of home variable");
+        blush("failed to create path of home variable");
         return false;
     }
     if (!file_exists(path)) {
         if (!file_writeline("", path)) {
-            error("failed to write line to home of variable");
+            blush("failed to write line to home of variable");
             return false;
         }
     }
 
     // make snippets directory
     if (!file_solvefmt(path, sizeof path, "%s/codes", appdir)) {
-        error("failed to solve path for snippet codes directory");
+        blush("failed to solve path for snippet codes directory");
         return false;
     }
     if (!file_exists(path)) {
         if (file_mkdirq(path) != 0) {
-            error("failed to make directory for snippet codes directory");
+            blush("failed to make directory for snippet codes directory");
             return false;
         }
     }
@@ -195,7 +193,7 @@ app_deploy_env(const app_t *self) {
     // standard library directory
     if (!file_exists(self->config->std_lib_dir_path)) {
         if (file_mkdirq(self->config->std_lib_dir_path) != 0) {
-            error("failed to make directory for standard libraries directory");
+            blush("failed to make directory for standard libraries directory");
             return false;
         }
     }
@@ -217,7 +215,7 @@ static bool
 app_parse_args(app_t *self, int argc, char *argv[]) {
     distribute_args_t dargs = {0};
     if (!distribute_args(&dargs, argc, argv)) {
-        error("failed to distribute arguments");
+        blush("failed to distribute arguments");
         return false;
     }
 
@@ -432,7 +430,7 @@ app_execute_command_by_name(app_t *self, const char *name) {
         result = rmcmd_run(cmd);
         switch (rmcmd_errno(cmd)) {
         case RMCMD_ERR_NOERR: break;
-        default: error(rmcmd_what(cmd)); break;
+        default: blush(rmcmd_what(cmd)); break;
         }
         rmcmd_del(cmd);
     } else if (cstr_eq(name, "mv")) {
@@ -460,7 +458,7 @@ app_execute_command_by_name(app_t *self, const char *name) {
     } else if (cstr_eq(name, "clone")) {
         routine(clonecmd);
     } else {
-        error("invalid command name \"%s\"", name);
+        blush("invalid command name \"%s\"", name);
         result = 1;
     }
 
@@ -528,7 +526,7 @@ app_execute_alias_by_name(app_t *self, bool *found, const char *name) {
 
     // run application
     if (self->config->recursion_count >= MAX_RECURSION_LIMIT) {
-        error("reached recursion limit");
+        blush("reached recursion limit");
         return 1;
     }
 
@@ -549,7 +547,7 @@ static int
 app_run_cmdname(app_t *self) {
     const char *cmdname = self->cmd_argv[0];
     if (!cmdname) {
-        error("command name is null");
+        blush("command name is null");
         return 1; // impossible
     }
 
@@ -586,22 +584,22 @@ app_init(app_t *self, int argc, char *argv[]) {
     if (!config_init(self->config)) {
         errstack_t *es = config_get_error_stack(self->config);
         errstack_extendb_other(self->errstack, es);
-        error("failed to configuration");
+        blush("failed to configuration");
         return false;
     }
 
     if (!app_parse_args(self, argc, argv)) {
-        error("failed to parse arguments");
+        blush("failed to parse arguments");
         return false;
     }
 
     if (!app_parse_opts(self)) {
-        error("failed to parse options");
+        blush("failed to parse options");
         return false;
     }
 
     if (!app_deploy_env(self)) {
-        error("failed to deploy environment at file system");
+        blush("failed to deploy environment at file system");
         return false;
     }
 

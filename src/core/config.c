@@ -90,7 +90,6 @@ config_init(config_t *self) {
         blush("failed to solve path for snippet codes directory path");
         return false;
     }
-    // standard libraries
     if (!file_solve(self->std_lib_dir_path, sizeof self->std_lib_dir_path, "~/.cap/stdlib")) {
         blush("failed to solve path for standard libraries directory");
         return false;
