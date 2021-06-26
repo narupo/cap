@@ -242,6 +242,11 @@ find_insert_pos(insertcmd_t *self, const char *path) {
     } else if (strlen(self->opts.before)) {
         label = self->opts.before;
         insert_pos = BEFORE;
+    } else {
+        fseek(fp, 0, SEEK_END);
+        pos = ftell(fp);
+        fclose(fp);
+        return pos;
     }
 
     if (isdigit(label[0])) {
@@ -260,6 +265,7 @@ find_insert_pos(insertcmd_t *self, const char *path) {
 
 static int32_t
 insert_tail(insertcmd_t *self, const char *path, const char *elem) {
+    puts("tail!");
     char *s = file_readcp_from_path(path);
     if (s == NULL) {
         error("failed to read");
