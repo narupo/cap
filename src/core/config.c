@@ -54,6 +54,7 @@ config_init(config_t *self) {
     strcpy(self->line_encoding, "lf");
 
     // init environment
+    
     if (!if_not_exists_to_mkdir(self, "~/.cap")) {
         blush("failed to create ~/.cap");
         return false;
