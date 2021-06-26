@@ -159,7 +159,7 @@ kit_compile_from_string_args(
     if (argv) {
         opts = opts_new();
         if (!opts_parse(opts, argc, argv)) {
-            pusherr("failed to parse options");
+            blush("failed to parse options");
             return NULL;
         }
     }
@@ -171,7 +171,7 @@ kit_compile_from_string_args(
     tkr_parse(src_tkr, builtin_structs_source);
 
     if (!tkr_extendf_other(self->tkr, src_tkr)) {
-        pusherr("failed to extend front other tokenizer");
+        blush("failed to extend front other tokenizer");
         return NULL;
     }
     tkr_del(src_tkr);

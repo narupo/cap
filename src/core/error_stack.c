@@ -431,3 +431,4 @@ errstack_extendb_other(errstack_t *self, const errstack_t *_other) {
 
     return self;
 }
+

@@ -10,22 +10,40 @@ config_del(config_t *self) {
 config_t *
 config_new(void) {
     config_t *self = mem_ecalloc(1, sizeof(*self));
+    if (self == NULL) {
+        goto error;
+    }
+
+    self->errstack = errstack_new();
+    if (self->errstack == NULL) {
+        goto error;
+    }
+
     return self;
+error:
+    free(self);
+    return NULL;
 }
 
-char *
-pop_tail_slash(char *path);
-
-static bool if_not_exists_to_mkdir(const char *dirpath) {
+static bool
+if_not_exists_to_mkdir(config_t *self, const char *dirpath) {
     char path[FILE_NPATH];
     if (!file_solve(path, sizeof path, dirpath)) {
-        err_error("failed to solve %s", dirpath);
+        blush("failed to solve %s", dirpath);
         return false;
     }
     if (!file_exists(path)) {
         file_mkdirq(path);
     }
     return true;
+}
+
+char *
+pop_tail_slash(char *path);
+
+errstack_t *
+config_get_error_stack(config_t *self) {
+    return self->errstack;
 }
 
 config_t *
@@ -36,40 +54,44 @@ config_init(config_t *self) {
     strcpy(self->line_encoding, "lf");
 
     // init environment
-    if (!if_not_exists_to_mkdir("~/.cap")) {
+    if (!if_not_exists_to_mkdir(self, "~/.cap")) {
+        blush("failed to create ~/.cap");
         return false;
     }
-    if (!if_not_exists_to_mkdir("~/.cap/var")) {
+    if (!if_not_exists_to_mkdir(self, "~/.cap/var")) {
+        blush("failed to create ~/.cap/var");
         return false;
     }
-    if (!if_not_exists_to_mkdir("~/.cap/codes")) {
+    if (!if_not_exists_to_mkdir(self, "~/.cap/codes")) {
+        blush("failed to create ~/.cap/codes");
         return false;
     }
-    if (!if_not_exists_to_mkdir("~/.cap/stdlib")) {
+    if (!if_not_exists_to_mkdir(self, "~/.cap/stdlib")) {
+        blush("failed to create ~/.cap/stdlib");
         return false;
     }
 
     // solve path
 
     if (!file_solve(self->var_cd_path, sizeof self->var_cd_path, "~/.cap/var/cd")) {
-        err_error("failed to create path of cd of variable");
+        blush("failed to create path of cd of variable");
         return false;
     }
     if (!file_solve(self->var_home_path, sizeof self->var_home_path, "~/.cap/var/home")) {
-        err_error("failed to create path of home of variable");
+        blush("failed to create path of home of variable");
         return false;
     }
     if (!file_solve(self->var_editor_path, sizeof self->var_editor_path, "~/.cap/var/editor")) {
-        err_error("failed to create path of editor of variable");
+        blush("failed to create path of editor of variable");
         return false;
     }
     if (!file_solve(self->codes_dir_path, sizeof self->codes_dir_path, "~/.cap/codes")) {
-        err_error("failed to solve path for snippet codes directory path");
+        blush("failed to solve path for snippet codes directory path");
         return false;
     }
     // standard libraries
     if (!file_solve(self->std_lib_dir_path, sizeof self->std_lib_dir_path, "~/.cap/stdlib")) {
-        err_error("failed to solve path for standard libraries directory");
+        blush("failed to solve path for standard libraries directory");
         return false;
     }
 
@@ -82,14 +104,14 @@ config_init(config_t *self) {
 
     if (!file_readline(self->home_path, sizeof self->home_path, self->var_home_path)) {
         if (!file_solve(self->home_path, sizeof self->home_path, "~/")) {
-            err_error("failed to solve path for home path");
+            blush("failed to solve path for home path");
             return false;
         }
     }
     pop_tail_slash(self->home_path);
 
     if (!file_readline(self->editor, sizeof self->editor, self->var_editor_path)) {
-        strcpy(self->editor, "");
+        // nothing todo
     }
 
     return self;

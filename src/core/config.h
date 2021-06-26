@@ -4,8 +4,10 @@
 #include <lib/file.h>
 #include <lib/path.h>
 #include <core/constant.h>
+#include <core/error_stack.h>
 
 typedef struct config {
+    errstack_t *errstack;  // error stack for error handling
     int scope;  // @see constant.h for CAP_SCOPE_*
     int recursion_count;  // count of recursion of call to app
     char line_encoding[32+1];  // line encoding "cr" | "crlf" | "lf"
@@ -44,3 +46,13 @@ config_new(void);
  */
 config_t *
 config_init(config_t *self);
+
+/**
+ * get config's error stack
+ * 
+ * @param[in] *self 
+ * 
+ * @return 
+ */
+errstack_t *
+config_get_error_stack(config_t *self);

@@ -584,6 +584,8 @@ app_run_cmdname(app_t *self) {
 static bool
 app_init(app_t *self, int argc, char *argv[]) {
     if (!config_init(self->config)) {
+        errstack_t *es = config_get_error_stack(self->config);
+        errstack_extendb_other(self->errstack, es);
         error("failed to configuration");
         return false;
     }
@@ -647,7 +649,7 @@ static void
 app_trace(const app_t *self) {
     if (errstack_len(self->errstack)) {
         fflush(stdout);
-        errstack_trace(self->errstack, stderr);
+        errstack_trace_simple(self->errstack, stderr);
         fflush(stderr);        
     }
 }

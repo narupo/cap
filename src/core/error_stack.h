@@ -14,8 +14,8 @@
 * macros *
 *********/
 
-#define pusherr(fmt, ...) \
-    errstack_pushb(self->errstack, NULL, 0, NULL, 0, fmt, ##__VA_ARGS__)
+#define blush(fmt, ...) \
+    errstack_add(self->errstack, fmt, ##__VA_ARGS__)
 
 #define errstack_pushb(self, prog_fname, prog_lineno, prog_src, prog_src_pos, fmt, ...) \
     _errstack_pushb( \
@@ -160,6 +160,12 @@ errstack_trace(const errstack_t *self, FILE *fout);
 void
 errstack_trace_debug(const errstack_t *self, FILE *fout);
 
+/**
+ * trace error messages
+ * 
+ * @param[in] *self 
+ * @param[in] *fout 
+ */
 void
 errstack_trace_simple(const errstack_t *self, FILE *fout);
 
@@ -203,5 +209,13 @@ errstack_extendf_other(errstack_t *self, const errstack_t *other);
 errstack_t *
 errstack_extendb_other(errstack_t *self, const errstack_t *other);
 
+/**
+ * TODO
+ * 
+ * @param[in] *src 
+ * @param[in] pos  
+ * 
+ * @return 
+ */
 string_t *
 errstack_trim_around(const char *src, int32_t pos);
