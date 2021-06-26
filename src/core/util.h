@@ -51,6 +51,7 @@ enum {
     SAFESYSTEM_EDIT = 1 << 1,
     SAFESYSTEM_DETACH = 1 << 2,
     SAFESYSTEM_UNSAFE = 1 << 3,
+    SAFESYSTEM_UNSAFE_UNIX_ONLY = 1 << 4,
 };
 
 /************

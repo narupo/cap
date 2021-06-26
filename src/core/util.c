@@ -108,6 +108,10 @@ safesystem(const char *cmdline, int option) {
     return exit_code;
 
 #else
+    if (option & SAFESYSTEM_UNSAFE_UNIX_ONLY) {
+        return system(cmdline);
+    }
+
     cl_t *cl = cl_new();
     if (!cl_parse_str_opts(cl, cmdline, 0)) {
         err_error("failed to parse command line \"%s\"", cmdline);

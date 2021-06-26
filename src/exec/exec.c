@@ -149,7 +149,7 @@ execcmd_exec_first(execcmd_t *self) {
     const cmdline_object_t *first = cmdline_getc(self->cmdline, 0);
     const char *cmd = str_getc(first->command);
     // printf("cmd[%s]\n", cmd);
-    safesystem(cmd, SAFESYSTEM_DEFAULT);
+    safesystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
     return self;
 }
 
@@ -502,7 +502,7 @@ execcmd_exec_all_win(execcmd_t *self) {
         const cmdline_object_t *ope = cmdline_getc(self->cmdline, i+1);
 
         if (ope && ope->type == CMDLINE_OBJECT_TYPE_AND) {
-            int exit_code = safesystem(str_getc(obj->command), SAFESYSTEM_DEFAULT);
+            int exit_code = safesystem(str_getc(obj->command), SAFESYSTEM_UNSAFE_UNIX_ONLY);
             if (exit_code != 0) {
                 break;
             }
@@ -536,7 +536,7 @@ execcmd_exec_all_unix(execcmd_t *self) {
         if (ope && ope->type == CMDLINE_OBJECT_TYPE_AND) {
             // AND
             const char *cmd = str_getc(obj->command);
-            int status = safesystem(cmd, SAFESYSTEM_UNSAFE);
+            int status = safesystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
             exit_code = WEXITSTATUS(status);
             if (exit_code != 0) {
                 break;
@@ -564,7 +564,7 @@ execcmd_exec_all_unix(execcmd_t *self) {
                 close(fd[WRITE]);
 
                 const char *cmd = str_getc(obj->command);
-                int status = safesystem(cmd, SAFESYSTEM_UNSAFE);
+                int status = safesystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
                 exit_code = WEXITSTATUS(status);
                 (void) &exit_code;
 
@@ -643,7 +643,7 @@ execcmd_exec_all_unix(execcmd_t *self) {
                 }
 
                 const char *cmd = str_getc(obj->command);
-                int status = safesystem(cmd, SAFESYSTEM_UNSAFE);
+                int status = safesystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
                 exit_code = WEXITSTATUS(status);
                 (void) &exit_code;
 
