@@ -3,6 +3,7 @@ bin/
 tmp/
 .vscode/
 tests/.cap/var/*
+test/
 lib/
 
 # Object files
