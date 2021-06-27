@@ -71,8 +71,8 @@ bake(bakecmd_t *self) {
     compiled = compile_argv(
         self->config,
         self->errstack,
-        self->argc,
-        self->argv,
+        self->argc - 1,
+        self->argv + 1,
         src
     );
 
@@ -84,7 +84,7 @@ bake(bakecmd_t *self) {
     }
 
     // bake
-    fout = fopen(path, "w");
+    fout = fopen(path, "wb");
     if (fout == NULL) {
         blush("failed to open file %s for write", path);
         goto error;

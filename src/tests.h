@@ -54,6 +54,7 @@
 #include <touch/touch.h>
 #include <snippet/snippet.h>
 #include <link/link.h>
+#include <bake/bake.h>
 #include <lang/types.h>
 #include <lang/tokens.h>
 #include <lang/tokenizer.h>

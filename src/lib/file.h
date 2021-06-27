@@ -441,3 +441,14 @@ file_get_no(FILE *fp);
  */
 char **
 file_read_lines(const char *fname);
+
+/**
+ * copy file by path
+ * 
+ * @param[in] *dst destination file path
+ * @param[in] *src  source file path
+ * 
+ * @return 
+ */
+bool
+file_copy_path(const char *dst, const char *src);

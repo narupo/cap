@@ -781,3 +781,33 @@ file_read_lines(const char *fname) {
     fclose(fin);
     return lines;
 }
+
+bool
+file_copy_path(const char *dst, const char *src) {
+    if (!dst || !src) {
+        return false;
+    }
+
+    FILE *fin = NULL;
+    FILE *fout = NULL;
+
+    fin = fopen(src, "rb");
+    if (fin == NULL) {
+        goto error;
+    }
+
+    fout = fopen(dst, "wb");
+    if (fout == NULL) {
+        goto error;
+    }
+
+    bool result = file_copy(fout, fin);
+
+    fclose(fout);
+    fclose(fin);
+    return result;
+error:
+    if (fout) fclose(fout);
+    if (fin) fclose(fin);
+    return false;
+}

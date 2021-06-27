@@ -30071,6 +30071,76 @@ linkcmd_tests[] = {
     {0},
 };
 
+/***************
+* bake command *
+***************/
+
+static void
+test_bakecmd_1(void) {
+    const char *bakefname = "tests/bake/target.cap";
+    if (!file_copy_path(bakefname, "tests/bake/target.cap.org")) {
+        err_error("failed to copy tests/bake/target.cap.org");
+        return;
+    }
+    
+    config_t *config = config_new();
+    bakecmd_t *cmd = NULL;
+    int argc = 2;
+    char *argv[] = {
+        "bake",
+        ":tests/bake/target.cap",
+        NULL,
+    };
+    cmd = bakecmd_new(config, argc, argv);
+    bakecmd_run(cmd);
+    bakecmd_del(cmd);
+
+    char *s = file_readcp_from_path(bakefname);
+    assert(strcmp(s, "1\n") == 0);
+    free(s);
+
+    file_remove(bakefname);
+    config_del(config);
+}
+
+static void
+test_bakecmd_2(void) {
+    const char *bakefname = "tests/bake/target.cap";
+    if (!file_copy_path(bakefname, "tests/bake/target.cap.org.2")) {
+        err_error("failed to copy tests/bake/target.cap.org");
+        return;
+    }
+    
+    config_t *config = config_new();
+    bakecmd_t *cmd = NULL;
+    int argc = 5;
+    char *argv[] = {
+        "bake",
+        ":tests/bake/target.cap",
+        "abc",
+        "--def",
+        "ghi",
+        NULL,
+    };
+    cmd = bakecmd_new(config, argc, argv);
+    bakecmd_run(cmd);
+    bakecmd_del(cmd);
+
+    char *s = file_readcp_from_path(bakefname);
+    assert(strcmp(s, "abc,ghi") == 0);
+    free(s);
+
+    file_remove(bakefname);
+    config_del(config);
+}
+
+static const struct testcase
+bakecmd_tests[] = {
+    {"1", test_bakecmd_1},
+    {"2", test_bakecmd_2},
+    {0},
+};
+
 /*******
 * main *
 *******/
@@ -30096,6 +30166,7 @@ testmodules[] = {
     {"touch", touchcmd_tests},
     {"snippet", snippetcmd_tests},
     {"link", linkcmd_tests},
+    {"bake", bakecmd_tests},
 
     // lib
     {"cstring_array", cstrarr_tests},
