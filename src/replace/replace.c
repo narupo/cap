@@ -28,9 +28,11 @@ static void
 replacecmd_show_usage(replacecmd_t *self) {
     fflush(stdout);
     fflush(stderr);
-    fprintf(stderr, "Usage:\n"
+    fprintf(stderr, "Replace text of file\n"
         "\n"
-        "    cap replace [options]...\n"
+        "Usage:\n"
+        "\n"
+        "    cap replace [cap-path] [target] [replaced] [options]...\n"
         "\n"
         "The options are:\n"
         "\n"

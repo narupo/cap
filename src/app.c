@@ -370,6 +370,7 @@ app_is_cap_cmdname(const app_t *self, const char *cmdname) {
         "bake",
         "insert",
         "clone",
+        "replace",
         NULL,
     };
 
