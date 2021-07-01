@@ -30174,8 +30174,8 @@ test_replacecmd_2(void) {
     char *argv[] = {
         "replace",
         ":tests/replace/file2.txt",
-        "abababa",
-        "ABA",
+        "abcd",
+        "ABCD",
     };
     replacecmd_t *cmd = replacecmd_new(config, argc, argv);
     replacecmd_run(cmd);
@@ -30183,7 +30183,7 @@ test_replacecmd_2(void) {
     config_del(config);
 
     char *s = file_readcp_from_path("tests/replace/file2.txt");
-    assert(strcmp(s, "ABA\n") == 0);
+    assert(strcmp(s, "ABCDABCD\n") == 0);
     free(s);
 
     file_remove("tests/replace/file2.txt");
