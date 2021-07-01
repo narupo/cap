@@ -290,6 +290,7 @@ app_usage(app_t *app) {
         "    bake       bake file (make and replace file content)\n"
         "    insert     insert code at label\n"
         "    clone      clone git repository\n"
+        "    replace    replace text of file\n"
     ;
     static const char *examples[] = {
         "    $ cap home\n"
@@ -457,6 +458,8 @@ app_execute_command_by_name(app_t *self, const char *name) {
         routine(insertcmd);
     } else if (cstr_eq(name, "clone")) {
         routine(clonecmd);
+    } else if (cstr_eq(name, "replace")) {
+        routine(replacecmd);
     } else {
         blush("invalid command name \"%s\"", name);
         result = 1;

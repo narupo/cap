@@ -39,6 +39,7 @@
 #include <bake/bake.h>
 #include <insert/insert.h>
 #include <clone/clone.h>
+#include <replace/replace.h>
 #include <lang/ast.h>
 #include <lang/compiler.h>
 #include <lang/traverser.h>

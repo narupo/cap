@@ -45,7 +45,6 @@ clean:
 
 .PHONY: init
 init:
-	$(RMDIR) build
 	$(MKDIR) \
 	build \
 	build$(SEP)lib \
@@ -76,6 +75,7 @@ init:
 	build$(SEP)bake \
 	build$(SEP)insert \
 	build$(SEP)clone \
+	build$(SEP)replace \
 	build$(SEP)lang$(SEP) \
 	build$(SEP)lang$(SEP)builtin \
 	build$(SEP)lang$(SEP)builtin$(SEP)modules
@@ -131,6 +131,7 @@ SRCS := build/lib/error.c \
 	build/bake/bake.c \
 	build/insert/insert.c \
 	build/clone/clone.c \
+	build/replace/replace.c \
 	build/lang/tokens.c \
 	build/lang/tokenizer.c \
 	build/lang/nodes.c \
@@ -265,6 +266,8 @@ build/bake/bake.o: src/bake/bake.c src/bake/bake.h
 build/insert/insert.o: src/insert/insert.c src/insert/insert.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/clone/clone.o: src/clone/clone.c src/clone/clone.h
+	$(CC) $(CFLAGS) -c $< -o $@
+build/replace/replace.o: src/replace/replace.c src/replace/replace.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/find/arguments_manager.o: src/find/arguments_manager.c src/find/arguments_manager.h
 	$(CC) $(CFLAGS) -c $< -o $@

@@ -30141,6 +30141,61 @@ bakecmd_tests[] = {
     {0},
 };
 
+static void
+test_replacecmd_1(void) {
+    file_copy_path("tests/replace/file1.txt", "tests/replace/file1.txt.org");
+
+    config_t *config = config_new();
+    int argc = 4;
+    char *argv[] = {
+        "replace",
+        ":tests/replace/file1.txt",
+        "ababa",
+        "ABABABA",
+    };
+    replacecmd_t *cmd = replacecmd_new(config, argc, argv);
+    replacecmd_run(cmd);
+    replacecmd_del(cmd);
+    config_del(config);
+
+    char *s = file_readcp_from_path("tests/replace/file1.txt");
+    assert(strcmp(s, "abc ABABABA def\n") == 0);
+    free(s);
+
+    file_remove("tests/replace/file1.txt");
+}
+
+static void
+test_replacecmd_2(void) {
+    file_copy_path("tests/replace/file2.txt", "tests/replace/file2.txt.org");
+
+    config_t *config = config_new();
+    int argc = 4;
+    char *argv[] = {
+        "replace",
+        ":tests/replace/file2.txt",
+        "abababa",
+        "ABA",
+    };
+    replacecmd_t *cmd = replacecmd_new(config, argc, argv);
+    replacecmd_run(cmd);
+    replacecmd_del(cmd);
+    config_del(config);
+
+    char *s = file_readcp_from_path("tests/replace/file2.txt");
+    assert(strcmp(s, "ABA\n") == 0);
+    free(s);
+
+    file_remove("tests/replace/file2.txt");
+}
+
+static const struct testcase
+replacecmd_tests[] = {
+    {"1", test_replacecmd_1},
+    {"2", test_replacecmd_2},
+    {0},
+};
+
 /*******
 * main *
 *******/
@@ -30167,6 +30222,7 @@ testmodules[] = {
     {"snippet", snippetcmd_tests},
     {"link", linkcmd_tests},
     {"bake", bakecmd_tests},
+    {"replace", replacecmd_tests},
 
     // lib
     {"cstring_array", cstrarr_tests},
