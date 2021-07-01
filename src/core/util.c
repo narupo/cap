@@ -789,3 +789,18 @@ unescape(string_t *dst, const char **p, const char *ignore) {
         break;
     }
 }
+
+void
+unescape_text(string_t *dst, const char *s, const char *ignore) {
+    if (!dst || !s) {
+        return;
+    }
+
+    for (const char *p = s; *p; p += 1) {
+        if (*p == '\\') {
+            unescape(dst, &p, ignore);
+        } else {
+            str_pushb(dst, *p);
+        }
+    }
+}

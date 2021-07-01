@@ -30189,10 +30189,35 @@ test_replacecmd_2(void) {
     file_remove("tests/replace/file2.txt");
 }
 
+static void
+test_replacecmd_3(void) {
+    file_copy_path("tests/replace/file3.txt", "tests/replace/file3.txt.org");
+
+    config_t *config = config_new();
+    int argc = 4;
+    char *argv[] = {
+        "replace",
+        ":tests/replace/file3.txt",
+        "abcd\nefgh",
+        "ABABA",
+    };
+    replacecmd_t *cmd = replacecmd_new(config, argc, argv);
+    replacecmd_run(cmd);
+    replacecmd_del(cmd);
+    config_del(config);
+
+    char *s = file_readcp_from_path("tests/replace/file3.txt");
+    assert(strcmp(s, "hige\nABABA\nhige\n") == 0);
+    free(s);
+
+    file_remove("tests/replace/file3.txt");
+}
+
 static const struct testcase
 replacecmd_tests[] = {
     {"1", test_replacecmd_1},
     {"2", test_replacecmd_2},
+    {"3", test_replacecmd_3},
     {0},
 };
 

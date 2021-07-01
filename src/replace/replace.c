@@ -150,33 +150,46 @@ replace(replacecmd_t *self) {
     }
 
     const char *cap_fname = self->argv[optind];
-    const char *target = self->argv[optind + 1];
+    const char *target_ = self->argv[optind + 1];
     const char *replaced = self->argv[optind + 2];
-    assert(cap_fname && target && replaced);
+    assert(cap_fname && target_ && replaced);
+
+    string_t *target = str_new();
+    char *content = NULL;
+    FILE *fout = NULL;
 
     char path[FILE_NPATH];
     if (!solve_cmdline_arg_path(self->config, path, sizeof path, cap_fname)) {
         blush("failed to solve path %s", cap_fname);
-        return 1;
+        goto error;
     }
 
-    char *content = file_readcp_from_path(path);
+    content = file_readcp_from_path(path);
     if (content == NULL) {
         blush("failed to read content from %s", path);
-        return 1;
+        goto error;
     }
 
-    FILE *fout = file_open(path, "wb");
+    fout = file_open(path, "wb");
     if (fout == NULL) {
         blush("failed to open file %s", path);
-        return 1;
+        goto error;
     }
 
-    int result = sreplace(fout, content, target, replaced);
+    unescape_text(target, target_, NULL);
+    int result = sreplace(fout, content, str_getc(target), replaced);
 
     fclose(fout);
     free(content);
+    str_del(target);
     return result;
+error:
+    str_del(target);
+    free(content);
+    if (fout) {
+        fclose(fout);
+    }
+    return 1;
 }
 
 int
