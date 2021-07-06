@@ -23,6 +23,7 @@ ifeq ($(OS), Windows_NT)
 		-Wno-unused-result \
 		-D_DEBUG \
 		-I$(INCLUDE)
+	LIBPAD := libpad.dll
 else
 	CFLAGS := -Wall \
 		-g \
@@ -32,12 +33,13 @@ else
 		-Wno-unused-result \
 		-D_DEBUG \
 		-I$(INCLUDE)
+	LIBPAD := libpad.so
 endif
 
 # this is benri tool
 # $(warning $(wildcard src/*.c))
 
-all: tests cap
+all: pad cap tests 
 
 .PHONY: clean
 clean:
@@ -45,6 +47,7 @@ clean:
 
 .PHONY: init
 init:
+	$(RMDIR) ./build
 	$(MKDIR) \
 	build \
 	build$(SEP)lib \
@@ -165,11 +168,22 @@ SRCS := build/lib/error.c \
 
 OBJS := $(SRCS:.c=.o)
 
-tests: build/tests.o $(OBJS)
-	$(CC) $(CFLAGS) -o build/tests $^
+pad: build/$(LIBPAD)
 
-cap: build/app.o $(OBJS)
-	$(CC) $(CFLAGS) -o build/cap $^
+build/$(LIBPAD):
+	cd build && \
+		git clone https://github.com/narupo/pad && \
+		cd pad && \
+		make init && \
+		make && \
+		cd .. && \
+		cp pad/build/$(LIBPAD) .
+
+cap: build/app.o build/$(LIBPAD) $(OBJS)
+	$(CC) $(CFLAGS) -o build/cap build/app.o $(OBJS) build/$(LIBPAD)
+
+tests: build/tests.o build/$(LIBPAD) $(OBJS)
+	$(CC) $(CFLAGS) -o build/tests build/tests.o $(OBJS) build/$(LIBPAD)
 
 build/app.o: src/app.c src/app.h
 	$(CC) $(CFLAGS) -c $< -o $@

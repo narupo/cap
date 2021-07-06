@@ -667,6 +667,9 @@ app_trace(const app_t *self) {
  */
 int
 main(int argc, char *argv[]) {
+    PadTerm_CPrintf(PAD_TERM__YELLOW, PAD_TERM__RED, PAD_TERM__NULL, "Hello, World!\n");
+    return 0;
+
     // set locale for unicode object (char32_t, char16_t)
     setlocale(LC_CTYPE, "");
 
