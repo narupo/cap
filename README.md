@@ -7,22 +7,28 @@ See Wiki: https://github.com/narupo/cap/wiki
 
 How to build of cap.
 
-## UNIX
+## UNIX && Windows
 
     $ git clone https://github.com/narupo/cap
     $ cd cap
     $ make init && make
-    $ ./build/cap -h
+    $ cd build
+    $ ./cap -h
 
+In Windows, Recommended using TDM-GCC
+
+# Install
+
+## UNIX
+
+Copy binary and library into file sysytem.
+
+    $ cp build/cap /usr/local/bin
+    $ cp build/libpad.so /usr/local/lib
 
 ## Windows
 
-Compile by TDM-GCC.
-
-    $ git clone https://github.com/narupo/cap
-    $ cd cap
-    $ make init && make
-    $ ./build/cap -h   
+Copy binary and library into same directory and set PATH.
 
 # How to use
 

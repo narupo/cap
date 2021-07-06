@@ -667,7 +667,15 @@ app_trace(const app_t *self) {
  */
 int
 main(int argc, char *argv[]) {
-    PadTerm_CPrintf(PAD_TERM__YELLOW, PAD_TERM__RED, PAD_TERM__NULL, "Hello, World!\n");
+    PadStr *s = PadStr_New();
+    PadStr_App(s, "Hello, World!");
+    PadTerm_CPrintf(
+        PAD_TERM__YELLOW,
+        PAD_TERM__RED,
+        PAD_TERM__UNDER,
+        "s[%s]\n", PadStr_Getc(s)
+    );
+    PadStr_Del(s);
     return 0;
 
     // set locale for unicode object (char32_t, char16_t)

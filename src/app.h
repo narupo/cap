@@ -6,6 +6,9 @@
 #include <getopt.h>
 #include <locale.h>
 
+#include <pad/lib/string.h>
+#include <pad/lib/term.h>
+
 #include <lib/memory.h>
 #include <lib/cl.h>
 #include <lib/cstring.h>

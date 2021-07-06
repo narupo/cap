@@ -12,7 +12,6 @@ endif
 # windows's mkdir not has -p option :/
 MKDIR := mkdir
 CC := gcc
-INCLUDE := src
 
 ifeq ($(OS), Windows_NT)
 	CFLAGS := -Wall \
@@ -22,7 +21,9 @@ ifeq ($(OS), Windows_NT)
 		-Wno-unused-function \
 		-Wno-unused-result \
 		-D_DEBUG \
-		-I$(INCLUDE)
+		-I src \
+		-I build/pad \
+		-L build
 	LIBPAD := libpad.dll
 else
 	CFLAGS := -Wall \
@@ -32,7 +33,9 @@ else
 		-Wno-unused-function \
 		-Wno-unused-result \
 		-D_DEBUG \
-		-I$(INCLUDE)
+		-I src \
+		-I build/pad \
+		-L build
 	LIBPAD := libpad.so
 endif
 
@@ -180,10 +183,10 @@ build/$(LIBPAD):
 		cp pad/build/$(LIBPAD) .
 
 cap: build/app.o build/$(LIBPAD) $(OBJS)
-	$(CC) $(CFLAGS) -o build/cap build/app.o $(OBJS) build/$(LIBPAD)
+	$(CC) $(CFLAGS) -o build/cap build/app.o $(OBJS) -lpad
 
 tests: build/tests.o build/$(LIBPAD) $(OBJS)
-	$(CC) $(CFLAGS) -o build/tests build/tests.o $(OBJS) build/$(LIBPAD)
+	$(CC) $(CFLAGS) -o build/tests build/tests.o $(OBJS) -lpad
 
 build/app.o: src/app.c src/app.h
 	$(CC) $(CFLAGS) -c $< -o $@
