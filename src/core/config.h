@@ -1,5 +1,7 @@
 #pragma once
 
+#include <pad/core/config.h>
+
 #include <lib/memory.h>
 #include <lib/file.h>
 #include <lib/path.h>
@@ -7,6 +9,7 @@
 #include <core/error_stack.h>
 
 typedef struct config {
+    PadConfig *pad_config;
     errstack_t *errstack;  // error stack for error handling
     int scope;  // @see constant.h for CAP_SCOPE_*
     int recursion_count;  // count of recursion of call to app

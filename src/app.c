@@ -33,7 +33,7 @@ typedef struct {
     char **cmd_argv;
     config_t *config;
     struct opts opts;
-    errstack_t *errstack;
+    PadErrStack *errstack;
 } app_t;
 
 static int
@@ -72,7 +72,7 @@ app_parse_opts(app_t *self) {
         case 'V': self->opts.is_version = true; break;
         case '?':
         default:
-            blush("invalid option");
+            Pad_PushErr("invalid option");
             return false; break;
         }
     }
@@ -92,10 +92,10 @@ app_parse_opts(app_t *self) {
 static void
 app_del(app_t *self) {
     if (self) {
-        config_del(self->config);
-        freeargv(self->argc, self->argv);
-        freeargv(self->cmd_argc, self->cmd_argv);
-        errstack_del(self->errstack);
+        PadConfig_del(self->config);
+        Pad_FreeArgv(self->argc, self->argv);
+        Pad_FreeArgv(self->cmd_argc, self->cmd_argv);
+        PadErrStack_Del(self->errstack);
         free(self);
     }
 }
@@ -110,90 +110,90 @@ app_del(app_t *self) {
 static bool
 app_deploy_env(const app_t *self) {
     char userhome[FILE_NPATH];
-    if (!file_get_user_home(userhome, sizeof userhome)) {
-        blush("failed to get user's home directory. what is your file system?");
+    if (!PadFile_GetUserHome(userhome, sizeof userhome)) {
+        Pad_PushErr("failed to get user's home directory. what is your file system?");
         return false;
     }
 
     // make application directory
     char appdir[FILE_NPATH];
-    if (!file_solvefmt(appdir, sizeof appdir, "%s/.cap", userhome)) {
-        blush("faield to create application directory path");
+    if (!PadFile_SolveFmt(appdir, sizeof appdir, "%s/.cap", userhome)) {
+        Pad_PushErr("faield to create application directory path");
         return false;
     }
 
-    if (!file_exists(appdir)) {
-        if (file_mkdirq(appdir) != 0) {
-            blush("failed to make application directory");
+    if (!PadFile_IsExists(appdir)) {
+        if (PadFile_MkdirQ(appdir) != 0) {
+            Pad_PushErr("failed to make application directory");
             return false;
         }
     }
 
     // make variable directory
     char vardir[FILE_NPATH];
-    if (!file_solvefmt(vardir, sizeof vardir, "%s/var", appdir)) {
-        blush("failed to create path of variable");
+    if (!PadFile_SolveFmt(vardir, sizeof vardir, "%s/var", appdir)) {
+        Pad_PushErr("failed to create path of variable");
         return false;
     }
 
-    if (!file_exists(vardir)) {
-        if (file_mkdirq(vardir) != 0) {
-            blush("failed to make variable directory");
+    if (!PadFile_IsExists(vardir)) {
+        if (PadFile_MkdirQ(vardir) != 0) {
+            Pad_PushErr("failed to make variable directory");
             return false;
         }
     }
 
     // make variable files
     char path[FILE_NPATH];
-    if (!file_solvefmt(path, sizeof path, "%s/cd", vardir)) {
-        blush("failed to create path of cd variable");
+    if (!PadFile_SolveFmt(path, sizeof path, "%s/cd", vardir)) {
+        Pad_PushErr("failed to create path of cd variable");
         return false;
     }
-    if (!file_exists(path)) {
-        if (!file_writeline(userhome, path)) {
-            blush("failed to write line to cd of variable");
+    if (!PadFile_IsExists(path)) {
+        if (!PadFile_WriteLine(userhome, path)) {
+            Pad_PushErr("failed to write line to cd of variable");
             return false;
         }
     }
 
-    if (!file_solvefmt(path, sizeof path, "%s/home", vardir)) {
-        blush("failed to create path of home variable");
+    if (!PadFile_SolveFmt(path, sizeof path, "%s/home", vardir)) {
+        Pad_PushErr("failed to create path of home variable");
         return false;
     }
-    if (!file_exists(path)) {
-        if (!file_writeline(userhome, path)) {
-            blush("failed to write line to home of variable");
+    if (!PadFile_IsExists(path)) {
+        if (!PadFile_WriteLine(userhome, path)) {
+            Pad_PushErr("failed to write line to home of variable");
             return false;
         }
     }
 
-    if (!file_solvefmt(path, sizeof path, "%s/editor", vardir)) {
-        blush("failed to create path of home variable");
+    if (!PadFile_SolveFmt(path, sizeof path, "%s/editor", vardir)) {
+        Pad_PushErr("failed to create path of home variable");
         return false;
     }
-    if (!file_exists(path)) {
-        if (!file_writeline("", path)) {
-            blush("failed to write line to home of variable");
+    if (!PadFile_IsExists(path)) {
+        if (!PadFile_WriteLine("", path)) {
+            Pad_PushErr("failed to write line to home of variable");
             return false;
         }
     }
 
     // make snippets directory
-    if (!file_solvefmt(path, sizeof path, "%s/codes", appdir)) {
-        blush("failed to solve path for snippet codes directory");
+    if (!PadFile_SolveFmt(path, sizeof path, "%s/codes", appdir)) {
+        Pad_PushErr("failed to solve path for snippet codes directory");
         return false;
     }
-    if (!file_exists(path)) {
-        if (file_mkdirq(path) != 0) {
-            blush("failed to make directory for snippet codes directory");
+    if (!PadFile_IsExists(path)) {
+        if (PadFile_MkdirQ(path) != 0) {
+            Pad_PushErr("failed to make directory for snippet codes directory");
             return false;
         }
     }
 
     // standard library directory
-    if (!file_exists(self->config->std_lib_dir_path)) {
-        if (file_mkdirq(self->config->std_lib_dir_path) != 0) {
-            blush("failed to make directory for standard libraries directory");
+    if (!PadFile_IsExists(self->config->std_lib_dir_path)) {
+        if (PadFile_MkdirQ(self->config->std_lib_dir_path) != 0) {
+            Pad_PushErr("failed to make directory for standard libraries directory");
             return false;
         }
     }
@@ -213,9 +213,9 @@ app_deploy_env(const app_t *self) {
  */
 static bool
 app_parse_args(app_t *self, int argc, char *argv[]) {
-    distribute_args_t dargs = {0};
-    if (!distribute_args(&dargs, argc, argv)) {
-        blush("failed to distribute arguments");
+    PadDistriArgs dargs = {0};
+    if (!PadDistriArgs_Distribute(&dargs, argc, argv)) {
+        Pad_PushErr("failed to distribute arguments");
         return false;
     }
 
@@ -237,10 +237,13 @@ app_parse_args(app_t *self, int argc, char *argv[]) {
  */
 static app_t *
 app_new(void) {
-    app_t *self = mem_ecalloc(1, sizeof(*self));
+    app_t *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
-    self->errstack = errstack_new();
-    self->config = config_new();
+    self->errstack = PadErrStack_New();
+    self->config = PadConfig_New();
 
     return self;
 }
@@ -311,7 +314,7 @@ app_usage(app_t *app) {
     const char *example = NULL;
 
     srand(time(NULL));
-    example = examples[randrange(0, exmlen-1)];
+    example = examples[Pad_RandRange(0, exmlen-1)];
 
     fprintf(stderr,
         "%s\n"
@@ -375,7 +378,7 @@ app_is_cap_cmdname(const app_t *self, const char *cmdname) {
     };
 
     for (const char **p = capcmdnames; *p; ++p) {
-        if (!strcmp(cmdname, *p)) {
+        if (Pad_CStrEq(cmdname, *p)) {
             return true;
         }
     }
@@ -405,64 +408,64 @@ app_execute_command_by_name(app_t *self, const char *name) {
 
     int result = 0;
 
-    if (cstr_eq(name, "home")) {
+    if (PadCStr_Eq(name, "home")) {
         routine(homecmd);
-    } else if (cstr_eq(name, "cd")) {
+    } else if (PadCStr_Eq(name, "cd")) {
         routine(cdcmd);
-    } else if (cstr_eq(name, "pwd")) {
+    } else if (PadCStr_Eq(name, "pwd")) {
         routine(pwdcmd);
-    } else if (cstr_eq(name, "ls")) {
+    } else if (PadCStr_Eq(name, "ls")) {
         routine(lscmd);
-    } else if (cstr_eq(name, "cat")) {
+    } else if (PadCStr_Eq(name, "cat")) {
         routine(catcmd);
-    } else if (cstr_eq(name, "run")) {
+    } else if (PadCStr_Eq(name, "run")) {
         routine(runcmd);
-    } else if (cstr_eq(name, "exec")) {
+    } else if (PadCStr_Eq(name, "exec")) {
         routine(execcmd);
-    } else if (cstr_eq(name, "alias")) {
+    } else if (PadCStr_Eq(name, "alias")) {
         routine(alcmd);
-    } else if (cstr_eq(name, "edit")) {
+    } else if (PadCStr_Eq(name, "edit")) {
         routine(editcmd);
-    } else if (cstr_eq(name, "editor")) {
+    } else if (PadCStr_Eq(name, "editor")) {
         routine(editorcmd);
-    } else if (cstr_eq(name, "mkdir")) {
+    } else if (PadCStr_Eq(name, "mkdir")) {
         routine(mkdircmd);
-    } else if (cstr_eq(name, "rm")) {
+    } else if (PadCStr_Eq(name, "rm")) {
         rmcmd_t *cmd = rmcmd_new(self->config, self->cmd_argc, self->cmd_argv);
         result = rmcmd_run(cmd);
         switch (rmcmd_errno(cmd)) {
         case RMCMD_ERR_NOERR: break;
-        default: blush(rmcmd_what(cmd)); break;
+        default: Pad_PushErr(rmcmd_what(cmd)); break;
         }
         rmcmd_del(cmd);
-    } else if (cstr_eq(name, "mv")) {
+    } else if (PadCStr_Eq(name, "mv")) {
         routine(mvcmd);
-    } else if (cstr_eq(name, "cp")) {
+    } else if (PadCStr_Eq(name, "cp")) {
         routine(cpcmd);
-    } else if (cstr_eq(name, "touch")) {
+    } else if (PadCStr_Eq(name, "touch")) {
         routine(touchcmd);
-    } else if (cstr_eq(name, "snippet")) {
+    } else if (PadCStr_Eq(name, "snippet")) {
         routine(snptcmd);
-    } else if (cstr_eq(name, "link")) {
+    } else if (PadCStr_Eq(name, "link")) {
         routine(linkcmd);
-    } else if (cstr_eq(name, "make")) {
+    } else if (PadCStr_Eq(name, "make")) {
         routine(makecmd);
-    } else if (cstr_eq(name, "cook")) {
+    } else if (PadCStr_Eq(name, "cook")) {
         routine(cookcmd);
-    } else if (cstr_eq(name, "sh")) {
+    } else if (PadCStr_Eq(name, "sh")) {
         routine(shcmd);
-    } else if (cstr_eq(name, "find")) {
+    } else if (PadCStr_Eq(name, "find")) {
         routine(findcmd);
-    } else if (cstr_eq(name, "bake")) {
+    } else if (PadCStr_Eq(name, "bake")) {
         routine(bakecmd);
-    } else if (cstr_eq(name, "insert")) {
+    } else if (PadCStr_Eq(name, "insert")) {
         routine(insertcmd);
-    } else if (cstr_eq(name, "clone")) {
+    } else if (PadCStr_Eq(name, "clone")) {
         routine(clonecmd);
-    } else if (cstr_eq(name, "replace")) {
+    } else if (PadCStr_Eq(name, "replace")) {
         routine(replacecmd);
     } else {
-        blush("invalid command name \"%s\"", name);
+        Pad_PushErr("invalid command name \"%s\"", name);
         result = 1;
     }
 
@@ -497,45 +500,45 @@ app_execute_alias_by_name(app_t *self, bool *found, const char *name) {
     *found = true;
 
     // create cap's command line with alias value
-    string_t *cmdline = str_new();
+    PadStr *cmdline = PadStr_New();
 
-    str_app(cmdline, "cap ");
-    str_app(cmdline, val);
-    str_app(cmdline, " ");
+    PadStr_App(cmdline, "cap ");
+    PadStr_App(cmdline, val);
+    PadStr_App(cmdline, " ");
     char escarg[1024];
     for (int i = 1; i < self->cmd_argc; ++i) {
         const char * arg = self->cmd_argv[i];
-        str_app(cmdline, "\"");
-        escape(escarg, sizeof escarg, arg, "\"");
-        str_app(cmdline, escarg);
-        str_app(cmdline, "\"");
-        str_app(cmdline, " ");
+        PadStr_App(cmdline, "\"");
+        Pad_Escape(escarg, sizeof escarg, arg, "\"");
+        PadStr_App(cmdline, escarg);
+        PadStr_App(cmdline, "\"");
+        PadStr_App(cmdline, " ");
     }
-    str_popb(cmdline);
+    PadStr_PopBack(cmdline);
 
     // convert command to application's arguments
-    cl_t *cl = cl_new();
-    cl_parse_str_opts(cl, str_getc(cmdline), 0);
-    str_del(cmdline);
+    PadCL *cl = PadCL_New();
+    PadCL_ParseStrOpts(cl, PadStr_Getc(cmdline), 0);
+    PadStr_Del(cmdline);
 
-    int argc = cl_len(cl);
-    char **argv = cl_escdel(cl);
+    int argc = PadCL_Len(cl);
+    char **argv = PadCL_EscDel(cl);
 
     // re-parse application's arguments
-    freeargv(self->argc, self->argv);
-    freeargv(self->cmd_argc, self->cmd_argv);
+    Pad_FreeArgv(self->argc, self->argv);
+    Pad_FreeArgv(self->cmd_argc, self->cmd_argv);
 
     // increment recursion count for safety
     self->config->recursion_count++;
 
     // run application
     if (self->config->recursion_count >= MAX_RECURSION_LIMIT) {
-        blush("reached recursion limit");
+        Pad_PushErr("reached recursion limit");
         return 1;
     }
 
     int result = app_run(self, argc, argv);
-    freeargv(argc, argv);
+    Pad_FreeArgv(argc, argv);
 
     return result;
 }
@@ -551,7 +554,7 @@ static int
 app_run_cmdname(app_t *self) {
     const char *cmdname = self->cmd_argv[0];
     if (!cmdname) {
-        blush("command name is null");
+        Pad_PushErr("command name is null");
         return 1; // impossible
     }
 
@@ -577,33 +580,33 @@ app_run_cmdname(app_t *self) {
         return result;
     }
 
-    cstring_array_t *new_argv = pushf_argv(self->cmd_argc, self->cmd_argv, "run");
-    int argc = cstrarr_len(new_argv);
-    char **argv = cstrarr_escdel(new_argv);
+    PadCStrAry *new_argv = Pad_PushFrontArgv(self->cmd_argc, self->cmd_argv, "run");
+    int argc = PadCStrAry_Len(new_argv);
+    char **argv = PadCStrAry_EscDel(new_argv);
     return execute_run(self->config, argc, argv);
 }
 
 static bool
 app_init(app_t *self, int argc, char *argv[]) {
     if (!config_init(self->config)) {
-        errstack_t *es = config_get_error_stack(self->config);
+        PadErrStack *es = PadConfig_GetErrStack(self->config);
         errstack_extendb_other(self->errstack, es);
-        blush("failed to configuration");
+        Pad_PushErr("failed to configuration");
         return false;
     }
 
     if (!app_parse_args(self, argc, argv)) {
-        blush("failed to parse arguments");
+        Pad_PushErr("failed to parse arguments");
         return false;
     }
 
     if (!app_parse_opts(self)) {
-        blush("failed to parse options");
+        Pad_PushErr("failed to parse options");
         return false;
     }
 
     if (!app_deploy_env(self)) {
-        blush("failed to deploy environment at file system");
+        Pad_PushErr("failed to deploy environment at file system");
         return false;
     }
 
@@ -649,9 +652,9 @@ app_run(app_t *self, int argc, char *argv[]) {
  */
 static void
 app_trace(const app_t *self) {
-    if (errstack_len(self->errstack)) {
+    if (PadErrStack_Len(self->errstack)) {
         fflush(stdout);
-        errstack_trace_simple(self->errstack, stderr);
+        PadErrStack_TraceSimple(self->errstack, stderr);
         fflush(stderr);        
     }
 }
@@ -667,23 +670,12 @@ app_trace(const app_t *self) {
  */
 int
 main(int argc, char *argv[]) {
-    PadStr *s = PadStr_New();
-    PadStr_App(s, "Hello, World!");
-    PadTerm_CPrintf(
-        PAD_TERM__YELLOW,
-        PAD_TERM__RED,
-        PAD_TERM__UNDER,
-        "s[%s]\n", PadStr_Getc(s)
-    );
-    PadStr_Del(s);
-    return 0;
-
     // set locale for unicode object (char32_t, char16_t)
     setlocale(LC_CTYPE, "");
 
     app_t *app = app_new();
     if (!app) {
-        err_die("failed to start application");
+        PadErr_Die("failed to start application");
     }
 
     int result = app_run(app, argc, argv);

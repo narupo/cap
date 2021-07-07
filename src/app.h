@@ -9,15 +9,20 @@
 #include <pad/lib/string.h>
 #include <pad/lib/term.h>
 
-#include <lib/memory.h>
-#include <lib/cl.h>
-#include <lib/cstring.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/cl.h>
+#include <pad/lib/cstring.h>
+#include <pad/core/error_stack.h>
+#include <pad/lang/ast.h>
+#include <pad/lang/compiler.h>
+#include <pad/lang/traverser.h>
+
 #include <core/constant.h>
 #include <core/config.h>
 #include <core/util.h>
 #include <core/alias_manager.h>
 #include <core/args.h>
-#include <core/error_stack.h>
+
 #include <home/home.h>
 #include <cd/cd.h>
 #include <pwd/pwd.h>
@@ -43,6 +48,3 @@
 #include <insert/insert.h>
 #include <clone/clone.h>
 #include <replace/replace.h>
-#include <lang/ast.h>
-#include <lang/compiler.h>
-#include <lang/traverser.h>
