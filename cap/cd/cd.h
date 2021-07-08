@@ -7,20 +7,21 @@
  */
 #pragma once
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <core/config.h>
-#include <core/util.h>
-#include <core/symlink.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
 
-struct cdcmd;
-typedef struct cdcmd cdcmd_t;
+#include <cap/core/config.h>
+#include <cap/core/util.h>
+#include <cap/core/symlink.h>
+
+struct CapCdCmd;
+typedef struct CapCdCmd CapCdCmd;
 
 void
-cdcmd_del(cdcmd_t *self);
+CapCdCmd_Del(CapCdCmd *self);
 
-cdcmd_t *
-cdcmd_new(const config_t *config, int argc, char **argv);
+CapCdCmd *
+CapCdCmd_New(const CapConfig *config, int argc, char **argv);
 
 int
-cdcmd_run(cdcmd_t *self);
+CapCdCmd_Run(CapCdCmd *self);

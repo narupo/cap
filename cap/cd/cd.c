@@ -7,14 +7,14 @@
  */
 #include <cd/cd.h>
 
-struct cdcmd {
-    const config_t *config;
+struct CapCdCmd {
+    const CapConfig *config;
     int argc;
     char **argv;
 };
 
 void
-cdcmd_del(cdcmd_t *self) {
+CapCdCmd_Del(CapCdCmd *self) {
     if (!self) {
         return;
     }
@@ -22,9 +22,12 @@ cdcmd_del(cdcmd_t *self) {
     free(self);
 }
 
-cdcmd_t *
-cdcmd_new(const config_t *config, int argc, char *argv[]) {
-    cdcmd_t *self = mem_ecalloc(1, sizeof(*self));
+CapCdCmd *
+CapCdCmd_New(const CapConfig *config, int argc, char *argv[]) {
+    CapCdCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
@@ -33,32 +36,32 @@ cdcmd_new(const config_t *config, int argc, char *argv[]) {
     return self;
 }
 
-bool
-cdcmd_cd(cdcmd_t *self, const char *drtpath) {
+static bool
+cd(CapCdCmd *self, const char *drtpath) {
     char normpath[FILE_NPATH];
-    if (!symlink_norm_path(self->config, normpath, sizeof normpath, drtpath)) {
-        err_error("failed to normalize path");
+    if (!CapSymlink_NormPath(self->config, normpath, sizeof normpath, drtpath)) {
+        PadErr_Err("failed to normalize path");
         return false;
     }
 
     char realpath[FILE_NPATH];
-    if (!symlink_follow_path(self->config, realpath, sizeof realpath, normpath)) {
-        err_error("failed to follow path");
+    if (!CapSymlink_FollowPath(self->config, realpath, sizeof realpath, normpath)) {
+        PadErr_Err("failed to follow path");
         return false;
     }
 
-    if (is_out_of_home(self->config->home_path, realpath)) {
-        err_error("\"%s\" is out of home", normpath);
+    if (Cap_IsOutOfHome(self->config->home_path, realpath)) {
+        PadErr_Err("\"%s\" is out of home", normpath);
         return false;
     }
 
-    if (!file_isdir(realpath)) {
-        err_error("\"%s\" is not a directory", normpath);
+    if (!PadFile_IsDir(realpath)) {
+        PadErr_Err("\"%s\" is not a directory", normpath);
         return false;
     }
 
-    if (!file_writeline(normpath, self->config->var_cd_path)) {
-        err_error("invalid var cd path");
+    if (!PadFile_WriteLine(normpath, self->config->var_cd_path)) {
+        PadErr_Err("invalid var cd path");
         return false;
     }
 
@@ -66,9 +69,9 @@ cdcmd_cd(cdcmd_t *self, const char *drtpath) {
 }
 
 int
-cdcmd_run(cdcmd_t *self) {
+CapCdCmd_Run(CapCdCmd *self) {
     if (self->argc < 2) {
-        if (!cdcmd_cd(self, self->config->home_path)) {
+        if (!cd(self, self->config->home_path)) {
             return 1;
         }
         return 0;
@@ -93,7 +96,7 @@ cdcmd_run(cdcmd_t *self) {
         snprintf(drtpath, sizeof drtpath, "%s/%s", org, argpath);
     }
 
-    if (!cdcmd_cd(self, drtpath)) {
+    if (!cd(self, drtpath)) {
         return 1;
     }
 
