@@ -27,9 +27,9 @@ CapConfig_New(void) {
     return self;
 error:
     if (self) {
-        free(self);
         PadErrStack_Del(self->errstack);
         PadConfig_Del(self->pad_config);
+        free(self);
     }
     return NULL;
 }

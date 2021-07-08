@@ -10,10 +10,10 @@
 #include <pad/lib/term.h>
 #include <pad/core/util.h>
 
-#include <core/constant.h>
-#include <core/config.h>
-#include <core/alias_manager.h>
-#include <core/alias_info.h>
+#include <cap/core/constant.h>
+#include <cap/core/config.h>
+#include <cap/core/alias_manager.h>
+#include <cap/core/alias_info.h>
 
 struct CapAlCmd;
 typedef struct CapAlCmd CapAlCmd;

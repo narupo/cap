@@ -1,7 +1,7 @@
 config *
 alias *
-app.c
-app.h
+app.c *
+app.h *
 bake
 cat
 cd

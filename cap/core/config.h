@@ -6,7 +6,7 @@
 #include <pad/core/config.h>
 #include <pad/core/error_stack.h>
 
-#include <core/constant.h>
+#include <cap/core/constant.h>
 
 typedef struct CapConfig {
     PadConfig *pad_config;

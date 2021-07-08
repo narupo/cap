@@ -3,37 +3,48 @@
 /**
  * structure of command
  */
-struct bakecmd {
-    const config_t *config;
+struct CapBakeCmd {
+    const CapConfig *config;
     int argc;
     char **argv;
-    errstack_t *errstack;
+    PadErrStack *errstack;
 };
 
 void
-bakecmd_del(bakecmd_t *self) {
+CapBakeCmd_Del(CapBakeCmd *self) {
     if (!self) {
         return;
     }
 
-    errstack_del(self->errstack);
+    PadErrStack_Del(self->errstack);
     free(self);
 }
 
-bakecmd_t *
-bakecmd_new(const config_t *config, int argc, char **argv) {
-    bakecmd_t *self = mem_ecalloc(1, sizeof(*self));
+CapBakeCmd *
+CapBakeCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapBakeCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        goto error;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
-    self->errstack = errstack_new();
+    self->errstack = PadErrStack_New();
+    if (self->errstack == NULL) {
+        goto error;
+    }
 
     return self;
+error:
+    if (self) {
+        PadErrStack_Del(self->errstack);
+        free(self);
+    }
 }
 
 static int
-bake(bakecmd_t *self) {
+bake(CapBakeCmd *self) {
     FILE *fin = NULL;
     FILE *fout = NULL;
     const char *cap_path = NULL;
@@ -48,27 +59,27 @@ bake(bakecmd_t *self) {
         use_stdin = true;
     } else {
         cap_path = self->argv[1];
-        if (!solve_cmdline_arg_path(self->config, path, sizeof path, cap_path)) {
-            blush("failed to solve cap path");
+        if (!Cap_SolveCmdlineArgPath(self->config, path, sizeof path, cap_path)) {
+            Pad_PushErr("failed to solve cap path");
             return 1;
         }            
 
         fin = fopen(path, "r");
         if (fin == NULL) {
-            blush("failed to open file %s", path);
+            Pad_PushErr("failed to open file %s", path);
             goto error;
         }
     }
 
-    src = file_readcp(fin);
+    src = PadFile_ReadCopy(fin);
     if (src == NULL) {
-        blush("failed to read from file");
+        Pad_PushErr("failed to read from file");
         goto error;
     }
     fclose(fin);
     fin = NULL;
 
-    compiled = compile_argv(
+    compiled = Pad_CompileArgv(
         self->config,
         self->errstack,
         self->argc - 1,
@@ -86,12 +97,12 @@ bake(bakecmd_t *self) {
     // bake
     fout = fopen(path, "wb");
     if (fout == NULL) {
-        blush("failed to open file %s for write", path);
+        Pad_PushErr("failed to open file %s for write", path);
         goto error;
     }
 
     if (fwrite(compiled, sizeof(char), strlen(compiled), fout) == 0) {
-        blush("failed to write data at %s", cap_path);
+        Pad_PushErr("failed to write data at %s", cap_path);
         goto error;
     }
 
@@ -111,10 +122,10 @@ error:
 }
 
 int
-bakecmd_run(bakecmd_t *self) {
+CapBakeCmd_Run(CapBakeCmd *self) {
     int result = bake(self);
-    if (errstack_len(self->errstack)) {
-        errstack_trace(self->errstack, stderr);
+    if (PadErrStack_Len(self->errstack)) {
+        PadErrStack_TraceSimple(self->errstack, stderr);
         return result;
     }
     return result;

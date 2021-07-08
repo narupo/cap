@@ -21,7 +21,7 @@ ifeq ($(OS), Windows_NT)
 		-Wno-unused-function \
 		-Wno-unused-result \
 		-D_DEBUG \
-		-I src \
+		-I . \
 		-I build/pad \
 		-L build
 	LIBPAD := libpad.dll
@@ -33,7 +33,7 @@ else
 		-Wno-unused-function \
 		-Wno-unused-result \
 		-D_DEBUG \
-		-I src \
+		-I . \
 		-I build/pad \
 		-L build
 	LIBPAD := libpad.so
