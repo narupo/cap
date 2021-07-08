@@ -29,196 +29,9 @@
 #include <lang/context.h>
 #include <run/run.h>
 
-#ifdef _PAD_WINDOWS
+#ifdef PAD__WINDOWS
 # include <windows.h>
 #endif
-
-/*********
-* macros *
-*********/
-
-#undef safe_free
-#define safe_free(ptr) \
-    free(ptr); \
-    ptr = NULL;
-
-/**********
-* numbers *
-**********/
-
-enum {
-    SAFESYSTEM_DEFAULT = 1 << 0,
-    SAFESYSTEM_EDIT = 1 << 1,
-    SAFESYSTEM_DETACH = 1 << 2,
-    SAFESYSTEM_UNSAFE = 1 << 3,
-    SAFESYSTEM_UNSAFE_UNIX_ONLY = 1 << 4,
-};
-
-/************
-* functions *
-************/
-
-/**
- * Free allocate memory of argv.
- *
- * @param[in] argc
- * @param[in] *argv[]
- */
-void
-freeargv(int argc, char *argv[]);
-
-/**
- * Show argv values.
- *
- * @param[in] argc
- * @param[in] *argv[]
- */
-void
-showargv(int argc, char *argv[]);
-
-/**
- * Get random number of range.
- *
- * @param[in] min minimum number of range
- * @param[in] max maximum number of range
- *
- * @return random number (n >= min && n <= max)
- */
-int
-randrange(int min, int max);
-
-/**
- * Wrapper of system(3) for the safe execute.
- *
- * @example safesystem("/bin/sh -c \"date\"");
- * @see system(3)
- * @param[in] cmdline command line
- * @param[in] option option of fork
- * @return success to 0
- */
-int
-safesystem(const char *cmdline, int option);
-
-/**
- * Create array of arguments by argc and argv and optind.
- *
- * @param[in] argc
- * @param[in] argv
- * @param[in] optind @see getopt
- *
- * @return success to pointer to array
- * @return failed to NULL
- */
-cstring_array_t *
-argsbyoptind(int argc, char *argv[], int optind);
-
-/**
- * trim first line of text
- *
- * @param[in] *dst  pointer to destination buffer
- * @param[in] dstsz number of size of destination buffer
- * @param[in] *text pointer to strings
- *
- * @return success to pointer to destination buffer
- * @return failed to pointer to NULL
- */
-char *
-trim_first_line(char *dst, int32_t dstsz, const char *text);
-
-
-/**
- * compile source text with argv
- *
- * @param[in] *config read only config object
- * @param[out] *errstack
- * @param[in] argc
- * @param[in] *argv[]
- * @param[in] *src    pointer to strings
- *
- * @return success to string allocate memory (do free)
- * @return failed to NULL
- */
-char *
-compile_argv(const config_t *config, errstack_t *errstack, int argc, char *argv[], const char *src);
-
-/**
- * clear screen
- */
-void
-clear_screen(void);
-
-/**
- * push to front of argv and re-build array and return
- *
- * @param[in] argc
- * @param[in] *argv[]
- * @param[in] *front
- *
- * @return success to pointer to cstring_array_t
- * @return failed to NULL
- */
-cstring_array_t *
-pushf_argv(int argc, char *argv[], const char *front);
-
-/**
- * copy string of src with escape character by target
- *
- * @param[in] *dst    destination buffer
- * @param[in] dstsz   destination buffer size
- * @param[in] *src    source string
- * @param[in] *target target string like a ("abc")
- *
- * @return failed to NULL
- * @return success to pointer to destination buffer
- */
-char *
-escape(char *dst, int32_t dstsz, const char *src, const char *target);
-
-/**
- * If path is ".." or "." then return true
- *
- * @param[in] path path of string
- *
- * @return true or false
- */
-bool
-is_dot_file(const char *path);
-
-/**
- * split string to cstring array
- *
- * @param[in] *str
- * @param[in] ch
- *
- * @return success to pointer to cstring_array_t
- * @return failed to NULL
- */
-cstring_array_t *
-split_to_array(const char *str, int ch);
-
-/**
- * pop tail slash (/ or \\) from path
- * if path is root (/ or C:\\) then don't pop tail slash
- *
- * @param[in] *path
- *
- * @return success to pointer to path
- * @return failed to NULL
- */
-char *
-pop_tail_slash(char *path);
-
-/**
- * Check path is out of cap's home?
- *
- * @param[in] string varhome path of var home
- * @param[in] string path check path
- *
- * @return bool is out of home to true
- * @return bool is not out of home to false
- */
-bool
-is_out_of_home(const char *homepath, const char *path);
 
 /**
  * solve path of comannd line argument
@@ -273,7 +86,7 @@ Cap_GetOrigin(const config_t *config, const char *cap_path);
  * @return failed to not 0
  */
 int
-execute_snippet(const config_t *config, bool *found, int argc, char *argv[], const char *name);
+Cap_ExecSnippet(const config_t *config, bool *found, int argc, char *argv[], const char *name);
 
 /**
  * execute program in directory of token of PATH in resource file
@@ -287,7 +100,7 @@ execute_snippet(const config_t *config, bool *found, int argc, char *argv[], con
  * @param[in] *cmdname
  */
 int
-execute_program(const config_t *config, bool *found, int argc, char *argv[], const char *cmdname);
+Cap_ExecProg(const config_t *config, bool *found, int argc, char *argv[], const char *cmdname);
 
 /**
  * execute run command with command arguments
@@ -299,10 +112,4 @@ execute_program(const config_t *config, bool *found, int argc, char *argv[], con
  * @return success to 0 else other
  */
 int
-execute_run(const config_t *config, int argc, char *argv[]);
-
-void
-unescape(string_t *dst, const char **p, const char *ignore);
-
-void
-unescape_text(string_t *dst, const char *s, const char *ignore);
+Cap_ExecRun(const config_t *config, int argc, char *argv[]);

@@ -5,7 +5,7 @@
  *  Author: narupo
  *   Since: 2016
  */
-#include <cd/cd.h>
+#include <cap/cd/cd.h>
 
 struct CapCdCmd {
     const CapConfig *config;
