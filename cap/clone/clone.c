@@ -3,28 +3,28 @@
 /**
  * structure of options
  */
-struct opts {
+struct Opts {
     bool is_help;
 };
 
 /**
  * structure of command
  */
-struct clone {
-    const config_t *config;
+struct CapCloneCmd {
+    const CapConfig *config;
     int argc;
     int optind;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
 };
 
 /**
  * show usage of command
  *
- * @param[in] self pointer to clonecmd_t
+ * @param[in] self pointer to CapCloneCmd
  */
 static void
-clonecmd_show_usage(clonecmd_t *self) {
+usage(CapCloneCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Usage:\n"
@@ -37,18 +37,19 @@ clonecmd_show_usage(clonecmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
 /**
  * parse options
  *
- * @param[in] self pointer to clonecmd_t 
+ * @param[in] self pointer to CapCloneCmd 
  *
  * @return success to true
  * @return failed to false
  */
 static bool
-clonecmd_parse_opts(clonecmd_t *self) {
+parse_opts(CapCloneCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -56,7 +57,7 @@ clonecmd_parse_opts(clonecmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
 
     extern int opterr;
     extern int optind;
@@ -76,14 +77,14 @@ clonecmd_parse_opts(clonecmd_t *self) {
         case 'f': printf("%s\n", optarg); break;
         case '?':
         default:
-            err_die("unknown option");
+            PadErr_Die("unknown option");
             return false;
             break;
         }
     }
 
     if (self->argc < optind) {
-        err_die("failed to parse option");
+        PadErr_Die("failed to parse option");
         return false;
     }
 
@@ -92,7 +93,7 @@ clonecmd_parse_opts(clonecmd_t *self) {
 }
 
 void
-clonecmd_del(clonecmd_t *self) {
+CapCloneCmd_Del(CapCloneCmd *self) {
     if (!self) {
         return;
     }
@@ -100,16 +101,19 @@ clonecmd_del(clonecmd_t *self) {
     free(self);
 }
 
-clonecmd_t *
-clonecmd_new(const config_t *config, int argc, char **argv) {
-    clonecmd_t *self = mem_ecalloc(1, sizeof(*self));
+CapCloneCmd *
+CapCloneCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapCloneCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
 
-    if (!clonecmd_parse_opts(self)) {
-        clonecmd_del(self);
+    if (!parse_opts(self)) {
+        CapCloneCmd_Del(self);
         return NULL;
     }
 
@@ -138,10 +142,9 @@ static void get_repo_name(char *dst, int32_t dstsz, const char *path) {
 }
 
 int
-clonecmd_run(clonecmd_t *self) {
+clonecmd_run(CapCloneCmd *self) {
     if (self->argc < 2) {
-        clonecmd_show_usage(self);
-        return 0;
+        usage(self);
     }
 
     const char *src_path = self->argv[optind];
@@ -154,20 +157,20 @@ clonecmd_run(clonecmd_t *self) {
         dst_cap_path = repo_name;
     }
 
-    if (!solve_cmdline_arg_path(self->config, dst_path, sizeof dst_path, dst_cap_path)) {
+    if (!Cap_SolveCmdlineArgPath(self->config, dst_path, sizeof dst_path, dst_cap_path)) {
         fprintf(stderr, "failed to solve path\n");
         return 1;
     }
 
-    string_t *cmd = str_new();
+    PadStr *cmd = PadStr_New();
 
-    str_app(cmd, "git clone ");
-    str_app(cmd, src_path);
-    str_app(cmd, " ");
-    str_app(cmd, dst_path);
+    PadStr_App(cmd, "git clone ");
+    PadStr_App(cmd, src_path);
+    PadStr_App(cmd, " ");
+    PadStr_App(cmd, dst_path);
 
-    safesystem(str_getc(cmd), SAFESYSTEM_DEFAULT);
+    Pad_SafeSystem(PadStr_Getc(cmd), PAD_SAFESYSTEM_DEFAULT);
 
-    str_del(cmd);
+    PadStr_Del(cmd);
     return 0;
 }
