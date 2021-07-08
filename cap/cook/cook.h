@@ -12,37 +12,37 @@
 /**
  * structure and type of command
  */
-struct cookcmd;
-typedef struct cookcmd cookcmd_t;
+struct CapCookCmd;
+typedef struct CapCookCmd CapCookCmd;
 
 /**
  * destruct command
  *
- * @param[in] self pointer to cookcmd_t
+ * @param[in] self pointer to CapCookCmd
  */
 void
-cookcmd_del(cookcmd_t *self);
+CapCookCmd_Del(CapCookCmd *self);
 
 /**
  * construct command
  *
- * @param[in] config      pointer to config_t (read-only)
+ * @param[in] config      pointer to CapConfig (read-only)
  * @param[in] argc        number of arguments
  * @param[in] move_argv   pointer to array of arguments 
  *
- * @return success to pointer to cookcmd_t
+ * @return success to pointer to CapCookCmd
  * @return failed to NULL
  */
-cookcmd_t *
-cookcmd_new(const config_t *config, int argc, char **argv);
+CapCookCmd *
+CapCookCmd_New(const CapConfig *config, int argc, char **argv);
 
 /**
  * run command
  *
- * @param[in] self pointer to cookcmd_t
+ * @param[in] self pointer to CapCookCmd
  *
  * @return success to number of 0
  * @return failed to number of not 0
  */
 int
-cookcmd_run(cookcmd_t *self);
+CapCookCmd_Run(CapCookCmd *self);

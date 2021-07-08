@@ -1,40 +1,43 @@
-#include <cook/cook.h>
+#include <cap/cook/cook.h>
 
 /**
  * structure of command
  */
-struct cookcmd {
-    const config_t *config;
+struct CapCookCmd {
+    const CapConfig *config;
     int argc;
     char **argv;
-    errstack_t *errstack;
+    PadErrStack *errstack;
 };
 
 void
-cookcmd_del(cookcmd_t *self) {
+CapCookCmd_Del(CapCookCmd *self) {
     if (!self) {
         return;
     }
 
-    errstack_del(self->errstack);
+    PadErrStack_Del(self->errstack);
     free(self);
 }
 
-cookcmd_t *
-cookcmd_new(const config_t *config, int argc, char **argv) {
-    cookcmd_t *self = mem_ecalloc(1, sizeof(*self));
+CapCookCmd *
+CapCookCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapCookCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
-    self->errstack = errstack_new();
+    self->errstack = PadErrStack_New();
 
     return self;
 }
 
 int
-cookcmd_run(cookcmd_t *self) {
-    int result = make_from_args(
+CapCookCmd_Run(CapCookCmd *self) {
+    int result = CapMake_MakeFromArgs(
         self->config,
         self->errstack,
         self->argc,
@@ -42,7 +45,7 @@ cookcmd_run(cookcmd_t *self) {
         false  // look me!
     );
     if (result != 0) {
-        errstack_trace(self->errstack, stderr);
+        PadErrStack_TraceSimple(self->errstack, stderr);
     }
 
     return result;

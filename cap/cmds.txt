@@ -7,7 +7,7 @@ cat *
 cd *
 clone *
 cmds.txt
-cook
+cook *
 core
 cp
 edit
