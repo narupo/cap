@@ -41,6 +41,7 @@ error:
         PadErrStack_Del(self->errstack);
         free(self);
     }
+    return NULL;
 }
 
 static int
