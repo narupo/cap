@@ -169,7 +169,7 @@ clonecmd_run(CapCloneCmd *self) {
     PadStr_App(cmd, " ");
     PadStr_App(cmd, dst_path);
 
-    Pad_SafeSystem(PadStr_Getc(cmd), PAD_SAFESYSTEM_DEFAULT);
+    Pad_SafeSystem(PadStr_Getc(cmd), PAD_SAFESYSTEM__DEFAULT);
 
     PadStr_Del(cmd);
     return 0;
