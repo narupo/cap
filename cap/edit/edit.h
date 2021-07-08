@@ -7,9 +7,6 @@
 #include <pad/lib/file.h>
 #include <pad/lib/string.h>
 #include <pad/lib/cstring.h>
-#include <pad/lang/tokenizer.h>
-#include <pad/lang/ast.h>
-#include <pad/lang/context.h>
 
 #include <cap/core/util.h>
 #include <cap/core/config.h>
