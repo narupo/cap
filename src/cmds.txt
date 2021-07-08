@@ -1,3 +1,4 @@
+config *
 alias *
 app.c
 app.h

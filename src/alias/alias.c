@@ -7,7 +7,7 @@ struct opts {
 };
 
 struct CapAlCmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     int optind;
     char **argv;
@@ -90,7 +90,7 @@ CapAlCmd_Del(CapAlCmd *self) {
 }
 
 CapAlCmd *
-CapAlCmd_New(const config_t *config, int argc, char **argv) {
+CapAlCmd_New(const CapConfig *config, int argc, char **argv) {
     CapAlCmd *self = PadMem_Calloc(1, sizeof(*self));
     if (self == NULL) {
         return NULL;

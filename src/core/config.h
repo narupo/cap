@@ -1,16 +1,16 @@
 #pragma once
 
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <pad/lib/path.h>
 #include <pad/core/config.h>
+#include <pad/core/error_stack.h>
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <lib/path.h>
 #include <core/constant.h>
-#include <core/error_stack.h>
 
-typedef struct config {
+typedef struct CapConfig {
     PadConfig *pad_config;
-    errstack_t *errstack;  // error stack for error handling
+    PadErrStack *errstack;  // error stack for error handling
     int scope;  // @see constant.h for CAP_SCOPE_*
     int recursion_count;  // count of recursion of call to app
     char line_encoding[32+1];  // line encoding "cr" | "crlf" | "lf"
@@ -22,33 +22,33 @@ typedef struct config {
     char editor[FILE_NPATH];  // value of editor
     char codes_dir_path[FILE_NPATH];  // snippet codes directory path
     char std_lib_dir_path[FILE_NPATH];  // standard libraries directory path
-} config_t;
+} CapConfig;
 
 /**
- * destruct config_t
+ * destruct CapConfig
  * 
  * @param[in] *self 
  */
 void
-config_del(config_t *self);
+CapConfig_Del(CapConfig *self);
 
 /**
- * construct config_t
+ * construct CapConfig
  * 
- * @return pointer to config_t dynamic allocate memory
+ * @return pointer to CapConfig dynamic allocate memory
  */
-config_t *
-config_new(void);
+CapConfig *
+CapConfig_New(void);
 
 /**
- * initialize config_t
+ * initialize CapConfig
  * 
  * @param[in] *self 
  * 
  * @return pointer to self
  */
-config_t *
-config_init(config_t *self);
+CapConfig *
+CapConfig_Init(CapConfig *self);
 
 /**
  * get config's error stack
@@ -57,5 +57,15 @@ config_init(config_t *self);
  * 
  * @return 
  */
-errstack_t *
-config_get_error_stack(config_t *self);
+PadErrStack *
+CapConfig_GetErrStack(CapConfig *self);
+
+/**
+ * Get pad's config
+ * 
+ * @param[in] *self 
+ * 
+ * @return pointer to PadConfig
+ */
+PadConfig *
+CapConfig_GetPadConfig(CapConfig *self);
