@@ -132,7 +132,7 @@ runcmd_run(runcmd_t *self) {
     }
 
     const char *scmdline = str_getc(cmdline);
-    int status = safesystem(scmdline, option);
+    int status = Pad_SafeSystem(scmdline, option);
 #if _CAP_WINDOWS
     int exit_code = status;
 #else

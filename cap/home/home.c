@@ -31,7 +31,7 @@ homecmd_run(homecmd_t *self) {
 
     if (argc < 2) {
         char line[FILE_NPATH];
-        if (!file_readline(line, sizeof line, self->config->var_home_path)) {
+        if (!PadFile_ReadLine(line, sizeof line, self->config->var_home_path)) {
             PadErr_Error("failed to read line from home of variable");
             return 1;
         }

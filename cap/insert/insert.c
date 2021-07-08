@@ -364,7 +364,7 @@ insert(insertcmd_t *self) {
         return 0;
     } else {
         cap_path = self->argv[optind];
-        if (!solve_cmdline_arg_path(self->config, path, sizeof path, cap_path)) {
+        if (!Cap_SolveCmdlineArgPath(self->config, path, sizeof path, cap_path)) {
             error("failed to solve path");
             goto error;
         }

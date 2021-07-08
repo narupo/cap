@@ -242,22 +242,22 @@ symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char
 #ifdef _CAP_WINDOWS
     // append drive letter of Windows
     if (hasdriveletter) {
-        cstr_app_fmt(dst, dstsz, "%c:", drtpath[0]);
+        PadCStr_App_fmt(dst, dstsz, "%c:", drtpath[0]);
     }
 #endif
 
     if (pathhead[0] == FILE_SEP) {
-        cstr_app_fmt(dst, dstsz, "%c", FILE_SEP);
+        PadCStr_App_fmt(dst, dstsz, "%c", FILE_SEP);
     }
 
     for (int32_t i = 0; i < cstrarr_len(dsttoks)-1; ++i) {
         const char *tok = cstrarr_getc(dsttoks, i);
-        cstr_app(dst, dstsz, tok);
-        cstr_app_fmt(dst, dstsz, "%c", FILE_SEP);
+        PadCStr_App(dst, dstsz, tok);
+        PadCStr_App_fmt(dst, dstsz, "%c", FILE_SEP);
     }
     if (cstrarr_len(dsttoks)) {
         const char *tok = cstrarr_getc(dsttoks, cstrarr_len(dsttoks)-1);
-        cstr_app(dst, dstsz, tok);
+        PadCStr_App(dst, dstsz, tok);
     }
 
     cstrarr_del(srctoks);
@@ -269,7 +269,7 @@ symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char
 bool
 symlink_is_link_file(const char *path) {
     char line[FILE_NPATH + 100];
-    if (!file_readline(line, sizeof line, path)) {
+    if (!PadFile_ReadLine(line, sizeof line, path)) {
         return false;
     }
 

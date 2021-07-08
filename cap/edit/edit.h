@@ -3,27 +3,28 @@
 #include <getopt.h>
 #include <string.h>
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <lib/string.h>
-#include <lib/cstring.h>
-#include <core/util.h>
-#include <core/config.h>
-#include <core/symlink.h>
-#include <lang/tokenizer.h>
-#include <lang/ast.h>
-#include <lang/context.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <pad/lib/string.h>
+#include <pad/lib/cstring.h>
+#include <pad/lang/tokenizer.h>
+#include <pad/lang/ast.h>
+#include <pad/lang/context.h>
 
-struct editcmd;
-typedef struct editcmd editcmd_t;
+#include <cap/core/util.h>
+#include <cap/core/config.h>
+#include <cap/core/symlink.h>
+
+struct CapEditCmd;
+typedef struct CapEditCmd CapEditCmd;
 
 /**
  * destruct object
  *
- * @param[in|out] *self pointer to editcmd_t
+ * @param[in|out] *self pointer to CapEditCmd
  */
 void
-editcmd_del(editcmd_t *self);
+CapEditCmd_Del(CapEditCmd *self);
 
 /**
  * construct object
@@ -32,18 +33,18 @@ editcmd_del(editcmd_t *self);
  * @param[in] argc    number of arguments
  * @param[in] **argv  arguments
  *
- * @return pointer to editcmd_t dynamic allocate memory
+ * @return pointer to CapEditCmd dynamic allocate memory
  */
-editcmd_t * 
-editcmd_new(const CapConfig *config, int argc, char **argv);
+CapEditCmd * 
+CapEditCmd_New(const CapConfig *config, int argc, char **argv);
 
 /**
  * run module
  *
- * @param[in] *self pointer to editcmd_t
+ * @param[in] *self pointer to CapEditCmd
  *
  * @return success to number of 0 else other
  */
 int 
-editcmd_run(editcmd_t *self);
+CapEditCmd_Run(CapEditCmd *self);
 

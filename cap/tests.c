@@ -842,46 +842,46 @@ test_cstring_cstr_cpywithout(void) {
 }
 
 static void
-test_cstring_cstr_app(void) {
+test_cstring_PadCStr_App(void) {
     char dst[100] = {0};
 
-    assert(cstr_app(dst, sizeof dst, NULL) == NULL);
-    assert(cstr_app(NULL, sizeof dst, "source") == NULL);
-    assert(cstr_app(dst, 0, "source") == NULL);
+    assert(PadCStr_App(dst, sizeof dst, NULL) == NULL);
+    assert(PadCStr_App(NULL, sizeof dst, "source") == NULL);
+    assert(PadCStr_App(dst, 0, "source") == NULL);
 
-    assert(cstr_app(dst, 3, "source") != NULL);
+    assert(PadCStr_App(dst, 3, "source") != NULL);
     assert(strcmp(dst, "so") == 0);
 
     *dst = '\0';
-    assert(cstr_app(dst, sizeof dst, "source") != NULL);
+    assert(PadCStr_App(dst, sizeof dst, "source") != NULL);
     assert(strcmp(dst, "source") == 0);
-    assert(cstr_app(dst, sizeof dst, " is available.") != NULL);
+    assert(PadCStr_App(dst, sizeof dst, " is available.") != NULL);
     assert(strcmp(dst, "source is available.") == 0);
-    assert(cstr_app(dst, sizeof dst, "") != NULL);
+    assert(PadCStr_App(dst, sizeof dst, "") != NULL);
     assert(strcmp(dst, "source is available.") == 0);
 }
 
 static void
-test_cstring_cstr_app_fmt(void) {
+test_cstring_PadCStr_App_fmt(void) {
     char dst[100] = {0};
 
-    assert(cstr_app_fmt(dst, sizeof dst, NULL) == NULL);
-    assert(cstr_app_fmt(NULL, sizeof dst, "source") == NULL);
-    assert(cstr_app_fmt(dst, 0, "source") == NULL);
+    assert(PadCStr_App_fmt(dst, sizeof dst, NULL) == NULL);
+    assert(PadCStr_App_fmt(NULL, sizeof dst, "source") == NULL);
+    assert(PadCStr_App_fmt(dst, 0, "source") == NULL);
 
-    assert(cstr_app_fmt(dst, 3, "source") != NULL);
+    assert(PadCStr_App_fmt(dst, 3, "source") != NULL);
     assert(strcmp(dst, "so") == 0);
 
     *dst = '\0';
-    assert(cstr_app_fmt(dst, sizeof dst, "source") != NULL);
+    assert(PadCStr_App_fmt(dst, sizeof dst, "source") != NULL);
     assert(strcmp(dst, "source") == 0);
-    assert(cstr_app_fmt(dst, sizeof dst, " is available.") != NULL);
+    assert(PadCStr_App_fmt(dst, sizeof dst, " is available.") != NULL);
     assert(strcmp(dst, "source is available.") == 0);
-    assert(cstr_app_fmt(dst, sizeof dst, "") != NULL);
+    assert(PadCStr_App_fmt(dst, sizeof dst, "") != NULL);
     assert(strcmp(dst, "source is available.") == 0);
 
     *dst = '\0';
-    assert(cstr_app_fmt(dst, sizeof dst, "n %d is %c", 10, 'i') != NULL);
+    assert(PadCStr_App_fmt(dst, sizeof dst, "n %d is %c", 10, 'i') != NULL);
     assert(strcmp(dst, "n 10 is i") == 0);
 }
 
@@ -952,8 +952,8 @@ cstring_tests[] = {
     {"cstr_copy", test_cstring_cstr_copy},
     {"cstr_pop_newline", test_cstring_cstr_pop_newline},
     {"cstr_cpywithout", test_cstring_cstr_cpywithout},
-    {"cstr_app", test_cstring_cstr_app},
-    {"cstr_app_fmt", test_cstring_cstr_app_fmt},
+    {"PadCStr_App", test_cstring_PadCStr_App},
+    {"PadCStr_App_fmt", test_cstring_PadCStr_App_fmt},
     {"cstr_edup", test_cstring_cstr_edup},
     {"cstr_split", test_cstring_cstr_split},
     {"cstr_eq", test_cstring_cstr_eq},
@@ -2719,12 +2719,12 @@ test_file_getline(void) {
 }
 
 static void
-test_file_readline(void) {
+test_PadFile_ReadLine(void) {
     char line[1024];
-    assert(file_readline(NULL, sizeof line, get_test_finpath()) == NULL);
-    assert(file_readline(line, 0, get_test_finpath()) == NULL);
-    assert(file_readline(line, sizeof line, NULL) == NULL);
-    assert(file_readline(line, sizeof line, get_test_finpath()) != NULL);
+    assert(PadFile_ReadLine(NULL, sizeof line, get_test_finpath()) == NULL);
+    assert(PadFile_ReadLine(line, 0, get_test_finpath()) == NULL);
+    assert(PadFile_ReadLine(line, sizeof line, NULL) == NULL);
+    assert(PadFile_ReadLine(line, sizeof line, get_test_finpath()) != NULL);
     assert(strcmp(line, get_test_fcontent_nonewline()) == 0);
 }
 
@@ -2733,7 +2733,7 @@ test_file_writeline(void) {
     assert(file_writeline(NULL, get_test_finpath()) == NULL);
     assert(file_writeline(get_test_fcontent_nonewline(), NULL) == NULL);
     assert(file_writeline(get_test_fcontent_nonewline(), get_test_finpath()));
-    test_file_readline();
+    test_PadFile_ReadLine();
 }
 
 static void
@@ -2918,7 +2918,7 @@ file_tests[] = {
     {"file_dirname", test_file_dirname},
     {"file_basename", test_file_basename},
     {"file_getline", test_file_getline},
-    {"file_readline", test_file_readline},
+    {"PadFile_ReadLine", test_PadFile_ReadLine},
     {"file_writeline", test_file_writeline},
     {"file_dirnodedel", test_file_dirnodedel},
     {"PadFileDirNode_Name", test_PadFileDirNode_Name},
@@ -3371,7 +3371,7 @@ test_util_Cap_IsOutOfHome(void) {
     assert(PadFile_Solvefmt(varhome, sizeof varhome, "%s/.cap/var/home", userhome) != NULL);
 
     char caphome[FILE_NPATH];
-    assert(file_readline(caphome, sizeof caphome, varhome) != NULL);
+    assert(PadFile_ReadLine(caphome, sizeof caphome, varhome) != NULL);
 
     assert(Cap_IsOutOfHome(caphome, "/not/found/dir"));
     assert(!Cap_IsOutOfHome(caphome, caphome));
@@ -3392,7 +3392,7 @@ test_util_randrange(void) {
 }
 
 static void
-test_util_safesystem(void) {
+test_util_Pad_SafeSystem(void) {
     char cmd[1024];
 #ifdef _TESTS_WINDOWS
     assert(PadFile_Solvefmt(cmd, sizeof cmd, "dir") != NULL);
@@ -3402,7 +3402,7 @@ test_util_safesystem(void) {
         assert(remove(path) == 0);
     }
     assert(PadFile_Solvefmt(cmd, sizeof cmd, "/bin/sh -c \"touch %s\"", path) != NULL);
-    assert(safesystem(cmd, SAFESYSTEM_DEFAULT) == 0);
+    assert(Pad_SafeSystem(cmd, SAFESYSTEM_DEFAULT) == 0);
     assert(PadFile_IsExists(path));
 #endif
 }
@@ -3448,7 +3448,7 @@ test_util_argsbyoptind(void) {
 }
 
 static void
-test_util_solve_cmdline_arg_path(void) {
+test_util_Cap_SolveCmdlineArgPath(void) {
     CapConfig *config = config_new();
     config->scope = CAP_SCOPE_LOCAL;
 
@@ -3458,19 +3458,19 @@ test_util_solve_cmdline_arg_path(void) {
     snprintf(config->home_path, sizeof config->home_path, "C:\\path\\to\\home");
     snprintf(config->cd_path, sizeof config->cd_path, "C:\\path\\to\\cd");
 
-    assert(solve_cmdline_arg_path(config, fname, sizeof fname, "path/to/file"));
+    assert(Cap_SolveCmdlineArgPath(config, fname, sizeof fname, "path/to/file"));
     assert(!strcmp(fname, "C:\\path\\to\\cd\\path\\to\\file"));
 
-    assert(solve_cmdline_arg_path(config, fname, sizeof fname, "/path/to/file"));
+    assert(Cap_SolveCmdlineArgPath(config, fname, sizeof fname, "/path/to/file"));
     assert(!strcmp(fname, "C:\\path\\to\\home\\path\\to\\file"));
 #else
     snprintf(config->home_path, sizeof config->home_path, "/path/to/home");
     snprintf(config->cd_path, sizeof config->cd_path, "/path/to/cd");
 
-    assert(solve_cmdline_arg_path(config, fname, sizeof fname, "path/to/file"));
+    assert(Cap_SolveCmdlineArgPath(config, fname, sizeof fname, "path/to/file"));
     assert(!strcmp(fname, "/path/to/cd/path/to/file"));
 
-    assert(solve_cmdline_arg_path(config, fname, sizeof fname, "/path/to/file"));
+    assert(Cap_SolveCmdlineArgPath(config, fname, sizeof fname, "/path/to/file"));
     assert(!strcmp(fname, "/path/to/home/path/to/file"));
 #endif
     config_del(config);
@@ -3732,9 +3732,9 @@ utiltests[] = {
     {"Cap_IsOutOfHome", test_util_Cap_IsOutOfHome},
     {"Cap_IsOutOfHome", test_util_Cap_IsOutOfHome_2},
     {"randrange", test_util_randrange},
-    {"safesystem", test_util_safesystem},
+    {"Pad_SafeSystem", test_util_Pad_SafeSystem},
     {"argsbyoptind", test_util_argsbyoptind},
-    {"solve_cmdline_arg_path", test_util_solve_cmdline_arg_path},
+    {"Cap_SolveCmdlineArgPath", test_util_Cap_SolveCmdlineArgPath},
     {"escape", test_util_escape},
     {"compile_argv", test_util_compile_argv},
     {"pop_tail_slash", test_util_pop_tail_slash},
@@ -28614,7 +28614,7 @@ test_homecmd_default(void) {
     homecmd_del(homecmd);
 
     char line[1024];
-    assert(file_readline(line, sizeof line, config->var_home_path));
+    assert(PadFile_ReadLine(line, sizeof line, config->var_home_path));
 
 #ifdef _TESTS_WINDOWS
     assert(strstr(line, "tests\\home"));
@@ -28654,7 +28654,7 @@ test_cdcmd_default(void) {
     cdcmd_del(cdcmd);
 
     char line[1024];
-    assert(file_readline(line, sizeof line, config->var_cd_path));
+    assert(PadFile_ReadLine(line, sizeof line, config->var_cd_path));
     assert(!strstr(line, "tests/.cap/var/cd"));
 
     config_del(config);
@@ -29044,7 +29044,7 @@ makecmd_tests[] = {
 
 static void
 test_runcmd_default(void) {
-    // using safesystem
+    // using Pad_SafeSystem
 }
 
 static const struct testcase
@@ -29059,7 +29059,7 @@ runcmd_tests[] = {
 
 static void
 test_execcmd_default(void) {
-    // using safesystem or fork
+    // using Pad_SafeSystem or fork
 }
 
 static const struct testcase
@@ -29114,11 +29114,11 @@ alcmd_tests[] = {
 
 static void
 test_editcmd_default(void) {
-    // using safesystem
+    // using Pad_SafeSystem
 }
 
 static const struct testcase
-editcmd_tests[] = {
+CapEditCmdests[] = {
     {"default", test_editcmd_default},
     {0},
 };
@@ -29129,7 +29129,7 @@ editcmd_tests[] = {
 
 static void
 test_editorcmd_default(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
@@ -29145,7 +29145,7 @@ test_editorcmd_default(void) {
     editorcmd_del(editorcmd);
 
     char line[256];
-    assert(file_readline(line, sizeof line, "./tests/editor/editor"));
+    assert(PadFile_ReadLine(line, sizeof line, "./tests/editor/editor"));
     assert(!strcmp(line, "/path/to/editor"));
 
     file_remove("./tests/editor/editor");
@@ -29165,7 +29165,7 @@ editorcmd_tests[] = {
 
 static void
 test_mkdircmd_default(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
@@ -29208,7 +29208,7 @@ test_rmcmd_default(void) {
     return;  // rm command has permission denied error on Windows
 #endif
 
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
@@ -29248,7 +29248,7 @@ test_rmcmd_multi(void) {
     return;  // rm command has permission denied error on Windows
 #endif
 
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29279,7 +29279,7 @@ test_rmcmd_multi(void) {
 
 static void
 test_rmcmd_dir(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
@@ -29306,7 +29306,7 @@ test_rmcmd_dir(void) {
 
 static void
 test_rmcmd_dir_multi(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29337,7 +29337,7 @@ test_rmcmd_dir_multi(void) {
 
 static void
 test_rmcmd_dir_r(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29375,7 +29375,7 @@ test_rmcmd_dir_r(void) {
 
 static void
 test_rmcmd_dir_r_multi(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
@@ -29446,7 +29446,7 @@ test_mvcmd_default(void) {
 #ifdef _TESTS_WINDOWS
     return;  // mv command has permission denied error on Windows
 #endif
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29486,7 +29486,7 @@ test_mvcmd_dir(void) {
 #ifdef _TESTS_WINDOWS
     return;  // mv command has permission denied error on Windows
 #endif
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29520,7 +29520,7 @@ test_mvcmd_file_to_dir(void) {
 #ifdef _TESTS_WINDOWS
     return;  // mv command has permission denied error on Windows
 #endif
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29558,7 +29558,7 @@ test_mvcmd_files_to_dir(void) {
 #ifdef _TESTS_WINDOWS
     return;  // mv command has permission denied error on Windows
 #endif
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
@@ -29602,7 +29602,7 @@ test_mvcmd_err_1(void) {
 #ifdef _TESTS_WINDOWS
     return;  // mv command has permission denied error on Windows
 #endif
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29653,7 +29653,7 @@ mvcmd_tests[] = {
 
 static void
 test_cpcmd_default(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29685,7 +29685,7 @@ test_cpcmd_default(void) {
 
 static void
 test_cpcmd_dir(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29720,7 +29720,7 @@ test_cpcmd_dir(void) {
 
 static void
 test_cpcmd_files_to_dir(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
@@ -29762,7 +29762,7 @@ test_cpcmd_files_to_dir(void) {
 
 static void
 test_cpcmd_dir_r(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
@@ -29798,7 +29798,7 @@ test_cpcmd_dir_r(void) {
 
 static void
 test_cpcmd_dirs_r(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 5;
     char *argv[] = {
@@ -29858,7 +29858,7 @@ CapCpCmdests[] = {
 
 static void
 test_touchcmd_default(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
@@ -29886,7 +29886,7 @@ test_touchcmd_default(void) {
 
 static void
 test_touchcmd_multi(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29929,7 +29929,7 @@ touchcmd_tests[] = {
 
 static void
 test_snippetcmd_default(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 1;
     char *argv[] = {
@@ -29956,7 +29956,7 @@ test_snippetcmd_add(void) {
     // ==2226==    by 0x46F893: snptcmd_add (snippet.c:106)
     return;
 
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -29993,7 +29993,7 @@ snippetcmd_tests[] = {
 
 static void
 test_linkcmd_default(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -30022,7 +30022,7 @@ test_linkcmd_default(void) {
 
 static void
 test_linkcmd_unlink(void) {
-    // using safesystem
+    // using Pad_SafeSystem
     CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
@@ -30237,7 +30237,7 @@ testmodules[] = {
     {"run", runcmd_tests},
     {"exec", execcmd_tests},
     {"alias", alcmd_tests},
-    {"edit", editcmd_tests},
+    {"edit", CapEditCmdests},
     {"editor", editorcmd_tests},
     {"mkdir", mkdircmd_tests},
     {"rm", rmcmd_tests},

@@ -93,7 +93,7 @@ mvcmd_mv_file_to_dir(mvcmd_t *self, const char *cap_path, const char *dirname) {
     char dstpath[FILE_NPATH];
     char tmppath[FILE_NPATH*3];
 
-    if (!solve_cmdline_arg_path(self->config, srcpath, sizeof srcpath, cap_path)) {
+    if (!Cap_SolveCmdlineArgPath(self->config, srcpath, sizeof srcpath, cap_path)) {
         PadErr_Error("failed to solve path for source file name");
         return false;
     }
@@ -110,7 +110,7 @@ mvcmd_mv_file_to_dir(mvcmd_t *self, const char *cap_path, const char *dirname) {
     }
 
     snprintf(tmppath, sizeof tmppath, "%s/%s", dirname, basename);
-    if (!solve_cmdline_arg_path(self->config, dstpath, sizeof dstpath, tmppath)) {
+    if (!Cap_SolveCmdlineArgPath(self->config, dstpath, sizeof dstpath, tmppath)) {
         PadErr_Error("failed to solve path for destination file name");
         return false;
     }
@@ -145,7 +145,7 @@ mvcmd_mv_file_to_other(mvcmd_t *self) {
 
     char srcpath[FILE_NPATH];
 
-    if (!solve_cmdline_arg_path(self->config, srcpath, sizeof srcpath, src_cap_path)) {
+    if (!Cap_SolveCmdlineArgPath(self->config, srcpath, sizeof srcpath, src_cap_path)) {
         PadErr_Error("failed to follow path for source file name");
         return 1;
     }
@@ -157,7 +157,7 @@ mvcmd_mv_file_to_other(mvcmd_t *self) {
 
     char dstpath[FILE_NPATH * 2];
 
-    if (!solve_cmdline_arg_path(self->config, dstpath, sizeof dstpath, dst_cap_path)) {
+    if (!Cap_SolveCmdlineArgPath(self->config, dstpath, sizeof dstpath, dst_cap_path)) {
         PadErr_Error("failed to solve path for destination file name");
         return 1;
     }

@@ -10,7 +10,7 @@ clone *
 cmds.txt
 cook *
 cp *
-edit
+edit *
 editor
 exec
 find

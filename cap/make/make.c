@@ -62,7 +62,7 @@ make_from_args(
         const char *cap_path = argv[1];
 
         if (solve_path) {
-            if (!solve_cmdline_arg_path(config, path, sizeof path, cap_path)) {
+            if (!Cap_SolveCmdlineArgPath(config, path, sizeof path, cap_path)) {
                 errstack_add(errstack, "failed to solve cap path");
                 return 1;
             }            

@@ -118,7 +118,7 @@ editorcmd_new(const CapConfig *config, int argc, char **argv) {
 int
 editorcmd_show_editor(editorcmd_t *self) {
     self->editor[0] = '\0';
-    if (!file_readline(self->editor, sizeof self->editor, self->config->var_editor_path)) {
+    if (!PadFile_ReadLine(self->editor, sizeof self->editor, self->config->var_editor_path)) {
         PadErr_Error("failed to read editor from editor of variable");
         return 1;
     }
