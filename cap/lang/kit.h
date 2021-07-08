@@ -16,10 +16,10 @@ void
 kit_del(kit_t *self);
 
 kit_t *
-kit_new(const config_t *config);
+kit_new(const CapConfig *config);
 
 kit_t *
-kit_new_ref_gc(const config_t *config, gc_t *ref_gc);
+kit_new_ref_gc(const CapConfig *config, gc_t *ref_gc);
 
 kit_t *
 kit_compile_from_path(kit_t *self, const char *path);

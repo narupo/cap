@@ -1,12 +1,12 @@
 #include <edit/edit.h>
 
-struct opts {
+struct Opts {
     bool is_global;
 };
 
 struct editcmd {
-    const config_t *config;
-    struct opts opts;
+    const CapConfig *config;
+    struct Opts opts;
     int argc;
     char **argv;
     char editor[1024];
@@ -23,7 +23,7 @@ editcmd_parse_opts(editcmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
 
     extern int opterr;
     opterr = 0; // ignore error messages
@@ -42,14 +42,14 @@ editcmd_parse_opts(editcmd_t *self) {
         case 'g': self->opts.is_global = true; break;
         case '?':
         default:
-            err_error("unsupported option");
+            PadErr_Error("unsupported option");
             return NULL;
             break;
         }
     }
 
     if (self->argc < optind) {
-        err_error("failed to parse option");
+        PadErr_Error("failed to parse option");
         return NULL;
     }
 
@@ -66,15 +66,15 @@ editcmd_del(editcmd_t *self) {
 }
 
 editcmd_t *
-editcmd_new(const config_t *config, int argc, char **argv) {
-    editcmd_t *self = mem_ecalloc(1, sizeof(*self));
+editcmd_new(const CapConfig *config, int argc, char **argv) {
+    editcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
 
     if (!editcmd_parse_opts(self)) {
-        err_die("failed to parse options");
+        PadErr_Die("failed to parse options");
     }
 
     return self;
@@ -95,7 +95,7 @@ editcmd_read_editor(editcmd_t *self) {
 editcmd_t *
 editcmd_create_open_fname(editcmd_t *self, const char *cap_path) {
     if (!solve_cmdline_arg_path(self->config, self->open_fname, sizeof self->open_fname, cap_path)) {
-        err_error("failed to solve cap path");
+        PadErr_Error("failed to solve cap path");
         return NULL;
     }
 
@@ -110,14 +110,14 @@ editcmd_run(editcmd_t *self) {
     }
 
     if (!editcmd_read_editor(self)) {
-        err_die("not found editor. please setting with 'cap editor' command");
+        PadErr_Die("not found editor. please setting with 'cap editor' command");
         return 1;
     }
 
     cstr_app(self->cmdline, sizeof self->cmdline, self->editor);
     if (fname) {
         if (!editcmd_create_open_fname(self, fname)) {
-            err_die("failed to create open file name");
+            PadErr_Die("failed to create open file name");
             return 1;
         }
         cstr_app(self->cmdline, sizeof self->cmdline, " ");

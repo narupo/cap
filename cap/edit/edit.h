@@ -28,14 +28,14 @@ editcmd_del(editcmd_t *self);
 /**
  * construct object
  *
- * @param[in] *config pointer to config_t read-only
+ * @param[in] *config pointer to CapConfig read-only
  * @param[in] argc    number of arguments
  * @param[in] **argv  arguments
  *
  * @return pointer to editcmd_t dynamic allocate memory
  */
 editcmd_t * 
-editcmd_new(const config_t *config, int argc, char **argv);
+editcmd_new(const CapConfig *config, int argc, char **argv);
 
 /**
  * run module

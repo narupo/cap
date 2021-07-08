@@ -1,48 +1,49 @@
 #include <getopt.h>
 #include <string.h>
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <lib/string.h>
-#include <core/constant.h>
-#include <core/util.h>
-#include <core/config.h>
-#include <core/symlink.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <pad/lib/string.h>
+
+#include <cap/core/constant.h>
+#include <cap/core/util.h>
+#include <cap/core/config.h>
+#include <cap/core/symlink.h>
 
 /**
  * Structure and type of command
  */
-struct cpcmd;
-typedef struct cpcmd cpcmd_t;
+struct CapCpCmd;
+typedef struct CapCpCmd CapCpCmd;
 
 /**
  * Destruct command
  *
- * @param[in] self pointer to cpcmd_t
+ * @param[in] self pointer to CapCpCmd
  */
 void
-cpcmd_del(cpcmd_t *self);
+CapCpCmd_Del(CapCpCmd *self);
 
 /**
  * Construct command
  *
- * @param[in] config reference to config_t 
+ * @param[in] config reference to CapConfig 
  * @param[in] argc   number of arguments
  * @param[in] argv   reference to array of arguments 
  *
- * @return success to pointer to cpcmd_t
+ * @return success to pointer to CapCpCmd
  * @return failed to NULL
  */
-cpcmd_t *
-cpcmd_new(const config_t *config, int argc, char **argv);
+CapCpCmd *
+CapCpCmd_New(const CapConfig *config, int argc, char **argv);
 
 /**
  * Run command
  *
- * @param[in] self pointer to cpcmd_t
+ * @param[in] self pointer to CapCpCmd
  *
  * @return success to number of 0
  * @return failed to number of not 0
  */
 int
-cpcmd_run(cpcmd_t *self);
+CapCpCmd_Run(CapCpCmd *self);

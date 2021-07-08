@@ -6,7 +6,7 @@ enum {
 };
 
 struct runcmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     char **argv;
 };
@@ -21,8 +21,8 @@ runcmd_del(runcmd_t *self) {
 }
 
 runcmd_t *
-runcmd_new(const config_t *config, int argc, char **argv) {
-    runcmd_t *self = mem_ecalloc(1, sizeof(*self));
+runcmd_new(const CapConfig *config, int argc, char **argv) {
+    runcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -79,7 +79,7 @@ runcmd_read_script_line(runcmd_t *self, char *dst, size_t dstsz, const char *pat
 int
 runcmd_run(runcmd_t *self) {
     if (self->argc < 2) {
-        err_error("need script file name");
+        PadErr_Error("need script file name");
         return 1;
     }
 
@@ -91,13 +91,13 @@ runcmd_run(runcmd_t *self) {
     snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
 
     char filepath[FILE_NPATH];
-    if (!symlink_follow_path(self->config, filepath, sizeof filepath, tmppath)) {
-        err_error("failed to follow path");
+    if (!CapSymlink_FollowPath(self->config, filepath, sizeof filepath, tmppath)) {
+        PadErr_Error("failed to follow path");
         return 1;
     }
 
-    if (is_out_of_home(self->config->home_path, filepath)) {
-        err_error("invalid script. \"%s\" is out of home.", filepath);
+    if (Cap_IsOutOfHome(self->config->home_path, filepath)) {
+        PadErr_Error("invalid script. \"%s\" is out of home.", filepath);
         return 1;
     }
 

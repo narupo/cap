@@ -26,7 +26,7 @@ insertcmd_del(insertcmd_t *self);
 /**
  * construct command
  *
- * @param[in] move_config reference to config_t 
+ * @param[in] move_config reference to CapConfig 
  * @param[in] argc        number of arguments
  * @param[in] move_argv   reference to array of arguments 
  *
@@ -34,7 +34,7 @@ insertcmd_del(insertcmd_t *self);
  * @return failed to NULL
  */
 insertcmd_t *
-insertcmd_new(const config_t *config, int argc, char **argv);
+insertcmd_new(const CapConfig *config, int argc, char **argv);
 
 /**
  * run command

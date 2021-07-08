@@ -7,7 +7,7 @@ enum {
 /**
  * Structure of options
  */
-struct opts {
+struct Opts {
     bool is_help;
 };
 
@@ -15,11 +15,11 @@ struct opts {
  * Structure of command
  */
 struct sh {
-    config_t *config;
+    CapConfig *config;
     int argc;
     int optind;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
     cmdline_t *cmdline;
     kit_t *kit;
     int last_exit_code;
@@ -75,7 +75,7 @@ shcmd_parse_opts(shcmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
 
     extern int opterr;
     extern int optind;
@@ -95,14 +95,14 @@ shcmd_parse_opts(shcmd_t *self) {
         case 'f': printf("%s\n", optarg); break;
         case '?':
         default:
-            err_die("unknown option");
+            PadErr_Die("unknown option");
             return false;
             break;
         }
     }
 
     if (self->argc < optind) {
-        err_die("failed to parse option");
+        PadErr_Die("failed to parse option");
         return false;
     }
 
@@ -123,8 +123,8 @@ shcmd_del(shcmd_t *self) {
 }
 
 shcmd_t *
-shcmd_new(config_t *config, int argc, char **argv) {
-    shcmd_t *self = mem_ecalloc(1, sizeof(*self));
+shcmd_new(CapConfig *config, int argc, char **argv) {
+    shcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -307,7 +307,7 @@ shcmd_exec_command(shcmd_t *self, int argc, char **argv) {
         result = rmcmd_run(cmd);
         switch (rmcmd_errno(cmd)) {
         case RMCMD_ERR_NOERR: break;
-        default: err_error(rmcmd_what(cmd)); break;
+        default: PadErr_Error(rmcmd_what(cmd)); break;
         }
         rmcmd_del(cmd);
     } else if (cstr_eq(cmdname, "mv")) {
@@ -347,7 +347,7 @@ shcmd_update(shcmd_t *self) {
     }
 
     if (!cmdline_parse(self->cmdline, self->line_buf)) {
-        err_error("failed to parse command line");
+        PadErr_Error("failed to parse command line");
         return 1;
     }
 

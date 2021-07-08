@@ -25,14 +25,14 @@ mvcmd_del(mvcmd_t *self);
 /**
  * construct object
  *
- * @param[in] *config pointer to config_t
+ * @param[in] *config pointer to CapConfig
  * @param[in] argc    number of length of arguments
  * @param[in] **argv  arguments
  *
  * @return pointer to mvcmd_t dynamic allocate memory
  */
 mvcmd_t * 
-mvcmd_new(config_t *config, int argc, char **argv);
+mvcmd_new(CapConfig *config, int argc, char **argv);
 
 /**
  * run object

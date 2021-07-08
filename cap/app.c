@@ -18,7 +18,7 @@ enum {
 /**
  * program option
  */
-struct opts {
+struct Opts {
     bool is_help;
     bool is_version;
 };
@@ -31,8 +31,8 @@ typedef struct {
     char **argv;
     int cmd_argc;
     char **cmd_argv;
-    config_t *config;
-    struct opts opts;
+    CapConfig *config;
+    struct Opts opts;
     PadErrStack *errstack;
 } app_t;
 
@@ -55,7 +55,7 @@ app_parse_opts(app_t *self) {
     };
 
     // init status
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
     optind = 0;
     opterr = 0;
 

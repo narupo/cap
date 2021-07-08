@@ -3,18 +3,18 @@
 extern int opterr;
 extern int optind;
 
-struct opts {
+struct Opts {
     bool is_help;
     bool is_recursive;
 };
 
 struct rmcmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     int optind;
     rmcmd_errno_t errno_;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
     char what[1024];
 };
 
@@ -69,8 +69,8 @@ rmcmd_del(rmcmd_t *self) {
 }
 
 rmcmd_t *
-rmcmd_new(const config_t *config, int argc, char **argv) {
-    rmcmd_t *self = mem_ecalloc(1, sizeof(*self));
+rmcmd_new(const CapConfig *config, int argc, char **argv) {
+    rmcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -114,44 +114,44 @@ rmcmd_what(const rmcmd_t *self) {
 
 static bool
 rmcmd_remove_r(rmcmd_t *self, const char *dirpath) {
-    if (is_out_of_home(self->config->home_path, dirpath)) {
+    if (Cap_IsOutOfHome(self->config->home_path, dirpath)) {
         cstr_app_fmt(self->what, sizeof self->what, "\"%s\" is out of home.", dirpath);
         self->errno_ = RMCMD_ERR_OUTOFHOME;
         return false;
     }
 
-    if (!file_isdir(dirpath)) {
+    if (!PadFile_IsDir(dirpath)) {
         cstr_app_fmt(self->what, sizeof self->what, "\"%s\" is not a directory.", dirpath);
         self->errno_ = RMCMD_ERR_OPENDIR;
         return false;
     }
 
-    file_dir_t *dir = file_diropen(dirpath);
+    file_dir_t *dir = PadFileDir_Open(dirpath);
     if (!dir) {
         cstr_app_fmt(self->what, sizeof self->what, "failed to open directory \"%s\".", dirpath);
         self->errno_ = RMCMD_ERR_OPENDIR;
         return false;
     }
 
-    for (file_dirnode_t *node; (node = file_dirread(dir)); ) {
-        const char *dirname = file_dirnodename(node);
+    for (file_dirnode_t *node; (node = PadFileDir_Read(dir)); ) {
+        const char *dirname = PadFileDirNode_Name(node);
         if (!strcmp(dirname, ".") || !strcmp(dirname, "..")) {
             continue;
         }
 
         char path[FILE_NPATH];
-        if (!file_solvefmt(path, sizeof path, "%s/%s", dirpath, dirname)) {
+        if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", dirpath, dirname)) {
             cstr_app_fmt(self->what, sizeof self->what, "failed to solve path by \"%s\".", dirname);
             self->errno_ = RMCMD_ERR_SOLVEPATH;
         }
 
-        if (is_out_of_home(self->config->home_path, path)) {
+        if (Cap_IsOutOfHome(self->config->home_path, path)) {
             cstr_app_fmt(self->what, sizeof self->what, "\"%s\" is out of home.", path);
             self->errno_ = RMCMD_ERR_OUTOFHOME;
             return false;
         }
 
-        if (file_isdir(path)) {
+        if (PadFile_IsDir(path)) {
             if (!rmcmd_remove_r(self, path)) {
                 return false;
             }
@@ -170,7 +170,7 @@ rmcmd_remove_r(rmcmd_t *self, const char *dirpath) {
         }
     }
 
-    if (file_dirclose(dir) != 0) {
+    if (PadFileDir_Close(dir) != 0) {
         cstr_app_fmt(self->what, sizeof self->what, "failed to close directory \"%s\".", dirpath);
         self->errno_ = RMCMD_ERR_CLOSEDIR;
         return false;
@@ -195,13 +195,13 @@ rmcmd_rmr(rmcmd_t *self) {
 
         snprintf(drtpath, sizeof drtpath, "%s/%s", org, argpath);
 
-        if (!symlink_follow_path(self->config, path, sizeof path, drtpath)) {
+        if (!CapSymlink_FollowPath(self->config, path, sizeof path, drtpath)) {
             cstr_app_fmt(self->what, sizeof self->what, "failed to solve path from \"%s\".", argpath);
             self->errno_ = RMCMD_ERR_SOLVEPATH;
             return 1;
         }
 
-        if (is_out_of_home(self->config->home_path, path)) {
+        if (Cap_IsOutOfHome(self->config->home_path, path)) {
             cstr_app_fmt(self->what, sizeof self->what, "\"%s\" is out of home.", path);
             self->errno_ = RMCMD_ERR_OUTOFHOME;
             return 1;
@@ -230,13 +230,13 @@ rmcmd_rm(rmcmd_t *self, const char *argpath) {
     char drtpath[FILE_NPATH];
     snprintf(drtpath, sizeof drtpath, "%s/%s", org, argpath);
 
-    if (!symlink_follow_path(self->config, path, sizeof path, drtpath)) {
+    if (!CapSymlink_FollowPath(self->config, path, sizeof path, drtpath)) {
         cstr_app_fmt(self->what, sizeof self->what, "failed to solve path.");
         self->errno_ = RMCMD_ERR_SOLVEPATH;
         return 1;
     }
 
-    if (is_out_of_home(self->config->home_path, path)) {
+    if (Cap_IsOutOfHome(self->config->home_path, path)) {
         cstr_app_fmt(self->what, sizeof self->what, "\"%s\" is out of home.", path);
         self->errno_ = RMCMD_ERR_OUTOFHOME;
         return 1;

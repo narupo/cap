@@ -42,7 +42,7 @@ execcmd_del(execcmd_t *self);
 /**
  * Construct command
  *
- * @param[in] move_config pointer to config_t with move semantics
+ * @param[in] move_config pointer to CapConfig with move semantics
  * @param[in] argc        number of arguments
  * @param[in] move_argv   pointer to array of arguments with move semantics
  *
@@ -50,7 +50,7 @@ execcmd_del(execcmd_t *self);
  * @return failed to NULL
  */
 execcmd_t *
-execcmd_new(const config_t *config, int argc, char **argv);
+execcmd_new(const CapConfig *config, int argc, char **argv);
 
 /**
  * Run command

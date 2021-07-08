@@ -33,7 +33,7 @@ snptcmd_del(snptcmd_t *self);
 /**
  * Construct command
  *
- * @param[in] config reference to config_t
+ * @param[in] config reference to CapConfig
  * @param[in] argc   number of arguments
  * @param[in] argv   reference to array of arguments
  *
@@ -41,7 +41,7 @@ snptcmd_del(snptcmd_t *self);
  * @return failed to NULL
  */
 snptcmd_t *
-snptcmd_new(const config_t *config, int argc, char **argv);
+snptcmd_new(const CapConfig *config, int argc, char **argv);
 
 /**
  * Run command

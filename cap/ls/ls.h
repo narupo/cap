@@ -17,7 +17,7 @@ void
 lscmd_del(lscmd_t *self);
 
 lscmd_t *
-lscmd_new(const config_t *config, int argc, char **argv);
+lscmd_new(const CapConfig *config, int argc, char **argv);
 
 int
 lscmd_run(lscmd_t *self);

@@ -1,3 +1,4 @@
+core
 config *
 alias *
 app.c *
@@ -8,8 +9,7 @@ cd *
 clone *
 cmds.txt
 cook *
-core
-cp
+cp *
 edit
 editor
 exec

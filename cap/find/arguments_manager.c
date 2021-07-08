@@ -16,7 +16,7 @@ argsmgr_del(argsmgr_t *self) {
 
 argsmgr_t *
 argsmgr_new(char *argv[]) {
-    argsmgr_t *self = mem_ecalloc(1, sizeof(*self));
+    argsmgr_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->args = cstrarr_new();
 

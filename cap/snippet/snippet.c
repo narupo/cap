@@ -4,7 +4,7 @@
  * Structure of command
  */
 struct snptcmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     int optind;
     char **argv;
@@ -45,8 +45,8 @@ snptcmd_del(snptcmd_t *self) {
 }
 
 snptcmd_t *
-snptcmd_new(const config_t *config, int argc, char **argv) {
-    snptcmd_t *self = mem_ecalloc(1, sizeof(*self));
+snptcmd_new(const CapConfig *config, int argc, char **argv) {
+    snptcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -57,14 +57,14 @@ snptcmd_new(const config_t *config, int argc, char **argv) {
 
 static int
 snptcmd_show_files(snptcmd_t *self) {
-    file_dir_t *dir = file_diropen(self->config->codes_dir_path);
+    file_dir_t *dir = PadFileDir_Open(self->config->codes_dir_path);
     if (!dir) {
-        err_error("failed to open directory \"%s\"", self->config->codes_dir_path);
+        PadErr_Error("failed to open directory \"%s\"", self->config->codes_dir_path);
         return 1;
     }
 
-    for (file_dirnode_t *node; (node = file_dirread(dir)); ) {
-        const char *name = file_dirnodename(node);
+    for (file_dirnode_t *node; (node = PadFileDir_Read(dir)); ) {
+        const char *name = PadFileDirNode_Name(node);
         if (!strcmp(name, ".") || !strcmp(name, "..")) {
             continue;
         }
@@ -72,14 +72,14 @@ snptcmd_show_files(snptcmd_t *self) {
         file_dirnodedel(node);
     }
 
-    file_dirclose(dir);
+    PadFileDir_Close(dir);
     return 0;
 }
 
 static int
 snptcmd_add(snptcmd_t *self) {
     if (self->argc < 3) {
-        err_error("failed to add snippet. need file name");
+        PadErr_Error("failed to add snippet. need file name");
         return 1;
     }
 
@@ -87,19 +87,19 @@ snptcmd_add(snptcmd_t *self) {
     char path[FILE_NPATH];
 
     if (!strlen(self->config->codes_dir_path)) {
-        err_error("codes directory path is empty");
+        PadErr_Error("codes directory path is empty");
         return 1;
     }
 
-    if (!file_solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
-        err_error("failed to solve path for \"%s\"", name);
+    if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
+        PadErr_Error("failed to solve path for \"%s\"", name);
         return 1;
     }
 
     printf("path[%s]\n", path);
-    FILE *fout = file_open(path, "wb");
+    FILE *fout = PadFile_Open(path, "wb");
     if (!fout) {
-        err_error("failed to open snippet \"%s\"", name);
+        PadErr_Error("failed to open snippet \"%s\"", name);
         return 1;
     }
 
@@ -108,34 +108,34 @@ snptcmd_add(snptcmd_t *self) {
     }
 
     fflush(fout);
-    file_close(fout);
+    PadFile_Close(fout);
     return 0;
 }
 
 static int
 snptcmd_show(snptcmd_t *self) {
     if (self->argc < 2) {
-        err_error("failed to show snippet. need file name");
+        PadErr_Error("failed to show snippet. need file name");
         return 1;
     }
 
     const char *name = self->argv[1];
     char path[FILE_NPATH];
 
-    if (!file_solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
-        err_error("failed to solve path for \"%s\"", name);
+    if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
+        PadErr_Error("failed to solve path for \"%s\"", name);
         return 1;
     }
 
-    FILE *fin = file_open(path, "rb");
+    FILE *fin = PadFile_Open(path, "rb");
     if (!fin) {
-        err_error("failed to open snippet \"%s\"", name);
+        PadErr_Error("failed to open snippet \"%s\"", name);
         return 1;
     }
 
     char *content = file_readcp(fin);
     if (!content) {
-        err_error("failed to read snippet code from \"%s\"", path);
+        PadErr_Error("failed to read snippet code from \"%s\"", path);
         return 1;
     }
 
@@ -168,25 +168,25 @@ snptcmd_show(snptcmd_t *self) {
 
 static int
 snptcmd_clear(snptcmd_t *self) {
-    file_dir_t *dir = file_diropen(self->config->codes_dir_path);
+    file_dir_t *dir = PadFileDir_Open(self->config->codes_dir_path);
     if (!dir) {
-        err_error("failed to open directory \"%s\"", self->config->codes_dir_path);
+        PadErr_Error("failed to open directory \"%s\"", self->config->codes_dir_path);
         return 1;
     }
 
-    for (file_dirnode_t *node; (node = file_dirread(dir)); ) {
-        const char *name = file_dirnodename(node);
+    for (file_dirnode_t *node; (node = PadFileDir_Read(dir)); ) {
+        const char *name = PadFileDirNode_Name(node);
         if (!strcmp(name, ".") || !strcmp(name, "..")) {
             continue;
         }
         char path[FILE_NPATH];
-        if (!file_solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
-            err_error("failed to solve path for \"%s\"", name);
+        if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
+            PadErr_Error("failed to solve path for \"%s\"", name);
             goto fail;
         }
 
         if (file_remove(path) != 0) {
-            err_error("failed to remove file \"%s\"", path);
+            PadErr_Error("failed to remove file \"%s\"", path);
             goto fail;
         }
 
@@ -194,7 +194,7 @@ snptcmd_clear(snptcmd_t *self) {
     }
 
 fail:
-    file_dirclose(dir);
+    PadFileDir_Close(dir);
     return 0;
 }
 

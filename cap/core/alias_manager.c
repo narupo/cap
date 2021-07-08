@@ -11,7 +11,7 @@ enum {
  * Structure of alias_manager
  */
 struct alias_manager {
-    const config_t *config;
+    const CapConfig *config;
     tokenizer_t *tkr;
     ast_t *ast;
     gc_t *gc;
@@ -33,8 +33,8 @@ almgr_del(almgr_t *self) {
 }
 
 almgr_t *
-almgr_new(const config_t *config) {
-    almgr_t *self = mem_ecalloc(1, sizeof(*self));
+almgr_new(const CapConfig *config) {
+    almgr_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
 
@@ -71,7 +71,7 @@ almgr_create_resource_path(almgr_t *self, char *dst, size_t dstsz, int scope) {
     char drtpath[FILE_NPATH*2];
     snprintf(drtpath, sizeof drtpath, "%s/.caprc", org);
 
-    if (!symlink_follow_path(self->config, dst, dstsz, drtpath)) {
+    if (!CapSymlink_FollowPath(self->config, dst, dstsz, drtpath)) {
         almgr_set_error_detail(self, "failed to follow path of resource file");
         return NULL;
     }
@@ -124,7 +124,7 @@ almgr_load_alias_list(almgr_t *self, int scope) {
         almgr_set_error_detail(self, "failed to create path by scope %d", scope);
         return NULL;
     }
-    if (!file_exists(path)) {
+    if (!PadFile_IsExists(path)) {
         // don't write error detail
         return NULL;
     }

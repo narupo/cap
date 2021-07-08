@@ -121,13 +121,13 @@ warn(const char *fmt, ...) {
 static char *
 solve_path(char *dst, int32_t dstsz, const char *path) {
     char tmp[FILE_NPATH] = {0};
-    assert(file_solve(tmp, sizeof tmp, path));
+    assert(PadFile_Solve(tmp, sizeof tmp, path));
     snprintf(dst, dstsz, "%s", tmp);
     return dst;
 }
 
 #define trv_ready \
-    config_t *config = config_new(); \
+    CapConfig *config = config_new(); \
     tokenizer_option_t *opt = tkropt_new(); \
     tokenizer_t *tkr = tkr_new(mem_move(opt)); \
     ast_t *ast = ast_new(config); \
@@ -1164,7 +1164,7 @@ test_str_app_stream(void) {
     char curdir[1024];
     char path[1024];
     assert(file_realpath(curdir, sizeof curdir, ".") != NULL);
-    assert(file_solvefmt(path, sizeof path, "%s/src/tests.c", curdir) != NULL);
+    assert(PadFile_Solvefmt(path, sizeof path, "%s/src/tests.c", curdir) != NULL);
 
     FILE *fin = fopen(path, "r");
     assert(fin != NULL);
@@ -1805,7 +1805,7 @@ test_uni_app_stream(void) {
     char curdir[1024];
     char path[1024];
     assert(file_realpath(curdir, sizeof curdir, ".") != NULL);
-    assert(file_solvefmt(path, sizeof path, "%s/src/tests.c", curdir) != NULL);
+    assert(PadFile_Solvefmt(path, sizeof path, "%s/src/tests.c", curdir) != NULL);
 
     FILE *fin = fopen(path, "r");
     assert(fin != NULL);
@@ -2487,16 +2487,16 @@ get_test_finpath(void) {
 #ifdef _TESTS_WINDOWS
     char tmp[FILE_NPATH];
     assert(file_get_user_home(tmp, sizeof tmp) != NULL);
-    assert(file_solvefmt(path, sizeof path, "%s/cap.test.file", tmp) != NULL);
+    assert(PadFile_Solvefmt(path, sizeof path, "%s/cap.test.file", tmp) != NULL);
 #else
-    assert(file_solve(path, sizeof path, "/tmp/cap.test.file") != NULL);
+    assert(PadFile_Solve(path, sizeof path, "/tmp/cap.test.file") != NULL);
 #endif
 
-    if (!file_exists(path)) {
-        FILE *f = file_open(path, "wb");
+    if (!PadFile_IsExists(path)) {
+        FILE *f = PadFile_Open(path, "wb");
         assert(f != NULL);
         fprintf(f, "%s", get_test_fcontent());
-        assert(file_close(f) == 0);
+        assert(PadFile_Close(f) == 0);
     }
     return path;
 }
@@ -2504,14 +2504,14 @@ get_test_finpath(void) {
 static void
 remove_test_file(void) {
     const char *path = get_test_finpath();
-    if (file_exists(path)) {
+    if (PadFile_IsExists(path)) {
         assert(file_remove(path) == 0);
     }
 }
 
 static FILE *
 get_test_fin(void) {
-    FILE *fin = file_open(get_test_finpath(), "rb");
+    FILE *fin = PadFile_Open(get_test_finpath(), "rb");
     assert(fin != NULL);
     return fin;
 }
@@ -2527,43 +2527,43 @@ get_test_dirpath(void) {
 #ifdef _TESTS_WINDOWS
     assert(file_get_user_home(path, sizeof path) != NULL);
 #else
-    assert(file_solve(path, sizeof path, "/tmp") != NULL);
+    assert(PadFile_Solve(path, sizeof path, "/tmp") != NULL);
 #endif
     return path;
 }
 
 static void
-test_file_close(void) {
-    FILE* f = file_open(get_test_finpath(), "rb");
+test_PadFile_Close(void) {
+    FILE* f = PadFile_Open(get_test_finpath(), "rb");
     assert(f != NULL);
-    assert(file_close(NULL) != 0);
-    assert(file_close(f) == 0);
+    assert(PadFile_Close(NULL) != 0);
+    assert(PadFile_Close(f) == 0);
 }
 
 static void
-test_file_open(void) {
-    test_file_close();
+test_PadFile_Open(void) {
+    test_PadFile_Close();
 }
 
 static void
-test_file_copy(void) {
-    FILE *f = file_open(get_test_finpath(), "rb");
+test_PadFile_Copy(void) {
+    FILE *f = PadFile_Open(get_test_finpath(), "rb");
     assert(f != NULL);
     // TODO
-    assert(file_close(f) == 0);
+    assert(PadFile_Close(f) == 0);
 }
 
 static void
-test_file_closedir(void) {
-    DIR *f = file_opendir(get_test_dirpath());
+test_PadFile_Closedir(void) {
+    DIR *f = PadFile_Opendir(get_test_dirpath());
     assert(f != NULL);
-    assert(file_closedir(NULL) == -1);
-    assert(file_closedir(f) == 0);
+    assert(PadFile_Closedir(NULL) == -1);
+    assert(PadFile_Closedir(f) == 0);
 }
 
 static void
-test_file_opendir(void) {
-    test_file_closedir();
+test_PadFile_Opendir(void) {
+    test_PadFile_Closedir();
 }
 
 static void
@@ -2583,10 +2583,10 @@ test_file_realpath(void) {
 }
 
 static void
-test_file_exists(void) {
-    assert(file_exists(NULL) == false);
-    assert(file_exists(get_test_dirpath()));
-    assert(!file_exists("/nothing/directory"));
+test_PadFile_IsExists(void) {
+    assert(PadFile_IsExists(NULL) == false);
+    assert(PadFile_IsExists(get_test_dirpath()));
+    assert(!PadFile_IsExists("/nothing/directory"));
 }
 
 static void
@@ -2595,8 +2595,8 @@ test_file_mkdirmode(void) {
 }
 
 static void
-test_file_mkdirq(void) {
-    assert(file_mkdirq(NULL) != 0);
+test_PadFile_MkdirQ(void) {
+    assert(PadFile_MkdirQ(NULL) != 0);
 }
 
 static void
@@ -2604,67 +2604,67 @@ test_file_trunc(void) {
     char path[FILE_NPATH];
     char userhome[FILE_NPATH];
     assert(file_get_user_home(userhome, sizeof userhome) != NULL);
-    assert(file_solvefmt(path, sizeof path, "%s/cap.ftrunc", userhome) != NULL);
+    assert(PadFile_Solvefmt(path, sizeof path, "%s/cap.ftrunc", userhome) != NULL);
 
-    assert(!file_exists(path));
+    assert(!PadFile_IsExists(path));
     assert(!file_trunc(NULL));
     assert(file_trunc(path));
-    assert(file_exists(path));
+    assert(PadFile_IsExists(path));
     assert(file_remove(path) == 0);
 }
 
 static void
-test_file_solve(void) {
+test_PadFile_Solve(void) {
     char path[FILE_NPATH];
-    assert(file_solve(NULL, sizeof path, "/tmp/../tmp") == NULL);
-    assert(file_solve(path, 0, "/tmp/../tmp") == NULL);
-    assert(file_solve(path, sizeof path, NULL) == NULL);
-    assert(file_solve(path, sizeof path, get_test_dirpath()) != NULL);
+    assert(PadFile_Solve(NULL, sizeof path, "/tmp/../tmp") == NULL);
+    assert(PadFile_Solve(path, 0, "/tmp/../tmp") == NULL);
+    assert(PadFile_Solve(path, sizeof path, NULL) == NULL);
+    assert(PadFile_Solve(path, sizeof path, get_test_dirpath()) != NULL);
 }
 
 static void
-test_file_solvecp(void) {
-    assert(!file_solvecp(NULL));
-    char *path = file_solvecp(get_test_dirpath());
+test_PadFile_Solvecp(void) {
+    assert(!PadFile_Solvecp(NULL));
+    char *path = PadFile_Solvecp(get_test_dirpath());
     assert(path != NULL);
     assert(strcmp(path, get_test_dirpath()) == 0);
     free(path);
 }
 
 static void
-test_file_solvefmt(void) {
+test_PadFile_Solvefmt(void) {
     char path[1024];
-    assert(file_solvefmt(NULL, sizeof path, "/%s/../%s", "tmp", "tmp") == NULL);
-    assert(file_solvefmt(path, 0, "/%s/../%s", "tmp", "tmp") == NULL);
-    assert(file_solvefmt(path, sizeof path, NULL, "tmp", "tmp") == NULL);
-    assert(file_solvefmt(path, sizeof path, "%s", get_test_dirpath()) != NULL);
+    assert(PadFile_Solvefmt(NULL, sizeof path, "/%s/../%s", "tmp", "tmp") == NULL);
+    assert(PadFile_Solvefmt(path, 0, "/%s/../%s", "tmp", "tmp") == NULL);
+    assert(PadFile_Solvefmt(path, sizeof path, NULL, "tmp", "tmp") == NULL);
+    assert(PadFile_Solvefmt(path, sizeof path, "%s", get_test_dirpath()) != NULL);
 }
 
 static void
-test_file_isdir(void) {
-    assert(!file_isdir(NULL));
-    assert(file_isdir(get_test_dirpath()));
-    assert(!file_isdir("/not/found/directory"));
+test_PadFile_IsDir(void) {
+    assert(!PadFile_IsDir(NULL));
+    assert(PadFile_IsDir(get_test_dirpath()));
+    assert(!PadFile_IsDir("/not/found/directory"));
 }
 
 static void
 test_file_readcp(void) {
-    FILE *fin = file_open(get_test_finpath(), "rb");
+    FILE *fin = PadFile_Open(get_test_finpath(), "rb");
     assert(fin != NULL);
     assert(!file_readcp(NULL));
     char *p = file_readcp(fin);
-    file_close(fin);
+    PadFile_Close(fin);
     assert(p != NULL);
     free(p);
 }
 
 static void
 test_file_size(void) {
-    FILE *fin = file_open(get_test_finpath(), "rb");
+    FILE *fin = PadFile_Open(get_test_finpath(), "rb");
     assert(fin != NULL);
     assert(file_size(NULL) == -1);
     assert(file_size(fin) == get_test_finsize());
-    assert(file_close(fin) == 0);
+    assert(PadFile_Close(fin) == 0);
 }
 
 static void
@@ -2681,7 +2681,7 @@ test_file_dirname(void) {
     char userhome[FILE_NPATH];
     char path[FILE_NPATH];
     assert(file_get_user_home(userhome, sizeof userhome));
-    assert(file_solvefmt(path, sizeof path, "%s/file", userhome));
+    assert(PadFile_Solvefmt(path, sizeof path, "%s/file", userhome));
 
     assert(file_dirname(NULL, sizeof name, path) == NULL);
     assert(file_dirname(name, 0, path) == NULL);
@@ -2696,7 +2696,7 @@ test_file_basename(void) {
     char userhome[FILE_NPATH];
     char path[FILE_NPATH];
     assert(file_get_user_home(userhome, sizeof userhome));
-    assert(file_solvefmt(path, sizeof path, "%s/file.txt", userhome));
+    assert(PadFile_Solvefmt(path, sizeof path, "%s/file.txt", userhome));
 
     assert(file_basename(NULL, sizeof name, path) == NULL);
     assert(file_basename(name, 0, path) == NULL);
@@ -2715,7 +2715,7 @@ test_file_getline(void) {
     assert(file_getline(line, sizeof line, NULL) == EOF);
     assert(file_getline(line, sizeof line, fin) != EOF);
     assert(strcmp(get_test_fcontent_nonewline(), line) == 0);
-    assert(file_close(fin) == 0);
+    assert(PadFile_Close(fin) == 0);
 }
 
 static void
@@ -2738,41 +2738,41 @@ test_file_writeline(void) {
 
 static void
 test_file_dirnodedel(void) {
-    file_dirclose(NULL);
-    assert(file_diropen(NULL) == NULL);
-    assert(file_dirread(NULL) == NULL);
+    PadFileDir_Close(NULL);
+    assert(PadFileDir_Open(NULL) == NULL);
+    assert(PadFileDir_Read(NULL) == NULL);
     file_dirnodedel(NULL);
 
-    struct file_dir *dir = file_diropen(get_test_dirpath());
+    struct file_dir *dir = PadFileDir_Open(get_test_dirpath());
     assert(dir != NULL);
 
-    for (struct file_dirnode *node; (node = file_dirread(dir)); ) {
-        const char *dname = file_dirnodename(node);
+    for (struct file_dirnode *node; (node = PadFileDir_Read(dir)); ) {
+        const char *dname = PadFileDirNode_Name(node);
         assert(dname != NULL);
         file_dirnodedel(node);
     }
 
-    assert(file_dirclose(dir) == 0);
+    assert(PadFileDir_Close(dir) == 0);
 }
 
 static void
-test_file_dirnodename(void) {
-    // test_file_dirclose
+test_PadFileDirNode_Name(void) {
+    // test_PadFileDir_Close
 }
 
 static void
-test_file_dirclose(void) {
-    // test_file_dirclose
+test_PadFileDir_Close(void) {
+    // test_PadFileDir_Close
 }
 
 static void
-test_file_diropen(void) {
-    // test_file_dirclose
+test_PadFileDir_Open(void) {
+    // test_PadFileDir_Close
 }
 
 static void
-test_file_dirread(void) {
-    // test_file_dirclose
+test_PadFileDir_Read(void) {
+    // test_PadFileDir_Close
 }
 
 static void
@@ -2849,31 +2849,31 @@ test_file_get_user_home(void) {
 
 static void
 test_file_remove(void) {
-    if (!file_exists("tests/file/")) {
-        file_mkdirq("tests/file/");
+    if (!PadFile_IsExists("tests/file/")) {
+        PadFile_MkdirQ("tests/file/");
     }
     file_trunc("tests/file/remove.txt");
-    assert(file_exists("tests/file/remove.txt"));
+    assert(PadFile_IsExists("tests/file/remove.txt"));
     file_remove("tests/file/remove.txt");
-    assert(!file_exists("tests/file/remove.txt"));
+    assert(!PadFile_IsExists("tests/file/remove.txt"));
 }
 
 static void
 test_file_rename(void) {
-    if (!file_exists("tests/file/")) {
-        file_mkdirq("tests/file/");
+    if (!PadFile_IsExists("tests/file/")) {
+        PadFile_MkdirQ("tests/file/");
     }
     file_trunc("tests/file/rename.txt");
-    assert(file_exists("tests/file/rename.txt"));
+    assert(PadFile_IsExists("tests/file/rename.txt"));
     file_rename("tests/file/rename.txt", "tests/file/renamed.txt");
-    assert(file_exists("tests/file/renamed.txt"));
+    assert(PadFile_IsExists("tests/file/renamed.txt"));
     file_remove("tests/file/renamed.txt");
 }
 
 static void
 test_file_read_lines(void) {
-    if (!file_exists("tests/file/")) {
-        file_mkdirq("tests/file/");
+    if (!PadFile_IsExists("tests/file/")) {
+        PadFile_MkdirQ("tests/file/");
     }
     FILE *fout = fopen("tests/file/lines.txt", "wt");
     assert(fout);
@@ -2898,20 +2898,20 @@ test_file_read_lines(void) {
  */
 static const struct testcase
 file_tests[] = {
-    {"file_close", test_file_close},
-    {"file_open", test_file_open},
-    {"file_copy", test_file_copy},
-    {"file_closedir", test_file_closedir},
-    {"file_opendir", test_file_opendir},
+    {"PadFile_Close", test_PadFile_Close},
+    {"PadFile_Open", test_PadFile_Open},
+    {"PadFile_Copy", test_PadFile_Copy},
+    {"PadFile_Closedir", test_PadFile_Closedir},
+    {"PadFile_Opendir", test_PadFile_Opendir},
     {"file_realpath", test_file_realpath},
-    {"file_exists", test_file_exists},
+    {"PadFile_IsExists", test_PadFile_IsExists},
     {"file_mkdirmode", test_file_mkdirmode},
-    {"file_mkdirq", test_file_mkdirq},
+    {"PadFile_MkdirQ", test_PadFile_MkdirQ},
     {"file_trunc", test_file_trunc},
-    {"file_solve", test_file_solve},
-    {"file_solvecp", test_file_solvecp},
-    {"file_solvefmt", test_file_solvefmt},
-    {"file_isdir", test_file_isdir},
+    {"PadFile_Solve", test_PadFile_Solve},
+    {"PadFile_Solvecp", test_PadFile_Solvecp},
+    {"PadFile_Solvefmt", test_PadFile_Solvefmt},
+    {"PadFile_IsDir", test_PadFile_IsDir},
     {"file_readcp", test_file_readcp},
     {"file_size", test_file_size},
     {"file_suffix", test_file_suffix},
@@ -2921,10 +2921,10 @@ file_tests[] = {
     {"file_readline", test_file_readline},
     {"file_writeline", test_file_writeline},
     {"file_dirnodedel", test_file_dirnodedel},
-    {"file_dirnodename", test_file_dirnodename},
-    {"file_dirclose", test_file_dirclose},
-    {"file_diropen", test_file_diropen},
-    {"file_dirread", test_file_dirread},
+    {"PadFileDirNode_Name", test_PadFileDirNode_Name},
+    {"PadFileDir_Close", test_PadFileDir_Close},
+    {"PadFileDir_Open", test_PadFileDir_Open},
+    {"PadFileDir_Read", test_PadFileDir_Read},
     {"file_conv_line_encoding", test_file_conv_line_encoding},
     {"file_get_user_home", test_file_get_user_home},
     {"file_remove", test_file_remove},
@@ -3290,7 +3290,7 @@ test_error_error_1(void) {
     char buf[BUFSIZ] = {0};
     setbuf(stderr, buf);
 
-    err_error("this is error");
+    PadErr_Error("this is error");
     // assert(strcmp(buf, "Error: This is error. No such file or directory.\n") == 0);
 
     setbuf(stderr, NULL);
@@ -3298,9 +3298,9 @@ test_error_error_1(void) {
 
 static void
 test_error_error_2(void) {
-    err_error("test1");
-    err_error("test2");
-    err_error("test3");
+    PadErr_Error("test1");
+    PadErr_Error("test2");
+    PadErr_Error("test3");
 }
 
 /**
@@ -3363,18 +3363,18 @@ test_util_showargv(void) {
 }
 
 static void
-test_util_is_out_of_home(void) {
+test_util_Cap_IsOutOfHome(void) {
     char userhome[FILE_NPATH];
     assert(file_get_user_home(userhome, sizeof userhome) != NULL);
 
     char varhome[FILE_NPATH];
-    assert(file_solvefmt(varhome, sizeof varhome, "%s/.cap/var/home", userhome) != NULL);
+    assert(PadFile_Solvefmt(varhome, sizeof varhome, "%s/.cap/var/home", userhome) != NULL);
 
     char caphome[FILE_NPATH];
     assert(file_readline(caphome, sizeof caphome, varhome) != NULL);
 
-    assert(is_out_of_home(caphome, "/not/found/dir"));
-    assert(!is_out_of_home(caphome, caphome));
+    assert(Cap_IsOutOfHome(caphome, "/not/found/dir"));
+    assert(!Cap_IsOutOfHome(caphome, caphome));
 }
 
 static void
@@ -3395,15 +3395,15 @@ static void
 test_util_safesystem(void) {
     char cmd[1024];
 #ifdef _TESTS_WINDOWS
-    assert(file_solvefmt(cmd, sizeof cmd, "dir") != NULL);
+    assert(PadFile_Solvefmt(cmd, sizeof cmd, "dir") != NULL);
 #else
     const char *path = "/tmp/f";
-    if (file_exists(path)) {
+    if (PadFile_IsExists(path)) {
         assert(remove(path) == 0);
     }
-    assert(file_solvefmt(cmd, sizeof cmd, "/bin/sh -c \"touch %s\"", path) != NULL);
+    assert(PadFile_Solvefmt(cmd, sizeof cmd, "/bin/sh -c \"touch %s\"", path) != NULL);
     assert(safesystem(cmd, SAFESYSTEM_DEFAULT) == 0);
-    assert(file_exists(path));
+    assert(PadFile_IsExists(path));
 #endif
 }
 
@@ -3449,7 +3449,7 @@ test_util_argsbyoptind(void) {
 
 static void
 test_util_solve_cmdline_arg_path(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     config->scope = CAP_SCOPE_LOCAL;
 
     char fname[FILE_NPATH];
@@ -3485,7 +3485,7 @@ test_util_escape(void) {
 
 static void
 test_util_compile_argv(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
         "make",
@@ -3535,18 +3535,18 @@ test_util_pop_tail_slash(void) {
 }
 
 static void
-test_util_is_out_of_home_2(void) {
-    assert(!is_out_of_home(NULL, NULL));
-    assert(!is_out_of_home("", NULL));
+test_util_Cap_IsOutOfHome_2(void) {
+    assert(!Cap_IsOutOfHome(NULL, NULL));
+    assert(!Cap_IsOutOfHome("", NULL));
 
-    assert(is_out_of_home("/my/home", "/path/to/dir"));
-    assert(is_out_of_home("/my/home", "/my"));
-    assert(!is_out_of_home("/my/home", "/my/home/file"));
+    assert(Cap_IsOutOfHome("/my/home", "/path/to/dir"));
+    assert(Cap_IsOutOfHome("/my/home", "/my"));
+    assert(!Cap_IsOutOfHome("/my/home", "/my/home/file"));
 }
 
 static void
 test_util_get_origin(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
 
     strcpy(config->home_path, "/home");
     strcpy(config->cd_path, "/cd");
@@ -3586,17 +3586,17 @@ test_util_clear_screen(void) {
 static void
 test_util_show_snippet(void) {
     char root[FILE_NPATH];
-    file_solvefmt(root, sizeof root, "tests/util");
+    PadFile_Solvefmt(root, sizeof root, "tests/util");
 
-    if (file_exists(root)) {
-        file_mkdirq(root);
+    if (PadFile_IsExists(root)) {
+        PadFile_MkdirQ(root);
     }
 
     FILE *fout = fopen("tests/util/file.txt", "wt");
     fputs("abc\n", fout);
     fclose(fout);
 
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     strcpy(config->codes_dir_path, root);
     int argc = 0;
     char *argv[] = {
@@ -3619,15 +3619,15 @@ test_util_show_snippet(void) {
 static void
 test_util_execute_snippet(void) {
     char root[FILE_NPATH];
-    file_solvefmt(root, sizeof root, "./tests/util");
+    PadFile_Solvefmt(root, sizeof root, "./tests/util");
     char path[FILE_NPATH];
-    file_solvefmt(path, sizeof path, "./tests/util/snippet.txt");
+    PadFile_Solvefmt(path, sizeof path, "./tests/util/snippet.txt");
 
     FILE *fout = fopen(path, "wt");
     fputs("abc\n", fout);
     fclose(fout);
 
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     strcpy(config->codes_dir_path, root);
     bool found = false;
     int argc = 0;
@@ -3682,21 +3682,21 @@ test_util_execute_run(void) {
 
 static void
 test_util_execute_program(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
 
     config->scope = CAP_SCOPE_LOCAL;
     strcpy(config->cd_path, "tests/util");
     strcpy(config->home_path, "tests/util");
 
     char rcpath[FILE_NPATH] = {0};
-    file_solvefmt(rcpath, sizeof rcpath, "tests/util/.caprc");
+    PadFile_Solvefmt(rcpath, sizeof rcpath, "tests/util/.caprc");
 
     FILE *fout = fopen(rcpath, "wt");
     fputs("PATH = \"bin\"\n", fout);
     fclose(fout);
 
-    if (!file_exists("tests/util/bin")) {
-        file_mkdirq("tests/util/bin");
+    if (!PadFile_IsExists("tests/util/bin")) {
+        PadFile_MkdirQ("tests/util/bin");
     }
 
     bool found = false;
@@ -3729,8 +3729,8 @@ static const struct testcase
 utiltests[] = {
     {"freeargv", test_util_freeargv},
     {"showargv", test_util_showargv},
-    {"is_out_of_home", test_util_is_out_of_home},
-    {"is_out_of_home", test_util_is_out_of_home_2},
+    {"Cap_IsOutOfHome", test_util_Cap_IsOutOfHome},
+    {"Cap_IsOutOfHome", test_util_Cap_IsOutOfHome_2},
     {"randrange", test_util_randrange},
     {"safesystem", test_util_safesystem},
     {"argsbyoptind", test_util_argsbyoptind},
@@ -5123,7 +5123,7 @@ test_ast_show_error(const ast_t *ast) {
 
 static void
 test_cc_basic_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5143,7 +5143,7 @@ test_cc_basic_0(void) {
 
 static void
 test_cc_basic_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5210,7 +5210,7 @@ test_cc_basic_1(void) {
 
 static void
 test_cc_code_block(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5236,7 +5236,7 @@ test_cc_code_block(void) {
 
 static void
 test_cc_code_block_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5252,7 +5252,7 @@ test_cc_code_block_0(void) {
 
 static void
 test_cc_ref_block(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5419,7 +5419,7 @@ test_cc_ref_block(void) {
 
 static void
 test_cc_ref_block_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5435,7 +5435,7 @@ test_cc_ref_block_0(void) {
 
 static void
 test_cc_ref_block_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5451,7 +5451,7 @@ test_cc_ref_block_1(void) {
 
 static void
 test_cc_ref_block_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5467,7 +5467,7 @@ test_cc_ref_block_2(void) {
 
 static void
 test_cc_ref_block_3(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5483,7 +5483,7 @@ test_cc_ref_block_3(void) {
 
 static void
 test_cc_formula(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5775,7 +5775,7 @@ test_cc_formula(void) {
 
 static void
 test_cc_dict(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5948,7 +5948,7 @@ test_cc_dict(void) {
 
 static void
 test_cc_dict_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5964,7 +5964,7 @@ test_cc_dict_0(void) {
 
 static void
 test_cc_dict_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5981,7 +5981,7 @@ test_cc_dict_1(void) {
 
 static void
 test_cc_dict_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -5997,7 +5997,7 @@ test_cc_dict_2(void) {
 
 static void
 test_cc_expr(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -6668,7 +6668,7 @@ test_cc_expr(void) {
 
 static void
 test_cc_index(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -6769,7 +6769,7 @@ test_cc_index(void) {
 
 static void
 test_cc_dot(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -6883,7 +6883,7 @@ test_cc_dot(void) {
 
 static void
 test_cc_call(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -7091,7 +7091,7 @@ test_cc_call(void) {
 
 static void
 test_cc_array(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -7352,7 +7352,7 @@ test_cc_array(void) {
 
 static void
 test_cc_asscalc(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -7645,7 +7645,7 @@ test_cc_asscalc(void) {
 
 static void
 test_cc_atom(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -7946,7 +7946,7 @@ test_cc_atom(void) {
 static void
 test_cc_compile(void) {
     // head
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -11595,7 +11595,7 @@ test_cc_compile(void) {
 
 static void
 test_cc_import_stmt(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -12308,7 +12308,7 @@ test_cc_import_stmt(void) {
 
 static void
 test_cc_func_def(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -12419,7 +12419,7 @@ compiler_tests[] = {
 
 static void
 test_trv_comparison(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -12929,7 +12929,7 @@ test_trv_comparison(void) {
 
 static void
 test_trv_array_index(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -13045,7 +13045,7 @@ test_trv_array_index(void) {
 
 static void
 test_trv_text_block_old(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -13070,7 +13070,7 @@ test_trv_text_block_old(void) {
 
 static void
 test_trv_ref_block_old(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -13186,7 +13186,7 @@ test_trv_ref_block_old(void) {
 
 static void
 test_trv_assign_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -13384,7 +13384,7 @@ test_trv_atom_0(void) {
 
 static void
 test_trv_array(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -13460,7 +13460,7 @@ test_trv_array(void) {
 
 static void
 test_trv_index(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -13847,7 +13847,7 @@ test_trv_index(void) {
 
 static void
 test_trv_string_index(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -13923,7 +13923,7 @@ test_trv_string_index(void) {
 
 static void
 test_trv_multi_assign(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -13983,7 +13983,7 @@ test_trv_multi_assign(void) {
 
 static void
 test_trv_and_test(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -15303,7 +15303,7 @@ test_trv_and_test(void) {
 
 static void
 test_trv_assign_list(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -15491,7 +15491,7 @@ test_trv_assign_list(void) {
 
 static void
 test_trv_test_list(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -15535,7 +15535,7 @@ test_trv_test_list(void) {
 
 static void
 test_trv_negative_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -15621,7 +15621,7 @@ test_trv_negative_0(void) {
 
 static void
 test_trv_dot_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -15783,7 +15783,7 @@ test_trv_dot_5(void) {
 
 static void
 test_trv_call(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -15839,7 +15839,7 @@ test_trv_call(void) {
 
 static void
 test_trv_func_def(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -16035,7 +16035,7 @@ test_trv_func_def(void) {
 
 static void
 test_trv_builtin_string(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -16357,7 +16357,7 @@ test_trv_builtin_unicode_strip(void) {
 
 static void
 test_trv_builtin_functions(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -16718,7 +16718,7 @@ test_trv_builtin_modules_array_1(void) {
 
 static void
 test_trv_builtin_functions_type_dict(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -16780,7 +16780,7 @@ test_trv_builtin_functions_type_dict(void) {
 
 static void
 test_trv_builtin_functions_type(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -16893,7 +16893,7 @@ test_trv_builtin_functions_puts_0(void) {
 
 static void
 test_trv_builtin_functions_len_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -16949,7 +16949,7 @@ test_trv_builtin_functions_len_0(void) {
 
 static void
 test_trv_traverse(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -18975,7 +18975,7 @@ test_trv_traverse(void) {
  */
 static void
 test_trv_assign_and_reference_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19027,7 +19027,7 @@ test_trv_assign_and_reference_0(void) {
 
 static void
 test_trv_assign_and_reference_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19055,7 +19055,7 @@ test_trv_assign_and_reference_1(void) {
 
 static void
 test_trv_assign_and_reference_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19084,7 +19084,7 @@ test_trv_assign_and_reference_2(void) {
 
 static void
 test_trv_assign_and_reference_3(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19112,7 +19112,7 @@ test_trv_assign_and_reference_3(void) {
 
 static void
 test_trv_assign_and_reference_4(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19141,7 +19141,7 @@ test_trv_assign_and_reference_4(void) {
 
 static void
 test_trv_assign_and_reference_5(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19170,7 +19170,7 @@ test_trv_assign_and_reference_5(void) {
 
 static void
 test_trv_assign_and_reference_6(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19200,7 +19200,7 @@ test_trv_assign_and_reference_6(void) {
 
 static void
 test_trv_assign_and_reference_7(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19228,7 +19228,7 @@ test_trv_assign_and_reference_7(void) {
 
 static void
 test_trv_assign_and_reference_8(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19256,7 +19256,7 @@ test_trv_assign_and_reference_8(void) {
 
 static void
 test_trv_assign_and_reference_9(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19307,7 +19307,7 @@ test_trv_assign_and_reference_10(void) {
 
 static void
 test_trv_assign_and_reference_11(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19338,7 +19338,7 @@ test_trv_assign_and_reference_11(void) {
 
 static void
 test_trv_assign_and_reference_12(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19370,7 +19370,7 @@ test_trv_assign_and_reference_12(void) {
 
 static void
 test_trv_assign_and_reference_13(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19479,7 +19479,7 @@ test_trv_assign_and_reference_all(void) {
 
 static void
 test_trv_code_block(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19595,7 +19595,7 @@ test_trv_code_block(void) {
 
 static void
 test_trv_ref_block(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19681,7 +19681,7 @@ test_trv_ref_block(void) {
 
 static void
 test_trv_text_block(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -19747,7 +19747,7 @@ test_trv_text_block(void) {
 
 static void
 test_trv_import_stmt_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -20111,7 +20111,7 @@ test_trv_import_stmt_4(void) {
 
 static void
 test_trv_from_import_stmt_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -20139,7 +20139,7 @@ test_trv_from_import_stmt_1(void) {
 
 static void
 test_trv_from_import_stmt_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -20169,7 +20169,7 @@ test_trv_from_import_stmt_2(void) {
 
 static void
 test_trv_from_import_stmt_3(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -20198,7 +20198,7 @@ test_trv_from_import_stmt_3(void) {
 
 static void
 test_trv_if_stmt_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -20294,7 +20294,7 @@ test_trv_if_stmt_0(void) {
 
 static void
 test_trv_if_stmt_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -20360,7 +20360,7 @@ test_trv_if_stmt_1(void) {
 
 static void
 test_trv_if_stmt_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -20425,7 +20425,7 @@ test_trv_if_stmt_2(void) {
 
 static void
 test_trv_if_stmt_3(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -20531,7 +20531,7 @@ test_trv_if_stmt_3(void) {
 
 static void
 test_trv_if_stmt_4(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -20603,7 +20603,7 @@ test_trv_if_stmt_4(void) {
 
 static void
 test_trv_if_stmt_5(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -21124,7 +21124,7 @@ test_trv_elif_stmt_1(void) {
 
 static void
 test_trv_elif_stmt_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -21220,7 +21220,7 @@ test_trv_elif_stmt_2(void) {
 
 static void
 test_trv_elif_stmt_3(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -21667,7 +21667,7 @@ test_trv_elif_stmt_7(void) {
 
 static void
 test_trv_else_stmt_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -21753,7 +21753,7 @@ test_trv_else_stmt_0(void) {
 
 static void
 test_trv_else_stmt_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -21849,7 +21849,7 @@ test_trv_else_stmt_1(void) {
 
 static void
 test_trv_else_stmt_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -22095,7 +22095,7 @@ test_trv_else_stmt_4(void) {
 }
 static void
 test_trv_for_stmt_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -22231,7 +22231,7 @@ test_trv_for_stmt_0(void) {
 
 static void
 test_trv_for_stmt_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -22297,7 +22297,7 @@ test_trv_for_stmt_1(void) {
 
 static void
 test_trv_for_stmt_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -22323,7 +22323,7 @@ test_trv_for_stmt_2(void) {
 
 static void
 test_trv_for_stmt_3(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -23042,7 +23042,7 @@ test_trv_continue_stmt_5(void) {
 
 static void
 test_trv_return_stmt_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -23068,7 +23068,7 @@ test_trv_return_stmt_0(void) {
 
 static void
 test_trv_return_stmt_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -23455,7 +23455,7 @@ test_trv_inject_stmt_2(void) {
 
 static void
 test_trv_func_def_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -23481,7 +23481,7 @@ test_trv_func_def_0(void) {
 
 static void
 test_trv_func_def_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -23507,7 +23507,7 @@ test_trv_func_def_1(void) {
 
 static void
 test_trv_func_def_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -23536,7 +23536,7 @@ test_trv_func_def_2(void) {
 
 static void
 test_trv_func_def_3(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -23561,7 +23561,7 @@ test_trv_func_def_3(void) {
 
 static void
 test_trv_func_def_4(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -23587,7 +23587,7 @@ test_trv_func_def_4(void) {
 
 static void
 test_trv_func_def_5(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -23613,7 +23613,7 @@ test_trv_func_def_5(void) {
 
 static void
 test_trv_func_def_6(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -23646,7 +23646,7 @@ test_trv_func_def_6(void) {
 
 static void
 test_trv_func_def_7(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24459,7 +24459,7 @@ test_trv_inject_stmt_19(void) {
 
 static void
 test_trv_assign_list_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24485,7 +24485,7 @@ test_trv_assign_list_0(void) {
 
 static void
 test_trv_assign_list_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24511,7 +24511,7 @@ test_trv_assign_list_1(void) {
 
 static void
 test_trv_assign_list_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24537,7 +24537,7 @@ test_trv_assign_list_2(void) {
 
 static void
 test_trv_assign_list_3(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24563,7 +24563,7 @@ test_trv_assign_list_3(void) {
 
 static void
 test_trv_multi_assign_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24589,7 +24589,7 @@ test_trv_multi_assign_0(void) {
 
 static void
 test_trv_or_test_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24615,7 +24615,7 @@ test_trv_or_test_0(void) {
 
 static void
 test_trv_and_test_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24641,7 +24641,7 @@ test_trv_and_test_0(void) {
 
 static void
 test_trv_not_test_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24667,7 +24667,7 @@ test_trv_not_test_0(void) {
 
 static void
 test_trv_comparison_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24693,7 +24693,7 @@ test_trv_comparison_0(void) {
 
 static void
 test_trv_comparison_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24719,7 +24719,7 @@ test_trv_comparison_1(void) {
 
 static void
 test_trv_comparison_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24745,7 +24745,7 @@ test_trv_comparison_2(void) {
 
 static void
 test_trv_comparison_3(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24771,7 +24771,7 @@ test_trv_comparison_3(void) {
 
 static void
 test_trv_comparison_4(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24797,7 +24797,7 @@ test_trv_comparison_4(void) {
 
 static void
 test_trv_comparison_5(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24823,7 +24823,7 @@ test_trv_comparison_5(void) {
 
 static void
 test_trv_asscalc_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -24917,7 +24917,7 @@ test_trv_asscalc_0(void) {
 
 static void
 test_trv_asscalc_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -25011,7 +25011,7 @@ test_trv_asscalc_1(void) {
 
 static void
 test_trv_asscalc_2(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -25155,7 +25155,7 @@ test_trv_asscalc_2(void) {
 
 static void
 test_trv_asscalc_3(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -25666,7 +25666,7 @@ test_trv_asscalc_22(void) {
 
 static void
 test_trv_expr_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -25702,7 +25702,7 @@ test_trv_expr_0(void) {
 
 static void
 test_trv_expr_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26020,7 +26020,7 @@ test_trv_expr_9(void) {
 
 static void
 test_trv_term_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26245,7 +26245,7 @@ test_trv_term_3(void) {
 
 static void
 test_trv_call_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26426,7 +26426,7 @@ test_trv_call_5(void) {
 
 static void
 test_trv_index_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26452,7 +26452,7 @@ test_trv_index_0(void) {
 
 static void
 test_trv_index_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26600,7 +26600,7 @@ test_trv_array_4(void) {
 
 static void
 test_trv_nil(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26626,7 +26626,7 @@ test_trv_nil(void) {
 
 static void
 test_trv_false(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26652,7 +26652,7 @@ test_trv_false(void) {
 
 static void
 test_trv_true(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26678,7 +26678,7 @@ test_trv_true(void) {
 
 static void
 test_trv_digit(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26704,7 +26704,7 @@ test_trv_digit(void) {
 
 static void
 test_trv_string(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26907,7 +26907,7 @@ test_trv_dict_3(void) {
 
 static void
 test_trv_identifier(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26933,7 +26933,7 @@ test_trv_identifier(void) {
 
 static void
 test_trv_builtin_array_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -26999,7 +26999,7 @@ test_trv_builtin_array_0(void) {
 
 static void
 test_trv_builtin_dict_0(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
@@ -28077,7 +28077,7 @@ traverser_tests[] = {
 
 static void
 test_symlink_norm_path(void) {
-    config_t * config = config_new();
+    CapConfig * config = config_new();
 
     char path[FILE_NPATH];
     assert(symlink_norm_path(NULL, NULL, 0, NULL) == NULL);
@@ -28592,7 +28592,7 @@ lang_object_dict_tests[] = {
 
 static void
 test_homecmd_default(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
         "cd",
@@ -28600,11 +28600,11 @@ test_homecmd_default(void) {
         NULL,
     };
 
-    if (!file_exists("tests/.cap")) {
-        file_mkdirq("tests/.cap");
+    if (!PadFile_IsExists("tests/.cap")) {
+        PadFile_MkdirQ("tests/.cap");
     }
-    if (!file_exists("tests/.cap/var")) {
-        file_mkdirq("tests/.cap/var");
+    if (!PadFile_IsExists("tests/.cap/var")) {
+        PadFile_MkdirQ("tests/.cap/var");
     }
 
     assert(solve_path(config->var_home_path, sizeof config->var_home_path, "./tests/.cap/var/home"));
@@ -28637,7 +28637,7 @@ homecmd_tests[] = {
 
 static void
 test_cdcmd_default(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
         "cd",
@@ -28672,7 +28672,7 @@ cdcmd_tests[] = {
 
 static void
 test_pwdcmd_default(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 1;
     char *argv[] = {
         "pwd",
@@ -28697,7 +28697,7 @@ test_pwdcmd_default(void) {
 
 static void
 test_pwdcmd_nomalize_opt(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
         "pwd",
@@ -28741,7 +28741,7 @@ test_lscmd_default(void) {
 
     return;  // TODO
 
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 1;
     char *argv[] = {
         "ls",
@@ -28778,7 +28778,7 @@ lscmd_tests[] = {
 
 static void
 test_catcmd_default(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
         "cat",
@@ -28802,7 +28802,7 @@ test_catcmd_default(void) {
 
 static void
 test_catcmd_indent_opt(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
         "cat",
@@ -28828,7 +28828,7 @@ test_catcmd_indent_opt(void) {
 
 static void
 test_catcmd_tab_opt(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 5;
     char *argv[] = {
         "cat",
@@ -28855,7 +28855,7 @@ test_catcmd_tab_opt(void) {
 
 static void
 test_catcmd_tabspaces_opt(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 6;
     char *argv[] = {
         "cat",
@@ -28883,7 +28883,7 @@ test_catcmd_tabspaces_opt(void) {
 
 static void
 test_catcmd_make_opt(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "cat",
@@ -28911,7 +28911,7 @@ test_catcmd_make_opt(void) {
  */
 static void
 test_catcmd_make_opt_1(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
         "cat",
@@ -28972,7 +28972,7 @@ catcmd_tests[] = {
 
 static void
 test_makecmd_default(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
         "make",
@@ -29001,7 +29001,7 @@ test_makecmd_default(void) {
 
 static void
 test_makecmd_options(void) {
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 5;
     char *argv[] = {
         "make",
@@ -29077,7 +29077,7 @@ test_alcmd_default(void) {
 
     return;  // TODO: buffering is not working
 
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 1;
     char *argv[] = {
         "alias",
@@ -29130,7 +29130,7 @@ editcmd_tests[] = {
 static void
 test_editorcmd_default(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
         "editor",
@@ -29166,7 +29166,7 @@ editorcmd_tests[] = {
 static void
 test_mkdircmd_default(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
         "mkdir",
@@ -29179,13 +29179,13 @@ test_mkdircmd_default(void) {
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mkdir"));
 
     file_remove("./tests/mkdir/dir");
-    assert(!file_exists("./tests/mkdir/dir"));
+    assert(!PadFile_IsExists("./tests/mkdir/dir"));
 
     mkdircmd_t *mkdircmd = mkdircmd_new(config, argc, argv);
     mkdircmd_run(mkdircmd);
     mkdircmd_del(mkdircmd);
 
-    assert(file_exists("./tests/mkdir/dir"));
+    assert(PadFile_IsExists("./tests/mkdir/dir"));
 
     file_remove("./tests/mkdir/dir");
 
@@ -29209,7 +29209,7 @@ test_rmcmd_default(void) {
 #endif
 
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
         "rm",
@@ -29222,7 +29222,7 @@ test_rmcmd_default(void) {
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
     file_trunc("./tests/rm/file1");
-    assert(file_exists("./tests/rm/file1"));
+    assert(PadFile_IsExists("./tests/rm/file1"));
 
     rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
     rmcmd_run(rmcmd);
@@ -29237,7 +29237,7 @@ test_rmcmd_default(void) {
     }
     rmcmd_del(rmcmd);
 
-    assert(!file_exists("./tests/rm/file1"));
+    assert(!PadFile_IsExists("./tests/rm/file1"));
 
     config_del(config);
 }
@@ -29249,7 +29249,7 @@ test_rmcmd_multi(void) {
 #endif
 
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "rm",
@@ -29264,15 +29264,15 @@ test_rmcmd_multi(void) {
 
     file_trunc("./tests/rm/file1");
     file_trunc("./tests/rm/file2");
-    assert(file_exists("./tests/rm/file1"));
-    assert(file_exists("./tests/rm/file2"));
+    assert(PadFile_IsExists("./tests/rm/file1"));
+    assert(PadFile_IsExists("./tests/rm/file2"));
 
     rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
     rmcmd_run(rmcmd);
     rmcmd_del(rmcmd);
 
-    assert(!file_exists("./tests/rm/file1"));
-    assert(!file_exists("./tests/rm/file2"));
+    assert(!PadFile_IsExists("./tests/rm/file1"));
+    assert(!PadFile_IsExists("./tests/rm/file2"));
 
     config_del(config);
 }
@@ -29280,7 +29280,7 @@ test_rmcmd_multi(void) {
 static void
 test_rmcmd_dir(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
         "rm",
@@ -29292,14 +29292,14 @@ test_rmcmd_dir(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
-    file_mkdirq("./tests/rm/dir1");
-    assert(file_exists("./tests/rm/dir1"));
+    PadFile_MkdirQ("./tests/rm/dir1");
+    assert(PadFile_IsExists("./tests/rm/dir1"));
 
     rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
     rmcmd_run(rmcmd);
     rmcmd_del(rmcmd);
 
-    assert(!file_exists("./tests/rm/dir1"));
+    assert(!PadFile_IsExists("./tests/rm/dir1"));
 
     config_del(config);
 }
@@ -29307,7 +29307,7 @@ test_rmcmd_dir(void) {
 static void
 test_rmcmd_dir_multi(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "rm",
@@ -29320,17 +29320,17 @@ test_rmcmd_dir_multi(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
-    file_mkdirq("./tests/rm/dir1");
-    file_mkdirq("./tests/rm/dir2");
-    assert(file_exists("./tests/rm/dir1"));
-    assert(file_exists("./tests/rm/dir2"));
+    PadFile_MkdirQ("./tests/rm/dir1");
+    PadFile_MkdirQ("./tests/rm/dir2");
+    assert(PadFile_IsExists("./tests/rm/dir1"));
+    assert(PadFile_IsExists("./tests/rm/dir2"));
 
     rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
     rmcmd_run(rmcmd);
     rmcmd_del(rmcmd);
 
-    assert(!file_exists("./tests/rm/dir1"));
-    assert(!file_exists("./tests/rm/dir2"));
+    assert(!PadFile_IsExists("./tests/rm/dir1"));
+    assert(!PadFile_IsExists("./tests/rm/dir2"));
 
     config_del(config);
 }
@@ -29338,7 +29338,7 @@ test_rmcmd_dir_multi(void) {
 static void
 test_rmcmd_dir_r(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "rm",
@@ -29351,24 +29351,24 @@ test_rmcmd_dir_r(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
-    if (!file_exists("./tests/rm/dir1")) {
-        file_mkdirq("./tests/rm/dir1");
+    if (!PadFile_IsExists("./tests/rm/dir1")) {
+        PadFile_MkdirQ("./tests/rm/dir1");
     }
-    if (!file_exists("./tests/rm/dir1/file1")) {
+    if (!PadFile_IsExists("./tests/rm/dir1/file1")) {
         file_trunc("./tests/rm/dir1/file1");
     }
-    if (!file_exists("./tests/rm/dir1/file2")) {
+    if (!PadFile_IsExists("./tests/rm/dir1/file2")) {
         file_trunc("./tests/rm/dir1/file2");
     }
-    assert(file_exists("./tests/rm/dir1"));
-    assert(file_exists("./tests/rm/dir1/file1"));
-    assert(file_exists("./tests/rm/dir1/file2"));
+    assert(PadFile_IsExists("./tests/rm/dir1"));
+    assert(PadFile_IsExists("./tests/rm/dir1/file1"));
+    assert(PadFile_IsExists("./tests/rm/dir1/file2"));
 
     rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
     rmcmd_run(rmcmd);
     rmcmd_del(rmcmd);
 
-    assert(!file_exists("./tests/rm/dir1"));
+    assert(!PadFile_IsExists("./tests/rm/dir1"));
 
     config_del(config);
 }
@@ -29376,7 +29376,7 @@ test_rmcmd_dir_r(void) {
 static void
 test_rmcmd_dir_r_multi(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
         "rm",
@@ -29390,38 +29390,38 @@ test_rmcmd_dir_r_multi(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
-    if (!file_exists("./tests/rm/dir1")) {
-        file_mkdirq("./tests/rm/dir1");
+    if (!PadFile_IsExists("./tests/rm/dir1")) {
+        PadFile_MkdirQ("./tests/rm/dir1");
     }
-    if (!file_exists("./tests/rm/dir1/file1")) {
+    if (!PadFile_IsExists("./tests/rm/dir1/file1")) {
         file_trunc("./tests/rm/dir1/file1");
     }
-    if (!file_exists("./tests/rm/dir1/file2")) {
+    if (!PadFile_IsExists("./tests/rm/dir1/file2")) {
         file_trunc("./tests/rm/dir1/file2");
     }
-    assert(file_exists("./tests/rm/dir1"));
-    assert(file_exists("./tests/rm/dir1/file1"));
-    assert(file_exists("./tests/rm/dir1/file2"));
+    assert(PadFile_IsExists("./tests/rm/dir1"));
+    assert(PadFile_IsExists("./tests/rm/dir1/file1"));
+    assert(PadFile_IsExists("./tests/rm/dir1/file2"));
 
-    if (!file_exists("./tests/rm/dir2")) {
-        file_mkdirq("./tests/rm/dir2");
+    if (!PadFile_IsExists("./tests/rm/dir2")) {
+        PadFile_MkdirQ("./tests/rm/dir2");
     }
-    if (!file_exists("./tests/rm/dir2/file1")) {
+    if (!PadFile_IsExists("./tests/rm/dir2/file1")) {
         file_trunc("./tests/rm/dir2/file1");
     }
-    if (!file_exists("./tests/rm/dir2/file2")) {
+    if (!PadFile_IsExists("./tests/rm/dir2/file2")) {
         file_trunc("./tests/rm/dir2/file2");
     }
-    assert(file_exists("./tests/rm/dir2"));
-    assert(file_exists("./tests/rm/dir2/file1"));
-    assert(file_exists("./tests/rm/dir2/file2"));
+    assert(PadFile_IsExists("./tests/rm/dir2"));
+    assert(PadFile_IsExists("./tests/rm/dir2/file1"));
+    assert(PadFile_IsExists("./tests/rm/dir2/file2"));
 
     rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
     rmcmd_run(rmcmd);
     rmcmd_del(rmcmd);
 
-    assert(!file_exists("./tests/rm/dir1"));
-    assert(!file_exists("./tests/rm/dir2"));
+    assert(!PadFile_IsExists("./tests/rm/dir1"));
+    assert(!PadFile_IsExists("./tests/rm/dir2"));
 
     config_del(config);
 }
@@ -29447,7 +29447,7 @@ test_mvcmd_default(void) {
     return;  // mv command has permission denied error on Windows
 #endif
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "mv",
@@ -29461,8 +29461,8 @@ test_mvcmd_default(void) {
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
     file_trunc("./tests/mv/file1");
-    assert(file_exists("./tests/mv/file1"));
-    assert(!file_exists("./tests/mv/file2"));
+    assert(PadFile_IsExists("./tests/mv/file1"));
+    assert(!PadFile_IsExists("./tests/mv/file2"));
 
     mvcmd_t *mvcmd = mvcmd_new(config, argc, argv);
     mvcmd_run(mvcmd);
@@ -29473,8 +29473,8 @@ test_mvcmd_default(void) {
 
     // rename("/mnt/d/src/cap/tests/mv/file1", "/mnt/d/src/cap/tests/mv/file2");
 
-    assert(!file_exists("./tests/mv/file1"));
-    assert(file_exists("./tests/mv/file2")); 
+    assert(!PadFile_IsExists("./tests/mv/file1"));
+    assert(PadFile_IsExists("./tests/mv/file2")); 
 
     file_remove("./tests/mv/file2");
 
@@ -29487,7 +29487,7 @@ test_mvcmd_dir(void) {
     return;  // mv command has permission denied error on Windows
 #endif
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "mv",
@@ -29500,15 +29500,15 @@ test_mvcmd_dir(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
-    file_mkdirq("./tests/mv/dir1");
-    assert(file_exists("./tests/mv/dir1"));
+    PadFile_MkdirQ("./tests/mv/dir1");
+    assert(PadFile_IsExists("./tests/mv/dir1"));
 
     mvcmd_t *mvcmd = mvcmd_new(config, argc, argv);
     mvcmd_run(mvcmd);
     mvcmd_del(mvcmd);
 
-    assert(!file_exists("./tests/mv/dir1"));
-    assert(file_exists("./tests/mv/dir2"));
+    assert(!PadFile_IsExists("./tests/mv/dir1"));
+    assert(PadFile_IsExists("./tests/mv/dir2"));
 
     file_remove("./tests/mv/dir2");
 
@@ -29521,7 +29521,7 @@ test_mvcmd_file_to_dir(void) {
     return;  // mv command has permission denied error on Windows
 #endif
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "mv",
@@ -29535,17 +29535,17 @@ test_mvcmd_file_to_dir(void) {
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
     file_trunc("./tests/mv/file1");
-    file_mkdirq("./tests/mv/dir1");
-    assert(file_exists("./tests/mv/file1"));
-    assert(file_exists("./tests/mv/dir1"));
+    PadFile_MkdirQ("./tests/mv/dir1");
+    assert(PadFile_IsExists("./tests/mv/file1"));
+    assert(PadFile_IsExists("./tests/mv/dir1"));
 
     mvcmd_t *mvcmd = mvcmd_new(config, argc, argv);
     mvcmd_run(mvcmd);
     mvcmd_del(mvcmd);
 
-    assert(!file_exists("./tests/mv/file1"));
-    assert(file_exists("./tests/mv/dir1"));
-    assert(file_exists("./tests/mv/dir1/file1"));
+    assert(!PadFile_IsExists("./tests/mv/file1"));
+    assert(PadFile_IsExists("./tests/mv/dir1"));
+    assert(PadFile_IsExists("./tests/mv/dir1/file1"));
 
     file_remove("./tests/mv/dir1/file1");
     file_remove("./tests/mv/dir1");
@@ -29559,7 +29559,7 @@ test_mvcmd_files_to_dir(void) {
     return;  // mv command has permission denied error on Windows
 #endif
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
         "mv",
@@ -29575,20 +29575,20 @@ test_mvcmd_files_to_dir(void) {
 
     file_trunc("./tests/mv/file1");
     file_trunc("./tests/mv/file2");
-    file_mkdirq("./tests/mv/dir1");
-    assert(file_exists("./tests/mv/file1"));
-    assert(file_exists("./tests/mv/file2"));
-    assert(file_exists("./tests/mv/dir1"));
+    PadFile_MkdirQ("./tests/mv/dir1");
+    assert(PadFile_IsExists("./tests/mv/file1"));
+    assert(PadFile_IsExists("./tests/mv/file2"));
+    assert(PadFile_IsExists("./tests/mv/dir1"));
 
     mvcmd_t *mvcmd = mvcmd_new(config, argc, argv);
     mvcmd_run(mvcmd);
     mvcmd_del(mvcmd);
 
-    assert(!file_exists("./tests/mv/file1"));
-    assert(!file_exists("./tests/mv/file2"));
-    assert(file_exists("./tests/mv/dir1"));
-    assert(file_exists("./tests/mv/dir1/file1"));
-    assert(file_exists("./tests/mv/dir1/file2"));
+    assert(!PadFile_IsExists("./tests/mv/file1"));
+    assert(!PadFile_IsExists("./tests/mv/file2"));
+    assert(PadFile_IsExists("./tests/mv/dir1"));
+    assert(PadFile_IsExists("./tests/mv/dir1/file1"));
+    assert(PadFile_IsExists("./tests/mv/dir1/file2"));
 
     file_remove("./tests/mv/dir1/file1");
     file_remove("./tests/mv/dir1/file2");
@@ -29603,7 +29603,7 @@ test_mvcmd_err_1(void) {
     return;  // mv command has permission denied error on Windows
 #endif
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "mv",
@@ -29616,10 +29616,10 @@ test_mvcmd_err_1(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
-    file_mkdirq("./tests/mv/dir1");
+    PadFile_MkdirQ("./tests/mv/dir1");
     file_trunc("./tests/mv/file1");
-    assert(file_exists("./tests/mv/dir1"));
-    assert(file_exists("./tests/mv/file1"));
+    assert(PadFile_IsExists("./tests/mv/dir1"));
+    assert(PadFile_IsExists("./tests/mv/file1"));
 
     char buf[1024] = {0};
     setbuf(stderr, buf);
@@ -29654,7 +29654,7 @@ mvcmd_tests[] = {
 static void
 test_cpcmd_default(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "cp",
@@ -29668,14 +29668,14 @@ test_cpcmd_default(void) {
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
     file_trunc("./tests/cp/file1");
-    assert(file_exists("./tests/cp/file1"));
+    assert(PadFile_IsExists("./tests/cp/file1"));
 
-    cpcmd_t *cpcmd = cpcmd_new(config, argc, argv);
-    cpcmd_run(cpcmd);
-    cpcmd_del(cpcmd);
+    CapCpCmd *cpcmd = CapCpCmd_New(config, argc, argv);
+    CapCpCmd_Run(cpcmd);
+    CapCpCmd_Del(cpcmd);
 
-    assert(file_exists("./tests/cp/file1"));
-    assert(file_exists("./tests/cp/file2"));
+    assert(PadFile_IsExists("./tests/cp/file1"));
+    assert(PadFile_IsExists("./tests/cp/file2"));
 
     file_remove("./tests/cp/file1");
     file_remove("./tests/cp/file2");
@@ -29686,7 +29686,7 @@ test_cpcmd_default(void) {
 static void
 test_cpcmd_dir(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "cp",
@@ -29700,16 +29700,16 @@ test_cpcmd_dir(void) {
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
     file_trunc("./tests/cp/file1");
-    file_mkdirq("./tests/cp/dir1");
-    assert(file_exists("./tests/cp/file1"));
-    assert(file_exists("./tests/cp/dir1"));
+    PadFile_MkdirQ("./tests/cp/dir1");
+    assert(PadFile_IsExists("./tests/cp/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir1"));
 
-    cpcmd_t *cpcmd = cpcmd_new(config, argc, argv);
-    cpcmd_run(cpcmd);
-    cpcmd_del(cpcmd);
+    CapCpCmd *cpcmd = CapCpCmd_New(config, argc, argv);
+    CapCpCmd_Run(cpcmd);
+    CapCpCmd_Del(cpcmd);
 
-    assert(file_exists("./tests/cp/file1"));
-    assert(file_exists("./tests/cp/dir1/file1"));
+    assert(PadFile_IsExists("./tests/cp/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir1/file1"));
 
     file_remove("./tests/cp/file1");
     file_remove("./tests/cp/dir1/file1");
@@ -29721,7 +29721,7 @@ test_cpcmd_dir(void) {
 static void
 test_cpcmd_files_to_dir(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
         "cp",
@@ -29737,19 +29737,19 @@ test_cpcmd_files_to_dir(void) {
 
     file_trunc("./tests/cp/file1");
     file_trunc("./tests/cp/file2");
-    file_mkdirq("./tests/cp/dir1");
-    assert(file_exists("./tests/cp/file1"));
-    assert(file_exists("./tests/cp/file2"));
-    assert(file_exists("./tests/cp/dir1"));
+    PadFile_MkdirQ("./tests/cp/dir1");
+    assert(PadFile_IsExists("./tests/cp/file1"));
+    assert(PadFile_IsExists("./tests/cp/file2"));
+    assert(PadFile_IsExists("./tests/cp/dir1"));
 
-    cpcmd_t *cpcmd = cpcmd_new(config, argc, argv);
-    cpcmd_run(cpcmd);
-    cpcmd_del(cpcmd);
+    CapCpCmd *cpcmd = CapCpCmd_New(config, argc, argv);
+    CapCpCmd_Run(cpcmd);
+    CapCpCmd_Del(cpcmd);
 
-    assert(file_exists("./tests/cp/file1"));
-    assert(file_exists("./tests/cp/file2"));
-    assert(file_exists("./tests/cp/dir1/file1"));
-    assert(file_exists("./tests/cp/dir1/file2"));
+    assert(PadFile_IsExists("./tests/cp/file1"));
+    assert(PadFile_IsExists("./tests/cp/file2"));
+    assert(PadFile_IsExists("./tests/cp/dir1/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir1/file2"));
 
     file_remove("./tests/cp/file1");
     file_remove("./tests/cp/file2");
@@ -29763,7 +29763,7 @@ test_cpcmd_files_to_dir(void) {
 static void
 test_cpcmd_dir_r(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
         "cp",
@@ -29777,16 +29777,16 @@ test_cpcmd_dir_r(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
-    file_mkdirq("./tests/cp/dir1");
+    PadFile_MkdirQ("./tests/cp/dir1");
     file_trunc("./tests/cp/dir1/file1");
-    assert(file_exists("./tests/cp/dir1/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir1/file1"));
 
-    cpcmd_t *cpcmd = cpcmd_new(config, argc, argv);
-    cpcmd_run(cpcmd);
-    cpcmd_del(cpcmd);
+    CapCpCmd *cpcmd = CapCpCmd_New(config, argc, argv);
+    CapCpCmd_Run(cpcmd);
+    CapCpCmd_Del(cpcmd);
 
-    assert(file_exists("./tests/cp/dir1/file1"));
-    assert(file_exists("./tests/cp/dir2/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir1/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir2/file1"));
 
     file_remove("./tests/cp/dir1/file1");
     file_remove("./tests/cp/dir1");
@@ -29799,7 +29799,7 @@ test_cpcmd_dir_r(void) {
 static void
 test_cpcmd_dirs_r(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 5;
     char *argv[] = {
         "cp",
@@ -29814,21 +29814,21 @@ test_cpcmd_dirs_r(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
-    file_mkdirq("./tests/cp/dir1");
-    file_mkdirq("./tests/cp/dir2");
+    PadFile_MkdirQ("./tests/cp/dir1");
+    PadFile_MkdirQ("./tests/cp/dir2");
     file_trunc("./tests/cp/dir1/file1");
     file_trunc("./tests/cp/dir2/file1");
-    assert(file_exists("./tests/cp/dir1/file1"));
-    assert(file_exists("./tests/cp/dir2/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir1/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir2/file1"));
 
-    cpcmd_t *cpcmd = cpcmd_new(config, argc, argv);
-    cpcmd_run(cpcmd);
-    cpcmd_del(cpcmd);
+    CapCpCmd *cpcmd = CapCpCmd_New(config, argc, argv);
+    CapCpCmd_Run(cpcmd);
+    CapCpCmd_Del(cpcmd);
 
-    assert(file_exists("./tests/cp/dir1/file1"));
-    assert(file_exists("./tests/cp/dir2/file1"));
-    assert(file_exists("./tests/cp/dir3/file1"));
-    assert(file_exists("./tests/cp/dir3/dir2/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir1/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir2/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir3/file1"));
+    assert(PadFile_IsExists("./tests/cp/dir3/dir2/file1"));
 
     file_remove("./tests/cp/dir1/file1");
     file_remove("./tests/cp/dir1");
@@ -29843,7 +29843,7 @@ test_cpcmd_dirs_r(void) {
 }
 
 static const struct testcase
-cpcmd_tests[] = {
+CapCpCmdests[] = {
     {"default", test_cpcmd_default},
     {"dir", test_cpcmd_dir},
     {"files_to_dir", test_cpcmd_files_to_dir},
@@ -29859,7 +29859,7 @@ cpcmd_tests[] = {
 static void
 test_touchcmd_default(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 2;
     char *argv[] = {
         "touch",
@@ -29871,13 +29871,13 @@ test_touchcmd_default(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/touch"));
 
-    assert(!file_exists("./tests/touch/file1"));
+    assert(!PadFile_IsExists("./tests/touch/file1"));
 
     touchcmd_t *touchcmd = touchcmd_new(config, argc, argv);
     touchcmd_run(touchcmd);
     touchcmd_del(touchcmd);
 
-    assert(file_exists("./tests/touch/file1"));
+    assert(PadFile_IsExists("./tests/touch/file1"));
 
     file_remove("./tests/touch/file1");
 
@@ -29887,7 +29887,7 @@ test_touchcmd_default(void) {
 static void
 test_touchcmd_multi(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "touch",
@@ -29900,15 +29900,15 @@ test_touchcmd_multi(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/touch"));
 
-    assert(!file_exists("./tests/touch/file1"));
-    assert(!file_exists("./tests/touch/file2"));
+    assert(!PadFile_IsExists("./tests/touch/file1"));
+    assert(!PadFile_IsExists("./tests/touch/file2"));
 
     touchcmd_t *touchcmd = touchcmd_new(config, argc, argv);
     touchcmd_run(touchcmd);
     touchcmd_del(touchcmd);
 
-    assert(file_exists("./tests/touch/file1"));
-    assert(file_exists("./tests/touch/file2"));
+    assert(PadFile_IsExists("./tests/touch/file1"));
+    assert(PadFile_IsExists("./tests/touch/file2"));
 
     file_remove("./tests/touch/file1");
     file_remove("./tests/touch/file2");
@@ -29930,7 +29930,7 @@ touchcmd_tests[] = {
 static void
 test_snippetcmd_default(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 1;
     char *argv[] = {
         "snippet",
@@ -29957,7 +29957,7 @@ test_snippetcmd_add(void) {
     return;
 
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "snippet",
@@ -29994,7 +29994,7 @@ snippetcmd_tests[] = {
 static void
 test_linkcmd_default(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "link",
@@ -30007,14 +30007,14 @@ test_linkcmd_default(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/link"));
 
-    assert(!file_exists("./tests/link/link-to-a"));
+    assert(!PadFile_IsExists("./tests/link/link-to-a"));
 
     linkcmd_t *linkcmd = linkcmd_new(config, argc, argv);
     int result = linkcmd_run(linkcmd);
     linkcmd_del(linkcmd);
     assert(result == 0);
 
-    assert(file_exists("./tests/link/link-to-a"));
+    assert(PadFile_IsExists("./tests/link/link-to-a"));
     file_remove("./tests/link/link-to-a");
 
     config_del(config);
@@ -30023,7 +30023,7 @@ test_linkcmd_default(void) {
 static void
 test_linkcmd_unlink(void) {
     // using safesystem
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 3;
     char *argv[] = {
         "link",
@@ -30036,14 +30036,14 @@ test_linkcmd_unlink(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/link"));
 
-    assert(!file_exists("./tests/link/link-to-a"));
+    assert(!PadFile_IsExists("./tests/link/link-to-a"));
 
     linkcmd_t *linkcmd = linkcmd_new(config, argc, argv);
     int result = linkcmd_run(linkcmd);
     linkcmd_del(linkcmd);
     assert(result == 0);
 
-    assert(file_exists("./tests/link/link-to-a"));
+    assert(PadFile_IsExists("./tests/link/link-to-a"));
 
     // unlink
     int argc2 = 3;
@@ -30059,7 +30059,7 @@ test_linkcmd_unlink(void) {
     linkcmd_del(linkcmd);
     assert(result == 0);
 
-    assert(!file_exists("./tests/link/link-to-a"));
+    assert(!PadFile_IsExists("./tests/link/link-to-a"));
 
     config_del(config);
 }
@@ -30078,12 +30078,12 @@ linkcmd_tests[] = {
 static void
 test_bakecmd_1(void) {
     const char *bakefname = "tests/bake/target.cap";
-    if (!file_copy_path(bakefname, "tests/bake/target.cap.org")) {
-        err_error("failed to copy tests/bake/target.cap.org");
+    if (!PadFile_Copy_path(bakefname, "tests/bake/target.cap.org")) {
+        PadErr_Error("failed to copy tests/bake/target.cap.org");
         return;
     }
     
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     bakecmd_t *cmd = NULL;
     int argc = 2;
     char *argv[] = {
@@ -30106,12 +30106,12 @@ test_bakecmd_1(void) {
 static void
 test_bakecmd_2(void) {
     const char *bakefname = "tests/bake/target.cap";
-    if (!file_copy_path(bakefname, "tests/bake/target.cap.org.2")) {
-        err_error("failed to copy tests/bake/target.cap.org");
+    if (!PadFile_Copy_path(bakefname, "tests/bake/target.cap.org.2")) {
+        PadErr_Error("failed to copy tests/bake/target.cap.org");
         return;
     }
     
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     bakecmd_t *cmd = NULL;
     int argc = 5;
     char *argv[] = {
@@ -30143,9 +30143,9 @@ bakecmd_tests[] = {
 
 static void
 test_replacecmd_1(void) {
-    file_copy_path("tests/replace/file1.txt", "tests/replace/file1.txt.org");
+    PadFile_Copy_path("tests/replace/file1.txt", "tests/replace/file1.txt.org");
 
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
         "replace",
@@ -30167,9 +30167,9 @@ test_replacecmd_1(void) {
 
 static void
 test_replacecmd_2(void) {
-    file_copy_path("tests/replace/file2.txt", "tests/replace/file2.txt.org");
+    PadFile_Copy_path("tests/replace/file2.txt", "tests/replace/file2.txt.org");
 
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
         "replace",
@@ -30191,9 +30191,9 @@ test_replacecmd_2(void) {
 
 static void
 test_replacecmd_3(void) {
-    file_copy_path("tests/replace/file3.txt", "tests/replace/file3.txt.org");
+    PadFile_Copy_path("tests/replace/file3.txt", "tests/replace/file3.txt.org");
 
-    config_t *config = config_new();
+    CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
         "replace",
@@ -30242,7 +30242,7 @@ testmodules[] = {
     {"mkdir", mkdircmd_tests},
     {"rm", rmcmd_tests},
     {"mv", mvcmd_tests},
-    {"cp", cpcmd_tests},
+    {"cp", CapCpCmdests},
     {"touch", touchcmd_tests},
     {"snippet", snippetcmd_tests},
     {"link", linkcmd_tests},
@@ -30271,7 +30271,7 @@ testmodules[] = {
     {0},
 };
 
-struct opts {
+struct Opts {
     bool ishelp;
     int32_t argc;
     char **argv;
@@ -30279,9 +30279,9 @@ struct opts {
 };
 
 static int32_t
-parseopts(struct opts *opts, int argc, char *argv[]) {
+parseopts(struct Opts *opts, int argc, char *argv[]) {
     // Init opts
-    *opts = (struct opts) {0};
+    *opts = (struct Opts) {0};
     optind = 0;
     opterr = 0;
 
@@ -30391,7 +30391,7 @@ fulltests(void) {
 }
 
 static void
-run(const struct opts *opts) {
+run(const struct Opts *opts) {
     int32_t ntest = 0;
     clock_t start;
     clock_t end;
@@ -30427,7 +30427,7 @@ int
 main(int argc, char *argv[]) {
     setlocale(LC_CTYPE, "");
 
-    struct opts opts;
+    struct Opts opts;
     if (parseopts(&opts, argc, argv) != 0) {
         die("failed to parse options");
     }

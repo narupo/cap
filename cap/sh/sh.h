@@ -52,7 +52,7 @@ shcmd_del(shcmd_t *self);
 /**
  * construct command
  *
- * @param[in] config pointer to config_t (writable)
+ * @param[in] config pointer to CapConfig (writable)
  * @param[in] argc   number of arguments
  * @param[in] argv   reference to array of arguments
  *
@@ -60,7 +60,7 @@ shcmd_del(shcmd_t *self);
  * @return failed to NULL
  */
 shcmd_t *
-shcmd_new(config_t *config, int argc, char **argv);
+shcmd_new(CapConfig *config, int argc, char **argv);
 
 /**
  * run command

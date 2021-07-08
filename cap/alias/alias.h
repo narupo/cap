@@ -29,14 +29,14 @@ CapAlCmd_Del(CapAlCmd *self);
 /**
  * construct object
  *
- * @param[in] *config pointer to config_t read-only
+ * @param[in] *config pointer to CapConfig read-only
  * @param[in] argc    number of length of arguments
  * @param[in] **argv  arguments
  *
  * @return pointer to CapAlCmd dynamic allocate memory
  */
 CapAlCmd *
-CapAlCmd_New(const config_t *config, int argc, char **argv);
+CapAlCmd_New(const CapConfig *config, int argc, char **argv);
 
 /**
  * run object

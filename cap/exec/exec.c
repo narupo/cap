@@ -6,7 +6,7 @@ static const int32_t WRITE = 1;
 /**
  * Structure of options
  */
-struct opts {
+struct Opts {
     bool is_help;
 };
 
@@ -14,11 +14,11 @@ struct opts {
  * Structure of command
  */
 struct exec {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     int optind;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
     cmdline_t *cmdline;
     int32_t cmdline_index;
     char what[1024];
@@ -64,7 +64,7 @@ execcmd_parse_opts(execcmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
 
     extern int opterr;
     extern int optind;
@@ -83,14 +83,14 @@ execcmd_parse_opts(execcmd_t *self) {
         case 'h': self->opts.is_help = true; break;
         case '?':
         default:
-            err_die("unknown option");
+            PadErr_Die("unknown option");
             return false;
             break;
         }
     }
 
     if (self->argc < optind) {
-        err_die("failed to parse option");
+        PadErr_Die("failed to parse option");
         return false;
     }
 
@@ -112,8 +112,8 @@ execcmd_del(execcmd_t *self) {
 }
 
 execcmd_t *
-execcmd_new(const config_t *config, int argc, char **argv) {
-    execcmd_t *self = mem_ecalloc(1, sizeof(*self));
+execcmd_new(const CapConfig *config, int argc, char **argv) {
+    execcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -478,7 +478,7 @@ execcmd_redirect(execcmd_t *self, const cmdline_object_t *obj, const cmdline_obj
             return NULL;
         }
 
-        FILE *fout = file_open(fname, "wb");
+        FILE *fout = PadFile_Open(fname, "wb");
         if (!fout) {
             execcmd_set_error(self, "failed to open \"%s\"", fname);
             return NULL;
@@ -737,7 +737,7 @@ execcmd_run(execcmd_t *self) {
 
         if (!execcmd_exec(self, cltxt)) {
             free(cltxt);
-            err_error(self->what);
+            PadErr_Error(self->what);
             return 1;
         }
         free(cltxt);

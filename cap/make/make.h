@@ -36,7 +36,7 @@ makecmd_del(makecmd_t *self);
  * @return failed to NULL
  */
 makecmd_t *
-makecmd_new(const config_t *config, int argc, char **argv);
+makecmd_new(const CapConfig *config, int argc, char **argv);
 
 /**
  * run command
@@ -51,7 +51,7 @@ makecmd_run(makecmd_t *self);
 /**
  * make script or stdin from program arguments
  * 
- * @param[in] *config    pointer to config_t (read-only)
+ * @param[in] *config    pointer to CapConfig (read-only)
  * @param[out] *errstack pointer to errstack_t (writeable)
  * @param[in] argc       number of arguments
  * @param[in] *argv[]    arguments
@@ -61,7 +61,7 @@ makecmd_run(makecmd_t *self);
  */
 int
 make_from_args(
-    const config_t *config,
+    const CapConfig *config,
     errstack_t *errstack,
     int argc,
     char *argv[],

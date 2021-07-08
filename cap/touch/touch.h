@@ -26,7 +26,7 @@ touchcmd_del(touchcmd_t *self);
 /**
  * Construct command
  *
- * @param[in] config reference to config_t 
+ * @param[in] config reference to CapConfig 
  * @param[in] argc   number of arguments
  * @param[in] argv   reference to array of arguments 
  *
@@ -34,7 +34,7 @@ touchcmd_del(touchcmd_t *self);
  * @return failed to NULL
  */
 touchcmd_t *
-touchcmd_new(const config_t *config, int argc, char **argv);
+touchcmd_new(const CapConfig *config, int argc, char **argv);
 
 /**
  * Run command

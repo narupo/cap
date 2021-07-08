@@ -3,7 +3,7 @@
 /**
  * Structure of options
  */
-struct opts {
+struct Opts {
     bool is_help;
 };
 
@@ -11,13 +11,13 @@ struct opts {
  * Structure of command
  */
 struct hubcmd {
-    config_t *config;
+    CapConfig *config;
     int argc;
     int cmd_argc;
     int optind;
     char **argv;
     char **cmd_argv;
-    struct opts opts;
+    struct Opts opts;
 };
 
 /**
@@ -64,7 +64,7 @@ hubcmd_parse_opts(hubcmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
 
     extern int opterr;
     extern int optind;
@@ -84,14 +84,14 @@ hubcmd_parse_opts(hubcmd_t *self) {
         case 'f': printf("%s\n", optarg); break;
         case '?':
         default:
-            err_die("unknown option");
+            PadErr_Die("unknown option");
             return false;
             break;
         }
     }
 
     if (self->argc < optind) {
-        err_die("failed to parse option");
+        PadErr_Die("failed to parse option");
         return false;
     }
 
@@ -125,8 +125,8 @@ hubcmd_distribute_args(hubcmd_t *self, int argc, char **argv) {
 }
 
 hubcmd_t *
-hubcmd_new(config_t *move_config, int argc, char **move_argv) {
-    hubcmd_t *self = mem_ecalloc(1, sizeof(*self));
+hubcmd_new(CapConfig *move_config, int argc, char **move_argv) {
+    hubcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = move_config;
 

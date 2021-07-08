@@ -4,7 +4,7 @@
  * Structure of command
  */
 struct makecmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     char **argv;
     errstack_t *errstack;
@@ -21,8 +21,8 @@ makecmd_del(makecmd_t *self) {
 }
 
 makecmd_t *
-makecmd_new(const config_t *config, int argc, char **argv) {
-    makecmd_t *self = mem_ecalloc(1, sizeof(*self));
+makecmd_new(const CapConfig *config, int argc, char **argv) {
+    makecmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -34,7 +34,7 @@ makecmd_new(const config_t *config, int argc, char **argv) {
 
 int
 make_from_args(
-    const config_t *config,
+    const CapConfig *config,
     errstack_t *errstack,
     int argc,
     char *argv[],

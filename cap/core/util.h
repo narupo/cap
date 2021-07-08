@@ -66,13 +66,13 @@ Cap_SolveCmdlineArgPath(
  * つまり、cap_pathが絶対パスの場合、cap_path[0]は必ず'/'になる
  * scopeが不正の場合、プログラムを終了する
  *
- * @param[in] *config pointer to config_t
+ * @param[in] *config pointer to CapConfig
  * @param[in] *cap_path pointer to cap_path
  *
  * @return
  */
 const char *
-Cap_GetOrigin(const config_t *config, const char *cap_path);
+Cap_GetOrigin(const CapConfig *config, const char *cap_path);
 
 /**
  * Show snippet code by name
@@ -86,7 +86,7 @@ Cap_GetOrigin(const config_t *config, const char *cap_path);
  * @return failed to not 0
  */
 int
-Cap_ExecSnippet(const config_t *config, bool *found, int argc, char *argv[], const char *name);
+Cap_ExecSnippet(const CapConfig *config, bool *found, int argc, char *argv[], const char *name);
 
 /**
  * execute program in directory of token of PATH in resource file
@@ -100,7 +100,7 @@ Cap_ExecSnippet(const config_t *config, bool *found, int argc, char *argv[], con
  * @param[in] *cmdname
  */
 int
-Cap_ExecProg(const config_t *config, bool *found, int argc, char *argv[], const char *cmdname);
+Cap_ExecProg(const CapConfig *config, bool *found, int argc, char *argv[], const char *cmdname);
 
 /**
  * execute run command with command arguments
@@ -112,4 +112,4 @@ Cap_ExecProg(const config_t *config, bool *found, int argc, char *argv[], const 
  * @return success to 0 else other
  */
 int
-Cap_ExecRun(const config_t *config, int argc, char *argv[]);
+Cap_ExecRun(const CapConfig *config, int argc, char *argv[]);

@@ -3,7 +3,7 @@
 /**
  * structure of options
  */
-struct opts {
+struct Opts {
     bool is_help;
 };
 
@@ -11,11 +11,11 @@ struct opts {
  * structure of command
  */
 struct replace {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     int optind;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
     errstack_t *errstack;
 };
 
@@ -58,7 +58,7 @@ replacecmd_parse_opts(replacecmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
 
     extern int opterr;
     extern int optind;
@@ -77,14 +77,14 @@ replacecmd_parse_opts(replacecmd_t *self) {
         case 'h': self->opts.is_help = true; break;
         case '?':
         default:
-            err_die("unknown option");
+            PadErr_Die("unknown option");
             return false;
             break;
         }
     }
 
     if (self->argc < optind) {
-        err_die("failed to parse option");
+        PadErr_Die("failed to parse option");
         return false;
     }
 
@@ -103,8 +103,8 @@ replacecmd_del(replacecmd_t *self) {
 }
 
 replacecmd_t *
-replacecmd_new(const config_t *config, int argc, char **argv) {
-    replacecmd_t *self = mem_ecalloc(1, sizeof(*self));
+replacecmd_new(const CapConfig *config, int argc, char **argv) {
+    replacecmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -170,7 +170,7 @@ replace(replacecmd_t *self) {
         goto error;
     }
 
-    fout = file_open(path, "wb");
+    fout = PadFile_Open(path, "wb");
     if (fout == NULL) {
         blush("failed to open file %s", path);
         goto error;

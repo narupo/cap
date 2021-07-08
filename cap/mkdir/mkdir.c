@@ -3,16 +3,16 @@
 extern int opterr;
 extern int optind;
 
-struct opts {
+struct Opts {
     bool is_help;
     bool is_parents;
 };
 
 struct mkdircmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
     int optind;
 };
 
@@ -27,7 +27,7 @@ mkdircmd_parse_opts(mkdircmd_t *self) {
 
     opterr = 0; // ignore error messages
     optind = 0; // init index of parse
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
 
     for (;;) {
         int optsindex;
@@ -42,13 +42,13 @@ mkdircmd_parse_opts(mkdircmd_t *self) {
         case 'p': self->opts.is_parents = true; break;
         case '?':
         default:
-            err_die("unsupported option");
+            PadErr_Die("unsupported option");
             break;
         }
     }
 
     if (self->argc < optind) {
-        err_die("Failed to parse option");
+        PadErr_Die("Failed to parse option");
     }
 
     self->optind = optind;
@@ -64,8 +64,8 @@ mkdircmd_del(mkdircmd_t *self) {
 }
 
 mkdircmd_t *
-mkdircmd_new(const config_t *config, int argc, char **argv) {
-    mkdircmd_t *self = mem_ecalloc(1, sizeof(*self));
+mkdircmd_new(const CapConfig *config, int argc, char **argv) {
+    mkdircmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -99,8 +99,8 @@ mkdircmd_mkdirp(mkdircmd_t *self) {
     char path[FILE_NPATH];
 
     if (argpath[0] == ':') {
-        if (!file_solve(path, sizeof path, argpath+1)) {
-            err_error("failed to solve path");
+        if (!PadFile_Solve(path, sizeof path, argpath+1)) {
+            PadErr_Error("failed to solve path");
             return 1;
         }
     } else {
@@ -109,14 +109,14 @@ mkdircmd_mkdirp(mkdircmd_t *self) {
 
         snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
 
-        if (!symlink_follow_path(self->config, path, sizeof path, tmppath)) {
-            err_error("failed to follow path");
+        if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmppath)) {
+            PadErr_Error("failed to follow path");
             return 1;
         }
     }
 
     if (file_mkdirsq(path) != 0) {
-        err_error("failed to create directory \"%s\"", path);
+        PadErr_Error("failed to create directory \"%s\"", path);
         return 1;
     }
 
@@ -129,8 +129,8 @@ mkdircmd_mkdir(mkdircmd_t *self) {
     char path[FILE_NPATH];
 
     if (argpath[0] == ':') {
-        if (!file_solve(path, sizeof path, argpath+1)) {
-            err_error("failed to solve path");
+        if (!PadFile_Solve(path, sizeof path, argpath+1)) {
+            PadErr_Error("failed to solve path");
             return 1;
         }
     } else {
@@ -139,19 +139,19 @@ mkdircmd_mkdir(mkdircmd_t *self) {
 
         snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
 
-        if (!symlink_follow_path(self->config, path, sizeof path, tmppath)) {
-            err_error("failed to follow path");
+        if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmppath)) {
+            PadErr_Error("failed to follow path");
             return 1;
         }
     }
 
-    if (file_exists(path)) {
-        err_error("failed to create directory. \"%s\" is exists", path);
+    if (PadFile_IsExists(path)) {
+        PadErr_Error("failed to create directory. \"%s\" is exists", path);
         return 1;
     }
 
-    if (file_mkdirq(path) != 0) {
-        err_error("failed to create directory \"%s\"", path);
+    if (PadFile_MkdirQ(path) != 0) {
+        PadErr_Error("failed to create directory \"%s\"", path);
         return 1;
     }
 

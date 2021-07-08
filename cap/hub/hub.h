@@ -28,7 +28,7 @@ hubcmd_del(hubcmd_t *self);
 /**
  * Construct command
  *
- * @param[in] move_config pointer to config_t with move semantics
+ * @param[in] move_config pointer to CapConfig with move semantics
  * @param[in] argc        number of arguments
  * @param[in] move_argv   pointer to array of arguments with move semantics
  *
@@ -36,7 +36,7 @@ hubcmd_del(hubcmd_t *self);
  * @return failed to NULL
  */
 hubcmd_t *
-hubcmd_new(config_t *move_config, int argc, char **move_argv);
+hubcmd_new(CapConfig *move_config, int argc, char **move_argv);
 
 /**
  * Run command

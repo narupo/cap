@@ -3,7 +3,7 @@
 /**
  * Structure of options
  */
-struct opts {
+struct Opts {
     bool is_help;
 };
 
@@ -11,11 +11,11 @@ struct opts {
  * Structure of command
  */
 struct touchcmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     int optind;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
 };
 
 /**
@@ -55,7 +55,7 @@ touchcmd_parse_opts(touchcmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
 
     extern int opterr;
     extern int optind;
@@ -74,14 +74,14 @@ touchcmd_parse_opts(touchcmd_t *self) {
         case 'h': self->opts.is_help = true; break;
         case '?':
         default:
-            err_die("unknown option");
+            PadErr_Die("unknown option");
             return false;
             break;
         }
     }
 
     if (self->argc < optind) {
-        err_die("failed to parse option");
+        PadErr_Die("failed to parse option");
         return false;
     }
 
@@ -99,8 +99,8 @@ touchcmd_del(touchcmd_t *self) {
 }
 
 touchcmd_t *
-touchcmd_new(const config_t *config, int argc, char **argv) {
-    touchcmd_t *self = mem_ecalloc(1, sizeof(*self));
+touchcmd_new(const CapConfig *config, int argc, char **argv) {
+    touchcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -121,13 +121,13 @@ touchcmd_touch(touchcmd_t *self, const char *argpath) {
     const char *org = get_origin(self->config, argpath);
 
     snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
-    if (!symlink_follow_path(self->config, path, sizeof path, tmppath)) {
-        err_error("failed to solve path by \"%s\"", argpath);
+    if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmppath)) {
+        PadErr_Error("failed to solve path by \"%s\"", argpath);
         return 1;
     }
 
     if (!file_trunc(path)) {
-        err_error("failed to truncate file");
+        PadErr_Error("failed to truncate file");
         return 1;
     }
 

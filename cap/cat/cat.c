@@ -71,7 +71,7 @@ parse_opts(CapCatCmd *self) {
         case 'm': self->opts.is_make = true; break;
         case '?':
         default:
-            err_die("unsupported option");
+            PadErr_Die("unsupported option");
             return NULL;
             break;
         }

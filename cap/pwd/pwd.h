@@ -27,7 +27,7 @@ void
 pwdcmd_del(pwdcmd_t *self);
 
 pwdcmd_t *
-pwdcmd_new(const config_t *config, int argc, char **argv);
+pwdcmd_new(const CapConfig *config, int argc, char **argv);
 
 int
 pwdcmd_run(pwdcmd_t *self);

@@ -27,7 +27,7 @@ CapImporter_FixPath(PadImporter *imptr, char *dst, int32_t dstsz, const char *ca
             PadImporter_SetErr(imptr, "failed to solve path for standard library");
             return NULL;
         }
-        if (!file_exists(dst)) {
+        if (!PadFile_IsExists(dst)) {
             PadImporter_SetErr(imptr, "\"%s\" is not found", cap_path);
             return NULL;
         }

@@ -8,7 +8,7 @@ ast_del_nodes(const ast_t *self, node_t *node) {
 
     switch (node->type) {
     default: {
-        err_die(
+        PadErr_Die(
             "impossible. failed to delete nodes in ast. "
             "not supported node type '%d'", node->type
         );
@@ -391,7 +391,7 @@ ast_del(ast_t *self) {
 }
 
 ast_t *
-ast_new(const config_t *ref_config) {
+ast_new(const CapConfig *ref_config) {
     ast_t *self = mem_calloc(1, sizeof(*self));
     if (!self) {
         return NULL;

@@ -220,7 +220,7 @@ Cap_ExecSnippet(const CapConfig *config, bool *found, int argc, char **argv, con
         }
     }
 
-    file_dirclose(dir);
+    PadFileDir_Close(dir);
     return *found ? 0 : -1;
 }
 

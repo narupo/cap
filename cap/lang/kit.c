@@ -10,7 +10,7 @@
 #include <lang/kit.h>
 
 struct kit {
-    const config_t *ref_config;
+    const CapConfig *ref_config;
     char *program_source;
     tokenizer_t *tkr;
     ast_t *ast;
@@ -37,7 +37,7 @@ kit_del(kit_t *self) {
 }
 
 kit_t *
-kit_new(const config_t *config) {
+kit_new(const CapConfig *config) {
     kit_t *self = mem_calloc(1, sizeof(*self));
     if (!self) {
         return NULL;
@@ -78,7 +78,7 @@ kit_new(const config_t *config) {
 }
 
 kit_t *
-kit_new_ref_gc(const config_t *config, gc_t *ref_gc) {
+kit_new_ref_gc(const CapConfig *config, gc_t *ref_gc) {
     kit_t *self = mem_calloc(1, sizeof(*self));
     if (!self) {
         return NULL;

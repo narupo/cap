@@ -7,16 +7,16 @@
  */
 #include <pwd/pwd.h>
 
-struct opts {
+struct Opts {
     bool ishelp;
     bool isnorm;
 };
 
 struct pwdcmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
 };
 
 static bool
@@ -29,7 +29,7 @@ pwdcmd_parse_opts(pwdcmd_t *self) {
     };
     const char *shortopts = "hn";
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
     extern int opterr;
     extern int optind;
     opterr = 0; // ignore error messages
@@ -69,8 +69,8 @@ pwdcmd_del(pwdcmd_t *self) {
 }
 
 pwdcmd_t *
-pwdcmd_new(const config_t *config, int argc, char **argv) {
-	pwdcmd_t *self = mem_ecalloc(1, sizeof(*self));
+pwdcmd_new(const CapConfig *config, int argc, char **argv) {
+	pwdcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 	self->config = config;
     self->argc = argc;
     self->argv = argv;
@@ -95,7 +95,7 @@ replace_slashes(const char *s) {
 int
 pwdcmd_run(pwdcmd_t *self) {
     if (!pwdcmd_parse_opts(self)) {
-        err_error("failed to parse option");
+        PadErr_Error("failed to parse option");
         return 1;
     }
 
@@ -108,7 +108,7 @@ pwdcmd_run(pwdcmd_t *self) {
         int32_t homelen = strlen(home);
         int32_t cdlen = strlen(cd);
         if (cdlen-homelen < 0) {
-            err_error("invalid cd \"%s\" or home \"%s\"", cd, home);
+            PadErr_Error("invalid cd \"%s\" or home \"%s\"", cd, home);
             return 4;
         }
         if (cdlen-homelen == 0) {

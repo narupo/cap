@@ -1,6 +1,6 @@
 #include <alias/alias.h>
 
-struct opts {
+struct Opts {
     bool is_help;
     bool is_global;
     bool is_desc;
@@ -11,7 +11,7 @@ struct CapAlCmd {
     int argc;
     int optind;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
     CapAlMgr *almgr;
     int32_t key_colors[3];
     int32_t value_colors[3];
@@ -29,7 +29,7 @@ parse_opts(CapAlCmd *self) {
     };
     static const char *shortopts = "hgd";
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
 
     extern int opterr;
     extern int optind;

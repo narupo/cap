@@ -29,7 +29,7 @@ enum {
  */
 struct ast {
     // reference of config (do not delete)
-    const config_t *ref_config;
+    const CapConfig *ref_config;
 
     // reference of tokens with null terminated (do not delete)
     token_t **ref_tokens;
@@ -87,12 +87,12 @@ ast_del(ast_t *self);
 /**
  * construct object
  *
- * @param[in] *ref_config pointer to read-only config_t
+ * @param[in] *ref_config pointer to read-only CapConfig
  *
  * @return pointer to ast_t dynamic allocate memory (do ast_del)
  */
 ast_t *
-ast_new(const config_t *ref_config);
+ast_new(const CapConfig *ref_config);
 
 ast_t *
 ast_deep_copy(const ast_t *other);

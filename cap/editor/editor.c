@@ -3,7 +3,7 @@
 /**
  * structure of options
  */
-struct opts {
+struct Opts {
     bool is_help;
 };
 
@@ -11,11 +11,11 @@ struct opts {
  * structure of command
  */
 struct editorcmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     int optind;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
     char editor[FILE_NPATH];
 };
 
@@ -56,7 +56,7 @@ editorcmd_parse_opts(editorcmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
 
     extern int opterr;
     extern int optind;
@@ -75,14 +75,14 @@ editorcmd_parse_opts(editorcmd_t *self) {
         case 'h': self->opts.is_help = true; break;
         case '?':
         default:
-            err_die("unknown option");
+            PadErr_Die("unknown option");
             return false;
             break;
         }
     }
 
     if (self->argc < optind) {
-        err_die("failed to parse option");
+        PadErr_Die("failed to parse option");
         return false;
     }
 
@@ -100,8 +100,8 @@ editorcmd_del(editorcmd_t *self) {
 }
 
 editorcmd_t *
-editorcmd_new(const config_t *config, int argc, char **argv) {
-    editorcmd_t *self = mem_ecalloc(1, sizeof(*self));
+editorcmd_new(const CapConfig *config, int argc, char **argv) {
+    editorcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -119,7 +119,7 @@ int
 editorcmd_show_editor(editorcmd_t *self) {
     self->editor[0] = '\0';
     if (!file_readline(self->editor, sizeof self->editor, self->config->var_editor_path)) {
-        err_error("failed to read editor from editor of variable");
+        PadErr_Error("failed to read editor from editor of variable");
         return 1;
     }
     if (strlen(self->editor)) {
@@ -132,7 +132,7 @@ int
 editorcmd_set_editor(editorcmd_t *self) {
     const char *editor = self->argv[self->optind];
     if (!file_writeline(editor, self->config->var_editor_path)) {
-        err_error("failed to write editor into editor of variable");
+        PadErr_Error("failed to write editor into editor of variable");
         return 1;
     }
     return 0;

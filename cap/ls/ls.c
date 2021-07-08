@@ -1,15 +1,15 @@
 #include <ls/ls.h>
 
-struct opts {
+struct Opts {
     bool is_help;
     bool is_all;
 };
 
 struct lscmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
 };
 
 void
@@ -30,7 +30,7 @@ lscmd_parse_opts(lscmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){0};
+    self->opts = (struct Opts){0};
     opterr = 0; // ignore error messages
     optind = 0; // init index of parse
 
@@ -46,7 +46,7 @@ lscmd_parse_opts(lscmd_t *self) {
         case 'a': self->opts.is_all = true; break;
         case '?':
         default:
-            err_error("unknown option");
+            PadErr_Error("unknown option");
             return false;
             break;
         }
@@ -75,8 +75,8 @@ lscmd_usage(const lscmd_t *self) {
 }
 
 lscmd_t *
-lscmd_new(const config_t *config, int argc, char **argv) {
-    lscmd_t *self = mem_ecalloc(1, sizeof(*self));
+lscmd_new(const CapConfig *config, int argc, char **argv) {
+    lscmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -98,12 +98,12 @@ print_fname(const lscmd_t *self, FILE *fout, bool print_color, const char *path,
     }
 
     char fpath[FILE_NPATH];
-    if (!file_solvefmt(fpath, sizeof fpath, "%s/%s", path, name)) {
-        err_error("failed to solve path by name \"%s\"", name);
+    if (!PadFile_Solvefmt(fpath, sizeof fpath, "%s/%s", path, name)) {
+        PadErr_Error("failed to solve path by name \"%s\"", name);
         return;
     }
 
-    if (file_isdir(fpath)) {
+    if (PadFile_IsDir(fpath)) {
         term_cfprintf(fout, TERM_WHITE, TERM_GREEN, TERM_BRIGHT, "%s", name);
     } else if (symlink_is_link_file(fpath)) {
         term_cfprintf(fout, TERM_CYAN, TERM_BLACK, TERM_BRIGHT, "%s", name);
@@ -142,8 +142,8 @@ lscmd_dir2arr(const lscmd_t *self, file_dir_t *dir) {
         return NULL;
     }
 
-    for (file_dirnode_t *nd; (nd = file_dirread(dir)); ) {
-        const char *name = file_dirnodename(nd);
+    for (file_dirnode_t *nd; (nd = PadFileDir_Read(dir)); ) {
+        const char *name = PadFileDirNode_Name(nd);
         if (lscmd_isdotfile(self, name) && !self->opts.is_all) {
             continue;
         }
@@ -156,20 +156,20 @@ lscmd_dir2arr(const lscmd_t *self, file_dir_t *dir) {
 
 static int
 lscmd_ls(const lscmd_t *self, const char *path) {
-    if (is_out_of_home(self->config->home_path, path)) {
-        err_error("\"%s\" is out of home", path);
+    if (Cap_IsOutOfHome(self->config->home_path, path)) {
+        PadErr_Error("\"%s\" is out of home", path);
         return 1;
     }
 
-    file_dir_t *dir = file_diropen(path);
+    file_dir_t *dir = PadFileDir_Open(path);
     if (!dir) {
-        err_error("failed to open directory \"%s\"", path);
+        PadErr_Error("failed to open directory \"%s\"", path);
         return 2;
     }
 
     cstring_array_t *arr = lscmd_dir2arr(self, dir);
     if (!arr) {
-        err_error("failed to read directory \"%s\"", path);
+        PadErr_Error("failed to read directory \"%s\"", path);
         return 3;
     }
 
@@ -177,8 +177,8 @@ lscmd_ls(const lscmd_t *self, const char *path) {
     lscmd_arrdump(self, stdout, path, arr);
     cstrarr_del(arr);
 
-    if (file_dirclose(dir) < 0) {
-        err_error("failed to close directory \"%s\"", path);
+    if (PadFileDir_Close(dir) < 0) {
+        PadErr_Error("failed to close directory \"%s\"", path);
         return 4;
     }
 
@@ -195,8 +195,8 @@ lscmd_run(lscmd_t *self) {
     char realpath[FILE_NPATH];
 
     if (optind - self->argc == 0) {
-        if (!symlink_follow_path(self->config, realpath, sizeof realpath, self->config->cd_path)) {
-            err_error("failed to follow path");
+        if (!CapSymlink_FollowPath(self->config, realpath, sizeof realpath, self->config->cd_path)) {
+            PadErr_Error("failed to follow path");
             return 1;
         }
         return lscmd_ls(self, realpath);
@@ -207,13 +207,13 @@ lscmd_run(lscmd_t *self) {
             if (!strcmp(arg, "/")) {
                 char tmppath[FILE_NPATH];
                 snprintf(tmppath, sizeof tmppath, "%s", org);
-                if (!symlink_follow_path(self->config, realpath, sizeof realpath, tmppath)) {
+                if (!CapSymlink_FollowPath(self->config, realpath, sizeof realpath, tmppath)) {
                     continue;
                 }
             } else {
                 char tmppath[FILE_NPATH*2];
                 snprintf(tmppath, sizeof tmppath, "%s/%s", org, arg);
-                if (!symlink_follow_path(self->config, realpath, sizeof realpath, tmppath)) {
+                if (!CapSymlink_FollowPath(self->config, realpath, sizeof realpath, tmppath)) {
                     continue;
                 }
             }

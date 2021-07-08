@@ -18,7 +18,7 @@ is_contain_header(char *data, uint32_t datasz) {
 }
 
 static const char *
-read_sympath(const config_t *config, char *sympath, uint32_t sympathsz, const char *path) {
+read_sympath(const CapConfig *config, char *sympath, uint32_t sympathsz, const char *path) {
     FILE *fin = fopen(path, "r");
     if (!fin) {
         return NULL;
@@ -54,7 +54,7 @@ read_sympath(const config_t *config, char *sympath, uint32_t sympathsz, const ch
 
     // origin is home path (symlink path is always absolute path)
     const char *org = config->home_path;
-    if (!file_solvefmt(sympath, sympathsz, "%s/%s", org, cappath)) {
+    if (!PadFile_Solvefmt(sympath, sympathsz, "%s/%s", org, cappath)) {
         return NULL;
     }
 
@@ -95,7 +95,7 @@ find_path_head(const char *path) {
 }
 
 static char *
-__symlink_follow_path(const config_t *config, char *dst, uint32_t dstsz, const char *abspath, int dep) {
+__CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, const char *abspath, int dep) {
     if (dep >= 8) {
         return NULL;
     }
@@ -126,7 +126,7 @@ __symlink_follow_path(const config_t *config, char *dst, uint32_t dstsz, const c
         str_pushb(path, FILE_SEP);
         str_app(path, *toksp);
         // printf("path[%s] toksp[%s]\n", str_getc(path), *toksp);
-        if (file_isdir(str_getc(path))) {
+        if (PadFile_IsDir(str_getc(path))) {
             continue;
         }
 
@@ -142,7 +142,7 @@ __symlink_follow_path(const config_t *config, char *dst, uint32_t dstsz, const c
     }
 
     if (!save_toks) {
-        if (!file_solve(dst, dstsz, normpath)) {
+        if (!PadFile_Solve(dst, dstsz, normpath)) {
             return NULL;
         }
         goto done;
@@ -154,7 +154,7 @@ __symlink_follow_path(const config_t *config, char *dst, uint32_t dstsz, const c
         str_app(path, *toksp);
     }
 
-    if (!__symlink_follow_path(config, dst, dstsz, str_getc(path), dep+1)) {
+    if (!__CapSymlink_FollowPath(config, dst, dstsz, str_getc(path), dep+1)) {
         goto fail;
     }
 
@@ -175,13 +175,13 @@ fail:
 }
 
 char *
-symlink_follow_path(const config_t *config, char *dst, uint32_t dstsz, const char *abspath) {
+CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, const char *abspath) {
     if (!dst || !dstsz || !abspath) {
         return NULL;
     }
 
     dst[0] = '\0';
-    if (!__symlink_follow_path(config, dst, dstsz, abspath, 0)) {
+    if (!__CapSymlink_FollowPath(config, dst, dstsz, abspath, 0)) {
         return NULL;
     }
 
@@ -206,7 +206,7 @@ split_ignore_empty(const char *p, char sep) {
 }
 
 char *
-symlink_norm_path(const config_t *config, char *dst, uint32_t dstsz, const char *drtpath) {
+symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *drtpath) {
     if (!config || !dst || !dstsz || !drtpath) {
         return NULL;
     }

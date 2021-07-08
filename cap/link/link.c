@@ -3,7 +3,7 @@
 /**
  * Structure of options
  */
-struct opts {
+struct Opts {
     bool is_help;
     bool is_unlink;
 };
@@ -12,10 +12,10 @@ struct opts {
  * Structure of command
  */
 struct linkcmd {
-    const config_t *config;
+    const CapConfig *config;
     int argc;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
     int optind;
 };
 
@@ -38,7 +38,7 @@ linkcmd_parse_opts(linkcmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){
+    self->opts = (struct Opts){
         .is_help = false,
         .is_unlink = false,
     };
@@ -58,7 +58,7 @@ linkcmd_parse_opts(linkcmd_t *self) {
         case 'u': self->opts.is_unlink = true; break;
         case '?':
         default:
-            err_die("unsupported option");
+            PadErr_Die("unsupported option");
             return NULL;
             break;
         }
@@ -83,8 +83,8 @@ linkcmd_del(linkcmd_t *self) {
 }
 
 linkcmd_t *
-linkcmd_new(const config_t *config, int argc, char **argv) {
-    linkcmd_t *self = mem_ecalloc(1, sizeof(*self));
+linkcmd_new(const CapConfig *config, int argc, char **argv) {
+    linkcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
     self->argc = argc;
@@ -130,23 +130,23 @@ linkcmd_unlink(linkcmd_t *self) {
     const char *org = get_origin(self->config, linkname);
 
     char path[FILE_NPATH];
-    if (!file_solvefmt(path, sizeof path, "%s/%s", org, linkname)) {
-        err_error("failed to solve path");
+    if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", org, linkname)) {
+        PadErr_Error("failed to solve path");
         return 1;
     }
 
-    if (is_out_of_home(self->config->home_path, path)) {
-        err_error("\"%s\" is out of home", linkname);
+    if (Cap_IsOutOfHome(self->config->home_path, path)) {
+        PadErr_Error("\"%s\" is out of home", linkname);
         return 1;
     }
 
     if (!symlink_is_link_file(path)) {
-        err_error("\"%s\" is not Cap's symbolic link", linkname);
+        PadErr_Error("\"%s\" is not Cap's symbolic link", linkname);
         return 1;
     }
 
     if (file_remove(path) != 0) {
-        err_error("failed to unlink");
+        PadErr_Error("failed to unlink");
         return 1;
     }
 
@@ -162,7 +162,7 @@ linkcmd_link(linkcmd_t *self) {
 
     const char *linkname = self->argv[self->optind];
     if (strstr(linkname, "..")) {
-        err_error("Cap's symbolic link is not allow relative path");
+        PadErr_Error("Cap's symbolic link is not allow relative path");
         return 1;
     }
 
@@ -170,20 +170,20 @@ linkcmd_link(linkcmd_t *self) {
     const char *org = get_origin(self->config, linkname);
 
     char dstpath[FILE_NPATH];
-    if (!file_solvefmt(dstpath, sizeof dstpath, "%s/%s", org, linkname)) {
-        err_error("failed to solve path");
+    if (!PadFile_Solvefmt(dstpath, sizeof dstpath, "%s/%s", org, linkname)) {
+        PadErr_Error("failed to solve path");
         return 1;
     }
 
-    if (is_out_of_home(self->config->home_path, dstpath)) {
-        err_error("\"%s\" is out of home", linkname);
+    if (Cap_IsOutOfHome(self->config->home_path, dstpath)) {
+        PadErr_Error("\"%s\" is out of home", linkname);
         return 1;
     }
 
     char line[FILE_NPATH + 100];
     snprintf(line, sizeof line, "%s %s", SYMLINK_HEADER, cappath);
     if (!file_writeline(line, dstpath)) {
-        err_error("failed to create link");
+        PadErr_Error("failed to create link");
         return 1;        
     }
 

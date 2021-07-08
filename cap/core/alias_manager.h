@@ -32,13 +32,13 @@ almgr_del(almgr_t *self);
 /**
  * Construct module
  *
- * @param[in] config read-only pointer to config_t
+ * @param[in] config read-only pointer to CapConfig
  *
  * @return success to pointer to dynamic allocate memory of almgr_t
  * @return failed to pointer to NULL 
  */
 almgr_t *
-almgr_new(const config_t *config);
+almgr_new(const CapConfig *config);
 
 /**
  * Find alias value by key and scope

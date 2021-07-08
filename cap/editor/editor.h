@@ -25,7 +25,7 @@ editorcmd_del(editorcmd_t *self);
 /**
  * construct command
  *
- * @param[in] config reference to config_t 
+ * @param[in] config reference to CapConfig 
  * @param[in] argc   number of arguments
  * @param[in] argv   reference to array of arguments 
  *
@@ -33,7 +33,7 @@ editorcmd_del(editorcmd_t *self);
  * @return failed to NULL
  */
 editorcmd_t *
-editorcmd_new(const config_t *config, int argc, char **argv);
+editorcmd_new(const CapConfig *config, int argc, char **argv);
 
 /**
  * run command

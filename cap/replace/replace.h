@@ -25,7 +25,7 @@ replacecmd_del(replacecmd_t *self);
 /**
  * construct command
  *
- * @param[in] move_config reference to config_t 
+ * @param[in] move_config reference to CapConfig 
  * @param[in] argc        number of arguments
  * @param[in] move_argv   reference to array of arguments 
  *
@@ -33,7 +33,7 @@ replacecmd_del(replacecmd_t *self);
  * @return failed to NULL
  */
 replacecmd_t *
-replacecmd_new(const config_t *config, int argc, char **argv);
+replacecmd_new(const CapConfig *config, int argc, char **argv);
 
 /**
  * run command
