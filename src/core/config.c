@@ -19,9 +19,18 @@ CapConfig_New(void) {
         goto error;
     }
 
+    self->pad_config = PadConfig_New();
+    if (self->pad_config == NULL) {
+        goto error;
+    }
+
     return self;
 error:
-    free(self);
+    if (self) {
+        free(self);
+        PadErrStack_Del(self->errstack);
+        PadConfig_Del(self->pad_config);
+    }
     return NULL;
 }
 
@@ -48,6 +57,11 @@ CapConfig_GetErrStack(CapConfig *self) {
 
 CapConfig *
 CapConfig_Init(CapConfig *self) {
+    if (!PadConfig_Init(self->pad_config)) {
+        Pad_PushErr("failed to init pad-config");
+        return NULL;
+    }
+
     self->scope = CAP_SCOPE_LOCAL;
     self->recursion_count = 0;
 
@@ -57,42 +71,42 @@ CapConfig_Init(CapConfig *self) {
     
     if (!if_not_exists_to_mkdir(self, "~/.cap")) {
         Pad_PushErr("failed to create ~/.cap");
-        return false;
+        return NULL;
     }
     if (!if_not_exists_to_mkdir(self, "~/.cap/var")) {
         Pad_PushErr("failed to create ~/.cap/var");
-        return false;
+        return NULL;
     }
     if (!if_not_exists_to_mkdir(self, "~/.cap/codes")) {
         Pad_PushErr("failed to create ~/.cap/codes");
-        return false;
+        return NULL;
     }
     if (!if_not_exists_to_mkdir(self, "~/.cap/stdlib")) {
         Pad_PushErr("failed to create ~/.cap/stdlib");
-        return false;
+        return NULL;
     }
 
     // solve path
 
     if (!PadFile_Solve(self->var_cd_path, sizeof self->var_cd_path, "~/.cap/var/cd")) {
         Pad_PushErr("failed to create path of cd of variable");
-        return false;
+        return NULL;
     }
     if (!PadFile_Solve(self->var_home_path, sizeof self->var_home_path, "~/.cap/var/home")) {
         Pad_PushErr("failed to create path of home of variable");
-        return false;
+        return NULL;
     }
     if (!PadFile_Solve(self->var_editor_path, sizeof self->var_editor_path, "~/.cap/var/editor")) {
         Pad_PushErr("failed to create path of editor of variable");
-        return false;
+        return NULL;
     }
     if (!PadFile_Solve(self->codes_dir_path, sizeof self->codes_dir_path, "~/.cap/codes")) {
         Pad_PushErr("failed to solve path for snippet codes directory path");
-        return false;
+        return NULL;
     }
     if (!PadFile_Solve(self->std_lib_dir_path, sizeof self->std_lib_dir_path, "~/.cap/stdlib")) {
         Pad_PushErr("failed to solve path for standard libraries directory");
-        return false;
+        return NULL;
     }
 
     // read path from variables
@@ -105,7 +119,7 @@ CapConfig_Init(CapConfig *self) {
     if (!PadFile_ReadLine(self->home_path, sizeof self->home_path, self->var_home_path)) {
         if (!PadFile_Solve(self->home_path, sizeof self->home_path, "~/")) {
             Pad_PushErr("failed to solve path for home path");
-            return false;
+            return NULL;
         }
     }
     Pad_PopTailSlash(self->home_path);
