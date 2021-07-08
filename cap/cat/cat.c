@@ -250,7 +250,8 @@ write_stream(CapCatCmd *self, FILE *fout, const PadStr *buf) {
             Pad_PushErr("failed to create kit");
             goto error;
         }
-        PadKit_SetImporterFixPathFunc(kit, TODO_IMPORTER);
+        CapImporter_SetCapConfig(self->config);
+        PadKit_SetImporterFixPathFunc(kit, CapImporter_FixPath);
 
         if (!PadKit_CompileFromStr(kit, PadStr_Getc(buf))) {
             Pad_PushErr("failed to compile");
