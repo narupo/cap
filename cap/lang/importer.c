@@ -1,5 +1,35 @@
 #include <lang/importer.h>
 
+char *
+CapImporter_FixPath(PadImporter *imptr, char *dst, int32_t dstsz, const char *cap_path) {
+    if (!dst || dstsz <= 0 || !cap_path) {
+        PadImporter_SetErr(imptr, "invalid arguments");
+        return NULL;
+    }
+
+    if (!solve_cmdline_arg_path(imptr->ref_config, dst, dstsz, cap_path)) {
+        importer_set_error(imptr, "failed to solve cap path of \"%s\"", cap_path);
+        return NULL;
+    }
+
+    // check cap_path
+    if (!file_exists(dst)) {
+        // create cap_path of standard libraries
+        // will read source from standard library module
+        if (!file_solvefmt(dst, dstsz, "%s/%s", imptr->ref_config->std_lib_dir_path, cap_path)) {
+            importer_set_error(imptr, "failed to solve path for standard library");
+            return NULL;
+        }
+        if (!file_exists(dst)) {
+            importer_set_error(imptr, "\"%s\" is not found", cap_path);
+            return NULL;
+        }
+    }
+
+    return dst;
+}
+
+#if 0
 struct importer {
     const config_t *ref_config;
     char error[1024];
@@ -285,3 +315,5 @@ importer_from_import(
 
     return self;
 }
+
+#endif

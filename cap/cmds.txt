@@ -2,8 +2,8 @@ config *
 alias *
 app.c *
 app.h *
-bake
-cat
+bake *
+cat *
 cd
 clone
 cmds.txt

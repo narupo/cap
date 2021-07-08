@@ -445,14 +445,14 @@ is_out_of_home(const char *homepath, const char *argpath) {
 }
 
 char *
-solve_cmdline_arg_path(const config_t *config, char *dst, int32_t dstsz, const char *caps_arg_path) {
+Cap_SolveCmdlineArgPath(const CapConfig *config, char *dst, int32_t dstsz, const char *caps_arg_path) {
     if (caps_arg_path[0] == ':') {
-        if (!file_solve(dst, dstsz, caps_arg_path+1)) {
+        if (!PadFile_Solve(dst, dstsz, caps_arg_path+1)) {
             return NULL;
         }
     } else {
         char tmp[FILE_NPATH*2];
-        const char *org = get_origin(config, caps_arg_path);
+        const char *org = Pad_GetOrigin(config, caps_arg_path);
 
         const char *path = caps_arg_path;
         if (caps_arg_path[0] == '/') {
@@ -460,7 +460,7 @@ solve_cmdline_arg_path(const config_t *config, char *dst, int32_t dstsz, const c
         }
 
         snprintf(tmp, sizeof tmp, "%s/%s", org, path);
-        if (!symlink_follow_path(config, dst, dstsz, tmp)) {
+        if (!Cap_SymlinkFollowPath(config, dst, dstsz, tmp)) {
             return NULL;
         }
     }
@@ -469,7 +469,7 @@ solve_cmdline_arg_path(const config_t *config, char *dst, int32_t dstsz, const c
 }
 
 const char *
-get_origin(const config_t *config, const char *cap_path) {
+Cap_GetOrigin(const CapConfig *config, const char *cap_path) {
     if (!config || !cap_path) {
         return NULL;
     }
@@ -481,7 +481,8 @@ get_origin(const config_t *config, const char *cap_path) {
     } else if (config->scope == CAP_SCOPE_GLOBAL) {
         return config->home_path;
     }
-    err_die("impossible. invalid state in get origin");
+
+    PadErr_Die("impossible. invalid state in get origin");
     return NULL;
 }
 

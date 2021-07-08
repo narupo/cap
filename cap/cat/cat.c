@@ -3,7 +3,7 @@
 /**
  * Structure of options
  */
-struct opts {
+struct Opts {
     bool is_help;
     bool is_tab;
     bool is_make;
@@ -14,11 +14,11 @@ struct opts {
 /**
  * Structure of command
  */
-struct catcmd {
-    const config_t *config;
+struct CapCatCmd {
+    const CapCofnig *config;
     int argc;
     char **argv;
-    struct opts opts;
+    struct Opts opts;
     int optind;
     bool is_debug;
 };
@@ -33,8 +33,8 @@ struct catcmd {
  * @return success to pointer to self
  * @return failed to NULL
  */
-catcmd_t *
-catcmd_parse_opts(catcmd_t *self) {
+static CapCatCmd *
+parse_opts(CapCatCmd *self) {
     // Parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -45,7 +45,7 @@ catcmd_parse_opts(catcmd_t *self) {
         {0},
     };
 
-    self->opts = (struct opts){
+    self->opts = (struct Opts){
         .is_help = false,
         .is_tab = false,
         .is_make = false,
@@ -92,11 +92,10 @@ catcmd_parse_opts(catcmd_t *self) {
  * @param[in] pointer to allocate memory of command
  */
 void
-catcmd_del(catcmd_t *self) {
+CapCatCmd_Del(CapCatCmd *self) {
     if (!self) {
         return;
     }
-
     free(self);
 }
 
@@ -108,17 +107,20 @@ catcmd_del(catcmd_t *self) {
  * @param[in] argv   pointer to string array with move semantics
  * @return pointer to allocate memory of command
  */
-catcmd_t *
-catcmd_new(const config_t *config, int argc, char **argv) {
-    catcmd_t *self = mem_ecalloc(1, sizeof(*self));
+CapCatCmd *
+CapCatCmd_New(const CapCofnig *config, int argc, char **argv) {
+    CapCatCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
 
-    if (!catcmd_parse_opts(self)) {
-        err_error("failed to parse options");
-        catcmd_del(self);
+    if (!parse_opts(self)) {
+        PadErr_Err("failed to parse options");
+        CapCatCmd_Del(self);
         return NULL;
     }
 
@@ -136,12 +138,12 @@ catcmd_new(const config_t *config, int argc, char **argv) {
  * @return failed to NULL
  */
 static char *
-catcmd_makepath(catcmd_t *self, char *dst, size_t dstsz, const char *cap_path) {
-    if (!solve_cmdline_arg_path(self->config, dst, dstsz, cap_path)) {
+make_path(CapCatCmd *self, char *dst, size_t dstsz, const char *cap_path) {
+    if (!Cap_SolveCmdlineArgPath(self->config, dst, dstsz, cap_path)) {
         return NULL;
     }
 
-    if (file_isdir(dst)) {
+    if (PadFile_IsDir(dst)) {
         return NULL;
     }
 
@@ -159,7 +161,7 @@ catcmd_makepath(catcmd_t *self, char *dst, size_t dstsz, const char *cap_path) {
  * @return failed to false
  */
 static bool
-catcmd_setindent(catcmd_t *self, char *buf, size_t bufsize) {
+set_indent(CapCatCmd *self, char *buf, size_t bufsize) {
     if (self->opts.is_tab) {
         buf[0] = '\t';
         buf[1] = '\0';
@@ -181,7 +183,7 @@ catcmd_setindent(catcmd_t *self, char *buf, size_t bufsize) {
  * @param[in] self
  */
 static void
-catcmd_usage(const catcmd_t *self) {
+usage(const CapCatCmd *self) {
     fprintf(stderr,
         "Usage:\n"
         "\n"
@@ -201,26 +203,27 @@ catcmd_usage(const catcmd_t *self) {
         "    $ cap cat\n"
         "\n"
     );
+    exit(0);
 }
 
 /**
  * Read content from stream
  *
- * @param[in] *self pointer to catcmd_t
+ * @param[in] *self pointer to CapCatCmd
  * @param[in] *fin pointer to FILE of source
  *
  * @return pointer to content
  */
-static string_t *
-catcmd_read_stream(catcmd_t *self, FILE *fin) {
-    string_t *buf = str_new();
+static PadStr *
+read_stream(CapCatCmd *self, FILE *fin) {
+    PadStr *buf = PadStr_New();
 
     for (;;) {
         int c = fgetc(fin);
         if (c == EOF) {
             break;
         }
-        str_pushb(buf, c);
+        PadStr_PushBack(buf, c);
     }
 
     return buf;
@@ -229,75 +232,59 @@ catcmd_read_stream(catcmd_t *self, FILE *fin) {
 /**
  * Write buffer at stream
  *
- * @param[in] *self pointer to catcmd_t
+ * @param[in] *self pointer to CapCatCmd
  * @param[in] *fout pointer to FILE of destination
  * @param[in] *buf pointer to buffer
  *
  * @return success to true, failed to false
  */
 static bool
-catcmd_write_stream(catcmd_t *self, FILE *fout, const string_t *buf) {
+write_stream(CapCatCmd *self, FILE *fout, const PadStr *buf) {
     bool ret = true;
-    string_t *out = str_new();
-    gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
-    const char *p = str_getc(buf);
+    PadKit *kit = NULL;
+    const char *p = PadStr_Getc(buf);
 
     if (self->opts.is_make) {
-        tokenizer_t *tkr = tkr_new(mem_move(tkropt_new()));
-        ast_t *ast = ast_new(self->config);
+        PadKit *kit = PadKit_New(self->config->pad_config);
+        if (kit == NULL) {
+            Pad_PushErr("failed to create kit");
+            goto error;
+        }
+        PadKit_SetImporterFixPathFunc(kit, TODO_IMPORTER);
 
-        tkr_parse(tkr, str_getc(buf));
-        if (tkr_has_error_stack(tkr)) {
-            err_error("%s", tkr_getc_first_error_message(tkr));
-            ret = false;
-            goto fail;
+        if (!PadKit_CompileFromStr(kit, PadStr_Getc(buf))) {
+            Pad_PushErr("failed to compile");
+            goto error;
         }
 
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        if (ast_has_errors(ast)) {
-            err_error("%s", ast_getc_first_error_message(ast));
-            ret = false;
-            goto fail;
-        }
-
-        trv_traverse(ast, ctx);
-        if (ast_has_errors(ast)) {
-            err_error("%s", ast_getc_first_error_message(ast));
-            ret = false;
-            goto fail;
-        }
-
-        tkr_del(tkr);
-        ast_del(ast);
-
-        p = ctx_getc_stdout_buf(ctx);
+        p = PadKit_GetcStdoutBuf(kit);
     }
 
     // set indent
+    PadStr *out = PadStr_New();
     int m = 0;
+
     for (; *p; ) {
         char c = *p++;
 
         switch (m) {
         case 0: { // Indent mode
             char indent[100] = {0};
-            if (!catcmd_setindent(self, indent, sizeof indent)) {
+            if (!set_indent(self, indent, sizeof indent)) {
                 return false;
             }
 
             for (int i = 0; i < self->opts.indent; ++i) {
-                str_app(out, indent);
+                PadStr_App(out, indent);
             }
 
-            str_pushb(out, c);
+            PadStr_PushBack(out, c);
             if (c != '\n') {
                 m = 1;
             }
         } break;
         case 1: { // Stream mode
-            str_pushb(out, c);
+            PadStr_PushBack(out, c);
             if (c == '\n') {
                 m = 0;
             }
@@ -305,35 +292,34 @@ catcmd_write_stream(catcmd_t *self, FILE *fout, const string_t *buf) {
         }
     }
 
-    printf("%s", str_getc(out));
+    printf("%s", PadStr_Getc(out));
     fflush(fout);
 
-fail:
-    ctx_del(ctx);
-    gc_del(gc);
-    str_del(out);
+error:
+    PadKit_Del(kit);
+    PadStr_Del(out);
     return ret;
 }
 
 /**
  * Read content of file of path
  *
- * @param[in] *self pointer to catcmd_t
+ * @param[in] *self pointer to CapCatCmd
  * @param[in] *path path of file
  *
- * @return pointer to string_t
+ * @return pointer to PadStr
  */
-static string_t *
-catcmd_read_file(catcmd_t *self, const char *path) {
+static PadStr *
+read_file(CapCatCmd *self, const char *path) {
     FILE *fin = fopen(path, "rb");
     if (fin == NULL) {
         return NULL;
     }
 
-    string_t *buf = catcmd_read_stream(self, fin);
+    PadStr *buf = read_stream(self, fin);
 
     if (fclose(fin) < 0) {
-        str_del(buf);
+        PadStr_Del(buf);
         return NULL;
     }
 
@@ -341,7 +327,7 @@ catcmd_read_file(catcmd_t *self, const char *path) {
 }
 
 void
-catcmd_set_debug(catcmd_t *self, bool debug) {
+CapCatCmd_SetDebug(CapCatCmd *self, bool debug) {
     self->is_debug = debug;
 }
 
@@ -353,16 +339,15 @@ catcmd_set_debug(catcmd_t *self, bool debug) {
  * @return failed to number of other of 0
  */
 int
-catcmd_run(catcmd_t *self) {
+CapCatCmd_Run(CapCatCmd *self) {
     if (self->opts.is_help) {
-        catcmd_usage(self);
-        return 0;
+        usage(self);
     }
 
     if (self->argc - self->optind + 1 < 2) {
-        string_t *stdinbuf = catcmd_read_stream(self, stdin);
-        catcmd_write_stream(self, stdout, stdinbuf);
-        str_del(stdinbuf);
+        PadStr *stdinbuf = read_stream(self, stdin);
+        write_stream(self, stdout, stdinbuf);
+        PadStr_Del(stdinbuf);
         return 0;
     }
 
@@ -370,29 +355,29 @@ catcmd_run(catcmd_t *self) {
     for (int i = self->optind; i < self->argc; ++i) {
         const char *name = self->argv[i];
 
-        if (strcmp(name, "-") == 0) {
-            string_t *stdinbuf = catcmd_read_stream(self, stdin);
-            catcmd_write_stream(self, stdout, stdinbuf);
-            str_del(stdinbuf);
+        if (PadCStr_Eq(name, "-")) {
+            PadStr *stdinbuf = read_stream(self, stdin);
+            write_stream(self, stdout, stdinbuf);
+            PadStr_Del(stdinbuf);
             continue;
         }
 
         char path[FILE_NPATH];
-        if (!catcmd_makepath(self, path, sizeof path, name)) {
+        if (!make_path(self, path, sizeof path, name)) {
             ++ret;
-            err_error("failed to make path by \"%s\"", name);
+            PadErr_Err("failed to make path by \"%s\"", name);
             continue;
         }
 
-        string_t *filebuf = catcmd_read_file(self, path);
+        PadStr *filebuf = read_file(self, path);
         if (!filebuf) {
             ++ret;
-            err_error("failed to read file from \"%s\"", path);
+            PadErr_Err("failed to read file from \"%s\"", path);
             continue;
         }
 
-        catcmd_write_stream(self, stdout, filebuf);
-        str_del(filebuf);
+        write_stream(self, stdout, filebuf);
+        PadStr_Del(filebuf);
     }
 
     fflush(stdout);

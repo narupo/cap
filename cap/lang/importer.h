@@ -12,6 +12,10 @@
 #include <lang/object_dict.h>
 #include <lang/object_array.h>
 
+char *
+CapImporter_FixPath(PadImporter *self, char *dst, int32_t dstsz, const char *cap_path);
+
+#if 0
 struct importer;
 typedef struct importer importer_t;
 
@@ -97,3 +101,5 @@ importer_set_error(importer_t *self, const char *fmt, ...);
  */
 const char * 
 importer_getc_error(const importer_t *self);
+
+#endif

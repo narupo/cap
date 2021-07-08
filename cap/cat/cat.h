@@ -2,22 +2,20 @@
 
 #include <getopt.h>
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <lib/string.h>
-#include <core/constant.h>
-#include <core/util.h>
-#include <core/config.h>
-#include <core/symlink.h>
-#include <lang/gc.h>
-#include <lang/tokenizer.h>
-#include <lang/ast.h>
-#include <lang/compiler.h>
-#include <lang/traverser.h>
-#include <lang/context.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <pad/lib/string.h>
+#include <pad/lib/cstring.h>
+#include <pad/core/config.h>
+#include <pad/core/util.h>
+#include <pad/lang/kit.h>
 
-struct catcmd;
-typedef struct catcmd catcmd_t;
+#include <cap/core/constant.h>
+#include <cap/core/config.h>
+#include <cap/core/symlink.h>
+
+struct CapCatCmd;
+typedef struct CapCatCmd CapCatCmd;
 
 /**
  * destruct command
@@ -25,7 +23,7 @@ typedef struct catcmd catcmd_t;
  * @param[in] *self
  */
 void
-catcmd_del(catcmd_t *self);
+CapCatCmd_Del(CapCatCmd *self);
 
 /**
  * construct command
@@ -34,11 +32,11 @@ catcmd_del(catcmd_t *self);
  * @param[in] argc
  * @param[in] **argv
  *
- * @return success to pointer_t catcmd_t
+ * @return success to pointer_t CapCatCmd
  * @return failed to NULL
  */
-catcmd_t *
-catcmd_new(const config_t *config, int argc, char **argv);
+CapCatCmd *
+CapCatCmd_New(const CapConfig *config, int argc, char **argv);
 
 /**
  * run command
@@ -48,7 +46,7 @@ catcmd_new(const config_t *config, int argc, char **argv);
  * @return success to 0. failed to other
  */
 int
-catcmd_run(catcmd_t *self);
+CapCatCmd_Run(CapCatCmd *self);
 
 /**
  * set debug value
@@ -57,4 +55,4 @@ catcmd_run(catcmd_t *self);
  * @param[in] debug
  */
 void
-catcmd_set_debug(catcmd_t *self, bool debug);
+CapCatCmd_SetDebug(CapCatCmd *self, bool debug);

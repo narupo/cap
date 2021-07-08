@@ -229,7 +229,7 @@ is_out_of_home(const char *homepath, const char *path);
  *     /path/to/file -> /caps/environment/path/to/file
  *     :path/to/file -> /users/file/system/path/to/file
  *
- * @param[in]  *config        pointer to config_t read-only
+ * @param[in]  *config        pointer to CapConfig read-only
  * @param[out] *dst           pointer to destination
  * @param[in]  dstsz          number of size of destination
  * @param[in]  *caps_arg_path path of command line argument of cap (not contain windows path. cap's path is unix like)
@@ -238,7 +238,12 @@ is_out_of_home(const char *homepath, const char *path);
  * @return failed to pointer to NULL
  */
 char *
-solve_cmdline_arg_path(const config_t *config, char *dst, int32_t dstsz, const char *caps_arg_path);
+Cap_SolveCmdlineArgPath(
+    const CapConfig *config,
+    char *dst,
+    int32_t dstsz,
+    const char *caps_arg_path
+);
 
 /**
  * cap_pathとconfigのscopeから基点となるパスを取得する
@@ -254,7 +259,7 @@ solve_cmdline_arg_path(const config_t *config, char *dst, int32_t dstsz, const c
  * @return
  */
 const char *
-get_origin(const config_t *config, const char *cap_path);
+Cap_GetOrigin(const config_t *config, const char *cap_path);
 
 /**
  * Show snippet code by name
