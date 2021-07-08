@@ -50,10 +50,8 @@ clean:
 
 .PHONY: init
 init:
-	$(RMDIR) ./build
 	$(MKDIR) \
 	build \
-	build$(SEP)lib \
 	build$(SEP)core \
 	build$(SEP)home \
 	build$(SEP)cd \
@@ -82,28 +80,13 @@ init:
 	build$(SEP)insert \
 	build$(SEP)clone \
 	build$(SEP)replace \
-	build$(SEP)lang$(SEP) \
-	build$(SEP)lang$(SEP)builtin \
-	build$(SEP)lang$(SEP)builtin$(SEP)modules
+	build$(SEP)lang
 
 .PHONY: cc
 cc:
 	$(CC) -v
 
 SRCS := build/lib/error.c \
-	build/lib/memory.c \
-	build/lib/file.c \
-	build/lib/cstring.c \
-	build/lib/string.c \
-	build/lib/unicode.c \
-	build/lib/cstring_array.c \
-	build/lib/cl.c \
-	build/lib/format.c \
-	build/lib/dict.c \
-	build/lib/cmdline.c \
-	build/lib/pipe.c \
-	build/lib/term.c \
-	build/lib/path.c \
 	build/core/config.c \
 	build/core/util.c \
 	build/core/alias_manager.c \
@@ -138,36 +121,7 @@ SRCS := build/lib/error.c \
 	build/insert/insert.c \
 	build/clone/clone.c \
 	build/replace/replace.c \
-	build/lang/tokens.c \
-	build/lang/tokenizer.c \
-	build/lang/nodes.c \
-	build/lang/context.c \
-	build/lang/ast.c \
-	build/lang/compiler.c \
-	build/lang/traverser.c \
-	build/lang/object.c \
-	build/lang/object_array.c \
-	build/lang/object_dict.c \
-	build/lang/node_array.c \
-	build/lang/node_dict.c \
-	build/lang/opts.c \
-	build/lang/scope.c \
-	build/lang/utils.c \
-	build/lang/gc.c \
-	build/lang/kit.c \
-	build/lang/importer.c \
-	build/lang/arguments.c \
-	build/lang/chain_node.c \
-	build/lang/chain_nodes.c \
-	build/lang/chain_object.c \
-	build/lang/chain_objects.c \
-	build/lang/builtin/functions.c \
-	build/lang/builtin/structs.c \
-	build/lang/builtin/modules/unicode.c \
-	build/lang/builtin/modules/array.c \
-	build/lang/builtin/modules/dict.c \
-	build/lang/builtin/modules/opts.c \
-	build/lang/builtin/modules/alias.c \
+	build/lang/importer.c
 
 OBJS := $(SRCS:.c=.o)
 
@@ -191,34 +145,6 @@ tests: build/tests.o build/$(LIBPAD) $(OBJS)
 build/app.o: src/app.c src/app.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/tests.o: src/tests.c src/tests.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/error.o: src/lib/error.c src/lib/error.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/memory.o: src/lib/memory.c src/lib/memory.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/file.o: src/lib/file.c src/lib/file.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/cstring.o: src/lib/cstring.c src/lib/cstring.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/string.o: src/lib/string.c src/lib/string.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/unicode.o: src/lib/unicode.c src/lib/unicode.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/cstring_array.o: src/lib/cstring_array.c src/lib/cstring_array.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/cl.o: src/lib/cl.c src/lib/cl.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/format.o: src/lib/format.c src/lib/format.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/dict.o: src/lib/dict.c src/lib/dict.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/cmdline.o: src/lib/cmdline.c src/lib/cmdline.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/pipe.o: src/lib/pipe.c src/lib/pipe.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/term.o: src/lib/term.c src/lib/term.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lib/path.o: src/lib/path.c src/lib/path.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/core/config.o: src/core/config.c src/core/config.h
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -288,64 +214,5 @@ build/replace/replace.o: src/replace/replace.c src/replace/replace.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/find/arguments_manager.o: src/find/arguments_manager.c src/find/arguments_manager.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/tokenizer.o: src/lang/tokenizer.c src/lang/tokenizer.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/tokens.o: src/lang/tokens.c src/lang/tokens.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/nodes.o: src/lang/nodes.c src/lang/nodes.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/ast.o: src/lang/ast.c src/lang/ast.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/compiler.o: src/lang/compiler.c src/lang/compiler.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/traverser.o: src/lang/traverser.c src/lang/traverser.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/context.o: src/lang/context.c src/lang/context.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/object.o: src/lang/object.c src/lang/object.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/object_array.o: src/lang/object_array.c src/lang/object_array.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/object_dict.o: src/lang/object_dict.c src/lang/object_dict.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/node_array.o: src/lang/node_array.c src/lang/node_array.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/node_dict.o: src/lang/node_dict.c src/lang/node_dict.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/opts.o: src/lang/opts.c src/lang/opts.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/scope.o: src/lang/scope.c src/lang/scope.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/utils.o: src/lang/utils.c src/lang/utils.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/gc.o: src/lang/gc.c src/lang/gc.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/kit.o: src/lang/kit.c src/lang/kit.h
-	$(CC) $(CFLAGS) -c $< -o $@
 build/lang/importer.o: src/lang/importer.c src/lang/importer.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/arguments.o: src/lang/arguments.c src/lang/arguments.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/chain_node.o: src/lang/chain_node.c src/lang/chain_node.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/chain_nodes.o: src/lang/chain_nodes.c src/lang/chain_nodes.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/chain_object.o: src/lang/chain_object.c src/lang/chain_object.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/chain_objects.o: src/lang/chain_objects.c src/lang/chain_objects.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/builtin/functions.o: src/lang/builtin/functions.c src/lang/builtin/functions.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/builtin/structs.o: src/lang/builtin/structs.c 
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/builtin/modules/unicode.o: src/lang/builtin/modules/unicode.c src/lang/builtin/modules/unicode.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/builtin/modules/array.o: src/lang/builtin/modules/array.c src/lang/builtin/modules/array.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/builtin/modules/dict.o: src/lang/builtin/modules/dict.c src/lang/builtin/modules/dict.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/builtin/modules/opts.o: src/lang/builtin/modules/opts.c src/lang/builtin/modules/opts.h
-	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/builtin/modules/alias.o: src/lang/builtin/modules/alias.c src/lang/builtin/modules/alias.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
