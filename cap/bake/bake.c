@@ -81,7 +81,7 @@ bake(CapBakeCmd *self) {
     fin = NULL;
 
     compiled = Pad_CompileArgv(
-        self->config,
+        self->config->pad_config,
         self->errstack,
         self->argc - 1,
         self->argv + 1,
