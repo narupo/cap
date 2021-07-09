@@ -1,4 +1,4 @@
-#include <core/symlink.h>
+#include <cap/core/symlink.h>
 
 static const char *
 skip_drive_letter(const char *path) {
@@ -74,7 +74,7 @@ fix_path_seps(char *dst, uint32_t dstsz, const char *src) {
     for (; *p && dp < dpend; ++p, ++dp) {
         char ch = *p;
         if (ch == replace_sep) {
-            ch = FILE_SEP;
+            ch = PAD_FILE__SEP;
         }
         *dp = ch;
     }
@@ -108,7 +108,7 @@ follow_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *absp
         return NULL;
     }
 
-    char **toks = cstr_split_ignore_empty(p, FILE_SEP);
+    char **toks = cstr_split_ignore_empty(p, PAD_FILE__SEP);
     if (!toks) {
         return NULL;
     }
@@ -123,7 +123,7 @@ follow_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *absp
     PadStr_App(path, ":\\");
 #endif
     for (char **toksp = toks; *toksp; ++toksp) {
-        PadStr_PushBack(path, FILE_SEP);
+        PadStr_PushBack(path, PAD_FILE__SEP);
         PadStr_App(path, *toksp);
         // printf("path[%s] toksp[%s]\n", PadStr_Getc(path), *toksp);
         if (PadFile_IsDir(PadStr_Getc(path))) {
@@ -150,7 +150,7 @@ follow_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *absp
 
     str_set(path, sympath);
     for (char **toksp = save_toks; *toksp; ++toksp) {
-        PadStr_PushBack(path, FILE_SEP);
+        PadStr_PushBack(path, PAD_FILE__SEP);
         PadStr_App(path, *toksp);
     }
 
@@ -190,7 +190,7 @@ CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, const 
 
 static PadCStrAry *
 split_ignore_empty(const char *p, char sep) {
-    char **toks = cstr_split_ignore_empty(p, FILE_SEP);
+    char **toks = cstr_split_ignore_empty(p, PAD_FILE__SEP);
     if (!toks) {
         return NULL;
     }
@@ -223,7 +223,7 @@ CapSymlink_NormPath(const CapConfig *config, char *dst, uint32_t dstsz, const ch
 #endif
 
     // save tokens from srctoks to dsttoks by ".." token
-    PadCStrAry *srctoks = split_ignore_empty(pathhead, FILE_SEP);
+    PadCStrAry *srctoks = split_ignore_empty(pathhead, PAD_FILE__SEP);
     PadCStrAry *dsttoks = PadCStrAry_New();
 
     for (int32_t i = 0; i < PadCStrAry_Len(srctoks); ++i) {
@@ -246,14 +246,14 @@ CapSymlink_NormPath(const CapConfig *config, char *dst, uint32_t dstsz, const ch
     }
 #endif
 
-    if (pathhead[0] == FILE_SEP) {
-        PadCStr_AppFmt(dst, dstsz, "%c", FILE_SEP);
+    if (pathhead[0] == PAD_FILE__SEP) {
+        PadCStr_AppFmt(dst, dstsz, "%c", PAD_FILE__SEP);
     }
 
     for (int32_t i = 0; i < PadCStrAry_Len(dsttoks)-1; ++i) {
         const char *tok = PadCStrAry_Getc(dsttoks, i);
         PadCStr_App(dst, dstsz, tok);
-        PadCStr_AppFmt(dst, dstsz, "%c", FILE_SEP);
+        PadCStr_AppFmt(dst, dstsz, "%c", PAD_FILE__SEP);
     }
     if (PadCStrAry_Len(dsttoks)) {
         const char *tok = PadCStrAry_Getc(dsttoks, PadCStrAry_Len(dsttoks)-1);

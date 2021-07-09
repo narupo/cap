@@ -167,7 +167,7 @@ mv_file_to_other(CapMvCmd *self) {
 
     // remove last separate for stat
     const int dstpathlen = strlen(dstpath);
-    if (dstpath[dstpathlen - 1] == FILE_SEP) {
+    if (dstpath[dstpathlen - 1] == PAD_FILE__SEP) {
         dstpath[dstpathlen - 1] = '\0';
     }
 

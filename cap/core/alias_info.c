@@ -11,8 +11,8 @@ CapAliasInfo_Del(CapAliasInfo *self) {
         return;
     }
 
-    dict_del(self->key_val_map);
-    dict_del(self->key_desc_map);
+    PadDict_Del(self->key_val_map);
+    PadDict_Del(self->key_desc_map);
     free(self);
 }
 
