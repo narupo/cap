@@ -1,27 +1,29 @@
 #include <getopt.h>
 #include <string.h>
 #include <stdint.h>
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <lib/string.h>
-#include <core/constant.h>
-#include <core/util.h>
-#include <core/config.h>
-#include <core/error_stack.h>
+
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <pad/lib/string.h>
+
+#include <cap/core/constant.h>
+#include <cap/core/util.h>
+#include <cap/core/config.h>
+#include <cap/core/error_stack.h>
 
 /**
  * structure and type of command
  */
-struct insert;
-typedef struct insert insertcmd_t;
+struct CapInsertCmd;
+typedef struct CapInsertCmd CapInsertCmd;
 
 /**
  * destruct command
  *
- * @param[in] self pointer to insertcmd_t
+ * @param[in] self pointer to CapInsertCmd
  */
 void
-insertcmd_del(insertcmd_t *self);
+CapInsertCmd_Del(CapInsertCmd *self);
 
 /**
  * construct command
@@ -30,19 +32,19 @@ insertcmd_del(insertcmd_t *self);
  * @param[in] argc        number of arguments
  * @param[in] move_argv   reference to array of arguments 
  *
- * @return success to pointer to insertcmd_t
+ * @return success to pointer to CapInsertCmd
  * @return failed to NULL
  */
-insertcmd_t *
-insertcmd_new(const CapConfig *config, int argc, char **argv);
+CapInsertCmd *
+CapInsertCmd_New(const CapConfig *config, int argc, char **argv);
 
 /**
  * run command
  *
- * @param[in] self pointer to insertcmd_t
+ * @param[in] self pointer to CapInsertCmd
  *
  * @return success to number of 0
  * @return failed to number of not 0
  */
 int
-insertcmd_run(insertcmd_t *self);
+CapInsertCmd_Run(CapInsertCmd *self);

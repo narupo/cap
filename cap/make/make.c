@@ -7,7 +7,7 @@ struct makecmd {
     const CapConfig *config;
     int argc;
     char **argv;
-    errstack_t *errstack;
+    PadErrStack *errstack;
 };
 
 void
@@ -16,7 +16,7 @@ makecmd_del(makecmd_t *self) {
         return;
     }
 
-    errstack_del(self->errstack);
+    PadErrStack_Del(self->errstack);
     free(self);
 }
 
@@ -27,7 +27,7 @@ makecmd_new(const CapConfig *config, int argc, char **argv) {
     self->config = config;
     self->argc = argc;
     self->argv = argv;
-    self->errstack = errstack_new();
+    self->errstack = PadErrStack_New();
 
     return self;
 }
@@ -35,7 +35,7 @@ makecmd_new(const CapConfig *config, int argc, char **argv) {
 int
 make_from_args(
     const CapConfig *config,
-    errstack_t *errstack,
+    PadErrStack *errstack,
     int argc,
     char *argv[],
     bool solve_path
@@ -54,7 +54,7 @@ make_from_args(
     if (use_stdin) {
         src = file_readcp(stdin);
         if (!src) {
-            errstack_add(errstack, "failed to read from stdin");
+            PadErrStack_Add(errstack, "failed to read from stdin");
             return 1;
         }
     } else {
@@ -63,7 +63,7 @@ make_from_args(
 
         if (solve_path) {
             if (!Cap_SolveCmdlineArgPath(config, path, sizeof path, cap_path)) {
-                errstack_add(errstack, "failed to solve cap path");
+                PadErrStack_Add(errstack, "failed to solve cap path");
                 return 1;
             }            
         } else {
@@ -72,7 +72,7 @@ make_from_args(
 
         src = file_readcp_from_path(path);
         if (!src) {
-            errstack_add(errstack, "failed to read from \"%s\"", path);
+            PadErrStack_Add(errstack, "failed to read from \"%s\"", path);
             return 1;
         }
     }
@@ -85,7 +85,7 @@ make_from_args(
         src
     );
     if (!compiled) {
-        errstack_add(
+        PadErrStack_Add(
             errstack,
             "failed to compile from \"%s\"",
             (argv[1] ? argv[1] : "stdin")
@@ -114,7 +114,7 @@ makecmd_run(makecmd_t *self) {
         true
     );
     if (result != 0) {
-        errstack_trace(self->errstack, stderr);
+        PadErrStack_Trace(self->errstack, stderr);
     }
 
     return result;

@@ -52,7 +52,7 @@ makecmd_run(makecmd_t *self);
  * make script or stdin from program arguments
  * 
  * @param[in] *config    pointer to CapConfig (read-only)
- * @param[out] *errstack pointer to errstack_t (writeable)
+ * @param[out] *errstack pointer to PadErrStack (writeable)
  * @param[in] argc       number of arguments
  * @param[in] *argv[]    arguments
  * @param[in] solve_path if want to solve path then true else false
@@ -62,7 +62,7 @@ makecmd_run(makecmd_t *self);
 int
 make_from_args(
     const CapConfig *config,
-    errstack_t *errstack,
+    PadErrStack *errstack,
     int argc,
     char *argv[],
     bool solve_path

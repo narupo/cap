@@ -141,7 +141,7 @@ snptcmd_show(snptcmd_t *self) {
 
     fclose(fin);
 
-    errstack_t *errstack = errstack_new();
+    PadErrStack *errstack = PadErrStack_New();
     char *compiled = compile_argv(
         self->config,
         errstack,
@@ -150,10 +150,10 @@ snptcmd_show(snptcmd_t *self) {
         content
     );
     if (!compiled) {
-        errstack_trace(errstack, stderr);
+        PadErrStack_Trace(errstack, stderr);
         fflush(stderr);
         free(content);
-        errstack_del(errstack);
+        PadErrStack_Del(errstack);
         return 1;
     }
 
@@ -162,7 +162,7 @@ snptcmd_show(snptcmd_t *self) {
 
     free(compiled);
     free(content);
-    errstack_del(errstack);
+    PadErrStack_Del(errstack);
     return 0;
 }
 

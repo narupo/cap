@@ -710,18 +710,18 @@ cmd_exec(CapExecCmd *self, const char *cltxt) {
 }
 
 static char *
-unescape_cl(const char *escaped) {
+Pad_Unescape_cl(const char *escaped) {
     string_t *s = PadStr_New();
 
     for (const char *p = escaped; *p; p += 1) {
         if (*p == '\\') {
-            unescape(s, &p, "\"'");
+            Pad_Unescape(s, &p, "\"'");
         } else {
-            str_pushb(s, *p);
+            PadStr_PushBack(s, *p);
         }
     }
 
-    return str_esc_del(s);
+    return PadStr_EscDel(s);
 }
 
 int
@@ -733,7 +733,7 @@ CapExecCmd_Run(CapExecCmd *self) {
 
     for (int32_t i = self->optind; i < self->argc; ++i) {
         const char *escaped_cltxt = self->argv[i];
-        char *cltxt = unescape_cl(escaped_cltxt);
+        char *cltxt = Pad_Unescape_cl(escaped_cltxt);
         // printf("escaped_cltxt[%s]\n", escaped_cltxt);
         // printf("cltxt[%s]\n", cltxt);
 

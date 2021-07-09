@@ -1,7 +1,5 @@
 #include "insert/insert.h"
 
-#define error(fmt, ...) errstack_add(self->errstack, fmt, ##__VA_ARGS__)
-
 typedef enum {
     AFTER,
     BEFORE,
@@ -20,22 +18,22 @@ struct Opts {
 /**
  * structure of command
  */
-struct insert {
+struct CapInsertCmd {
     const CapConfig *config;
     int argc;
     int optind;
     char **argv;
     struct Opts opts;
-    errstack_t *errstack;
+    PadErrStack *errstack;
 };
 
 /**
  * show usage of command
  *
- * @param[in] self pointer to insertcmd_t
+ * @param[in] self pointer to CapInsertCmd
  */
 static void
-insertcmd_show_usage(insertcmd_t *self) {
+usage(CapInsertCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Usage:\n"
@@ -50,24 +48,24 @@ insertcmd_show_usage(insertcmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
 /**
  * parse options
  *
- * @param[in] self pointer to insertcmd_t 
+ * @param[in] self pointer to CapInsertCmd 
  *
  * @return success to true
  * @return failed to false
  */
 static bool
-insertcmd_parse_opts(insertcmd_t *self) {
+parse_opts(CapInsertCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
         {"after", required_argument, 0, 'a'},
         {"before", required_argument, 0, 'b'},
-
         {0},
     };
 
@@ -108,26 +106,29 @@ insertcmd_parse_opts(insertcmd_t *self) {
 }
 
 void
-insertcmd_del(insertcmd_t *self) {
+CapInsertCmd_Del(CapInsertCmd *self) {
     if (!self) {
         return;
     }
 
-    errstack_del(self->errstack);
+    PadErrStack_Del(self->errstack);
     free(self);
 }
 
-insertcmd_t *
-insertcmd_new(const CapConfig *config, int argc, char **argv) {
-    insertcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapInsertCmd *
+CapInsertCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapInsertCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
-    self->errstack = errstack_new();
+    self->errstack = PadErrStack_New();
 
-    if (!insertcmd_parse_opts(self)) {
-        insertcmd_del(self);
+    if (!parse_opts(self)) {
+        CapInsertCmd_Del(self);
         return NULL;
     }
 
@@ -135,7 +136,7 @@ insertcmd_new(const CapConfig *config, int argc, char **argv) {
 }
 
 static int32_t 
-find_insert_lieno(insertcmd_t *self, FILE *fp, int32_t lineno, Pos insert_pos) {
+find_insert_lieno(CapInsertCmd *self, FILE *fp, int32_t lineno, Pos insert_pos) {
     int32_t pos = 0;
     int32_t curlineno = 1;
 
@@ -190,7 +191,7 @@ end:
 }
 
 static int32_t
-find_insert_label(insertcmd_t *self, FILE *fp, const char *label, Pos insert_pos) {
+find_insert_label(CapInsertCmd *self, FILE *fp, const char *label, Pos insert_pos) {
     char lbl[1024];
     char line[1024];
     int32_t pos = 0;
@@ -224,7 +225,7 @@ find_insert_label(insertcmd_t *self, FILE *fp, const char *label, Pos insert_pos
 }
 
 static int32_t
-find_insert_pos(insertcmd_t *self, const char *path) {
+find_insert_pos(CapInsertCmd *self, const char *path) {
     char *label = NULL;
     int32_t lineno = -1;
     Pos insert_pos = AFTER;
@@ -232,7 +233,7 @@ find_insert_pos(insertcmd_t *self, const char *path) {
 
     FILE *fp = fopen(path, "rb");
     if (fp == NULL) {
-        error("failed to open file %s", path);
+        Pad_PushErr("failed to open file %s", path);
         return 1;
     }
 
@@ -264,17 +265,16 @@ find_insert_pos(insertcmd_t *self, const char *path) {
 }
 
 static int32_t
-insert_tail(insertcmd_t *self, const char *path, const char *elem) {
-    puts("tail!");
+insert_tail(CapInsertCmd *self, const char *path, const char *elem) {
     char *s = file_readcp_from_path(path);
     if (s == NULL) {
-        error("failed to read");
+        Pad_PushErr("failed to read");
         return 1;
     }
 
     FILE *fout = fopen(path, "wb");
     if (fout == NULL) {
-        error("failed to open file (2) %s", path);
+        Pad_PushErr("failed to open file (2) %s", path);
         return 1;
     }
 
@@ -291,16 +291,16 @@ insert_tail(insertcmd_t *self, const char *path, const char *elem) {
 }
 
 static int32_t
-insert_at(insertcmd_t *self, const char *path, int32_t pos, const char *elem) {
+insert_at(CapInsertCmd *self, const char *path, int32_t pos, const char *elem) {
     FILE *fin = fopen(path, "rb");
     if (fin == NULL) {
-        error("failed to open file %s", path);
+        Pad_PushErr("failed to open file %s", path);
         return 1;
     }
 
     char *s = file_readcp(fin);
     if (s == NULL) {
-        error("failed to read");
+        Pad_PushErr("failed to read");
         return 1;
     }
 
@@ -308,7 +308,7 @@ insert_at(insertcmd_t *self, const char *path, int32_t pos, const char *elem) {
 
     FILE *fout = fopen(path, "wb");
     if (fout == NULL) {
-        error("failed to open file (2) %s", path);
+        Pad_PushErr("failed to open file (2) %s", path);
         return 1;
     }
 
@@ -334,25 +334,25 @@ insert_at(insertcmd_t *self, const char *path, int32_t pos, const char *elem) {
 }
 
 static char *
-fix_elem(insertcmd_t *self, const char *raw) {
+fix_elem(CapInsertCmd *self, const char *raw) {
     string_t *s = PadStr_New();
 
     for (const char *p = raw; *p; p += 1) {
         switch (*p) {
         default:
-            str_pushb(s, *p);
+            PadStr_PushBack(s, *p);
             break;
         case '\\':
-            unescape(s, &p, NULL);
+            Pad_Unescape(s, &p, NULL);
             break;
         }
     }
 
-    return str_esc_del(s);
+    return PadStr_EscDel(s);
 }
 
 static int
-insert(insertcmd_t *self) {
+insert(CapInsertCmd *self) {
     const char *cap_path = NULL;
     const char *raw_elem = NULL;
     char *elem = NULL;
@@ -360,12 +360,11 @@ insert(insertcmd_t *self) {
     int result = 0;
 
     if (self->argc < 3) {
-        insertcmd_show_usage(self);
-        return 0;
+        usage(self);
     } else {
         cap_path = self->argv[optind];
         if (!Cap_SolveCmdlineArgPath(self->config, path, sizeof path, cap_path)) {
-            error("failed to solve path");
+            Pad_PushErr("failed to solve path");
             goto error;
         }
 
@@ -388,10 +387,10 @@ error:
 }
 
 int
-insertcmd_run(insertcmd_t *self) {
+CapInsertCmd_Run(CapInsertCmd *self) {
     int result = insert(self);
     if (errstack_len(self->errstack)) {
-        errstack_trace(self->errstack, stderr);
+        PadErrStack_TraceSimple(self->errstack, stderr);
         return result;
     }
     return result;

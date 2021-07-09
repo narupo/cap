@@ -16,7 +16,7 @@ exec *
 find *
 home *
 hub *
-insert
+insert *
 labo
 lang
 lib

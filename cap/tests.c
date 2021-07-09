@@ -15,7 +15,7 @@
 #define showerr() printf("stderr[%s]\n", ctx_getc_stderr_buf(ctx))
 
 #define showdetail() printf("detail[%s]\n", ast_getc_first_error_message(ast))
-#define ERR errstack_trace(ast->error_stack, stderr)
+#define ERR PadErrStack_Trace(ast->error_stack, stderr)
 
 #define ast_debug(stmt) { \
     ast_set_debug(ast, true); \
@@ -974,11 +974,11 @@ test_PadStr_Del(void) {
 }
 
 static void
-test_str_esc_del(void) {
+test_PadStr_EscDel(void) {
     string_t *s = PadStr_New();
     assert(s != NULL);
-    assert(str_esc_del(NULL) == NULL);
-    char *ptr = str_esc_del(s);
+    assert(PadStr_EscDel(NULL) == NULL);
+    char *ptr = PadStr_EscDel(s);
     assert(ptr != NULL);
     free(ptr);
 }
@@ -1095,14 +1095,14 @@ test_str_resize(void) {
 }
 
 static void
-test_str_pushb(void) {
+test_PadStr_PushBack(void) {
     string_t *s = PadStr_New();
     assert(s != NULL);
-    assert(str_pushb(NULL, '1') == NULL);
-    assert(str_pushb(s, 0) == NULL);
-    assert(str_pushb(s, '\0') == NULL);
-    assert(str_pushb(s, '1') != NULL);
-    assert(str_pushb(s, '2') != NULL);
+    assert(PadStr_PushBack(NULL, '1') == NULL);
+    assert(PadStr_PushBack(s, 0) == NULL);
+    assert(PadStr_PushBack(s, '\0') == NULL);
+    assert(PadStr_PushBack(s, '1') != NULL);
+    assert(PadStr_PushBack(s, '2') != NULL);
     assert(strcmp(PadStr_Getc(s), "12") == 0);
     PadStr_Del(s);
 }
@@ -1571,7 +1571,7 @@ test_str_mul(void) {
 static const struct testcase
 string_tests[] = {
     {"PadStr_Del", test_PadStr_Del},
-    {"str_esc_del", test_str_esc_del},
+    {"PadStr_EscDel", test_PadStr_EscDel},
     {"PadStr_New", test_PadStr_New},
     {"PadStr_New_cstr", test_PadStr_New_cstr},
     {"str_deep_copy", test_str_deep_copy},
@@ -1583,7 +1583,7 @@ string_tests[] = {
     {"PadStr_Clear", test_PadStr_Clear},
     {"str_set", test_str_set},
     {"str_resize", test_str_resize},
-    {"str_pushb", test_str_pushb},
+    {"PadStr_PushBack", test_PadStr_PushBack},
     {"str_popb", test_str_popb},
     {"str_pushf", test_str_pushf},
     {"str_popf", test_str_popf},
@@ -2410,7 +2410,7 @@ test_char16_strcmp(void) {
 static const struct testcase
 unicode_tests[] = {
     {"uni_del", test_PadStr_Del},
-    {"uni_esc_del", test_str_esc_del},
+    {"uni_esc_del", test_PadStr_EscDel},
     {"uni_new", test_uni_new},
     {"uni_deep_copy", test_uni_deep_copy},
     {"uni_deep_copy", test_uni_deep_copy},
@@ -28156,15 +28156,15 @@ symlink_tests[] = {
 **************/
 
 static void
-test_errstack_new(void) {
-    errstack_t *stack = errstack_new();
+test_PadErrStack_New(void) {
+    PadErrStack *stack = PadErrStack_New();
     assert(stack);
-    errstack_del(stack);
+    PadErrStack_Del(stack);
 }
 
 static void
 test_errstack_pushb(void) {
-    errstack_t *stack = errstack_new();
+    PadErrStack *stack = PadErrStack_New();
 
     assert(errstack_len(stack) == 0);
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file1", 1, "func1", "this is %s", "message1"));
@@ -28187,12 +28187,12 @@ test_errstack_pushb(void) {
 
     assert(errstack_getc(stack, 2) == NULL);
 
-    errstack_del(stack);
+    PadErrStack_Del(stack);
 }
 
 static void
 test_errstack_resize(void) {
-    errstack_t *stack = errstack_new();
+    PadErrStack *stack = PadErrStack_New();
 
     assert(errstack_len(stack) == 0);
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file1", 1, "func1", "this is %s", "message1"));
@@ -28237,12 +28237,12 @@ test_errstack_resize(void) {
     assert(!strcmp(elem->funcname, "func5"));
     assert(!strcmp(elem->message, "this is message5"));
 
-    errstack_del(stack);
+    PadErrStack_Del(stack);
 }
 
 static void
-test_errstack_trace(void) {
-    errstack_t *stack = errstack_new();
+test_PadErrStack_Trace(void) {
+    PadErrStack *stack = PadErrStack_New();
 
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file1", 1, "func1", "this is %s", "message1"));
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file2", 2, "func2", "this is %s", "message2"));
@@ -28250,17 +28250,17 @@ test_errstack_trace(void) {
     char buf[BUFSIZ] = {0};
     setbuf(stderr, buf);
 
-    errstack_trace(stack, stderr);
+    PadErrStack_Trace(stack, stderr);
     assert(strcmp(buf, "Error:\n    file1: 1: func1: This is message1.\n    file2: 2: func2: This is message2."));
 
     fseek(stderr, 0, SEEK_SET);
     setbuf(stderr, NULL);
-    errstack_del(stack);
+    PadErrStack_Del(stack);
 }
 
 static void
 test_errelem_show(void) {
-    errstack_t *stack = errstack_new();
+    PadErrStack *stack = PadErrStack_New();
 
     assert(_errstack_pushb(stack, "file1", 1, NULL, 0, NULL, 0, NULL, "this is %s", "message1"));
     assert(_errstack_pushb(stack, "file2", 2, NULL, 0, NULL, 0, NULL, "this is %s", "message2"));
@@ -28281,13 +28281,13 @@ test_errelem_show(void) {
     assert(!strcmp(buf, "file2: 2: This is message2.\n"));
 
     setbuf(stderr, NULL);
-    errstack_del(stack);
+    PadErrStack_Del(stack);
 }
 
 static void
 test_errstack_extendf_other_0(void) {
-    errstack_t *stack = errstack_new();
-    errstack_t *other = errstack_new();
+    PadErrStack *stack = PadErrStack_New();
+    PadErrStack *other = PadErrStack_New();
 
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file3", 3, "func3", "this is %s", "message3"));
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file4", 4, "func4", "this is %s", "message4"));
@@ -28302,14 +28302,14 @@ test_errstack_extendf_other_0(void) {
     assert(errstack_len(stack) == 4);
     assert(errstack_len(other) == 2);
 
-    errstack_del(stack);
-    errstack_del(other);
+    PadErrStack_Del(stack);
+    PadErrStack_Del(other);
 }
 
 static void
 test_errstack_extendf_other_1(void) {
-    errstack_t *stack = errstack_new();
-    errstack_t *other = errstack_new();
+    PadErrStack *stack = PadErrStack_New();
+    PadErrStack *other = PadErrStack_New();
 
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file5", 5, "func5", "this is %s", "message5"));
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file6", 6, "func6", "this is %s", "message6"));
@@ -28326,13 +28326,13 @@ test_errstack_extendf_other_1(void) {
     assert(errstack_len(stack) == 6);
     assert(errstack_len(other) == 4);
 
-    errstack_del(stack);
-    errstack_del(other);
+    PadErrStack_Del(stack);
+    PadErrStack_Del(other);
 }
 
 static void
 test_errstack_extendf_other_2(void) {
-    errstack_t *stack = errstack_new();
+    PadErrStack *stack = PadErrStack_New();
 
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file1", 1, "func1", "this is %s", "message1"));
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file2", 2, "func2", "this is %s", "message2"));
@@ -28344,13 +28344,13 @@ test_errstack_extendf_other_2(void) {
     assert(errstack_extendf_other(stack, stack));
     assert(errstack_len(stack) == 8);
 
-    errstack_del(stack);
+    PadErrStack_Del(stack);
 }
 
 static void
 test_errstack_extendb_other_0(void) {
-    errstack_t *stack = errstack_new();
-    errstack_t *other = errstack_new();
+    PadErrStack *stack = PadErrStack_New();
+    PadErrStack *other = PadErrStack_New();
 
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file3", 3, "func3", "this is %s", "message3"));
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file4", 4, "func4", "this is %s", "message4"));
@@ -28365,14 +28365,14 @@ test_errstack_extendb_other_0(void) {
     assert(errstack_len(stack) == 4);
     assert(errstack_len(other) == 2);
 
-    errstack_del(stack);
-    errstack_del(other);
+    PadErrStack_Del(stack);
+    PadErrStack_Del(other);
 }
 
 static void
 test_errstack_extendb_other_1(void) {
-    errstack_t *stack = errstack_new();
-    errstack_t *other = errstack_new();
+    PadErrStack *stack = PadErrStack_New();
+    PadErrStack *other = PadErrStack_New();
 
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file5", 5, "func5", "this is %s", "message5"));
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file6", 4, "func6", "this is %s", "message6"));
@@ -28389,13 +28389,13 @@ test_errstack_extendb_other_1(void) {
     assert(errstack_len(stack) == 6);
     assert(errstack_len(other) == 4);
 
-    errstack_del(stack);
-    errstack_del(other);
+    PadErrStack_Del(stack);
+    PadErrStack_Del(other);
 }
 
 static void
 test_errstack_extendb_other_2(void) {
-    errstack_t *stack = errstack_new();
+    PadErrStack *stack = PadErrStack_New();
 
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file1", 1, "func1", "this is %s", "message1"));
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file2", 2, "func2", "this is %s", "message2"));
@@ -28407,15 +28407,15 @@ test_errstack_extendb_other_2(void) {
     assert(errstack_extendb_other(stack, stack));
     assert(errstack_len(stack) == 8);
 
-    errstack_del(stack);
+    PadErrStack_Del(stack);
 }
 
 static const struct testcase
-errstack_tests[] = {
-    {"errstack_new", test_errstack_new},
+PadErrStackests[] = {
+    {"PadErrStack_New", test_PadErrStack_New},
     {"errstack_pushb", test_errstack_pushb},
     {"errstack_resize", test_errstack_resize},
-    {"errstack_trace", test_errstack_trace},
+    {"PadErrStack_Trace", test_PadErrStack_Trace},
     {"errstack_extendf_other_0", test_errstack_extendf_other_0},
     {"errstack_extendf_other_1", test_errstack_extendf_other_1},
     {"errstack_extendf_other_2", test_errstack_extendf_other_2},
@@ -28609,9 +28609,9 @@ test_homecmd_default(void) {
 
     assert(solve_path(config->var_home_path, sizeof config->var_home_path, "./tests/.cap/var/home"));
 
-    homecmd_t *homecmd = homecmd_new(config, argc, argv);
-    homecmd_run(homecmd);
-    homecmd_del(homecmd);
+    CapHomeCmd *homecmd = CapHomeCmd_New(config, argc, argv);
+    CapHomeCmd_Run(homecmd);
+    CapHomeCmd_Del(homecmd);
 
     char line[1024];
     assert(PadFile_ReadLine(line, sizeof line, config->var_home_path));
@@ -28626,7 +28626,7 @@ test_homecmd_default(void) {
 }
 
 static const struct testcase
-homecmd_tests[] = {
+CapHomeCmdests[] = {
     {"default", test_homecmd_default},
     {0},
 };
@@ -30228,7 +30228,7 @@ replacecmd_tests[] = {
 static const struct testmodule
 testmodules[] = {
     // commands
-    {"home", homecmd_tests},
+    {"home", CapHomeCmdests},
     {"cd", cdcmd_tests},
     {"pwd", pwdcmd_tests},
     {"ls", lscmd_tests},
@@ -30265,7 +30265,7 @@ testmodules[] = {
     {"compiler", compiler_tests},
     {"traverser", traverser_tests},
     {"symlink", symlink_tests},
-    {"error_stack", errstack_tests},
+    {"error_stack", PadErrStackests},
     {"gc", lang_gc_tests},
     {"objdict", lang_object_PadDictests},
     {0},

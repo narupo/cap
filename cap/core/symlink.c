@@ -119,11 +119,11 @@ __CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, cons
     string_t *path = PadStr_New();
 #ifdef CAP__WINDOWS
     // append drive letter
-    str_pushb(path, normpath[0]);
+    PadStr_PushBack(path, normpath[0]);
     PadStr_App(path, ":\\");
 #endif
     for (char **toksp = toks; *toksp; ++toksp) {
-        str_pushb(path, FILE_SEP);
+        PadStr_PushBack(path, FILE_SEP);
         PadStr_App(path, *toksp);
         // printf("path[%s] toksp[%s]\n", PadStr_Getc(path), *toksp);
         if (PadFile_IsDir(PadStr_Getc(path))) {
@@ -150,7 +150,7 @@ __CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, cons
 
     str_set(path, sympath);
     for (char **toksp = save_toks; *toksp; ++toksp) {
-        str_pushb(path, FILE_SEP);
+        PadStr_PushBack(path, FILE_SEP);
         PadStr_App(path, *toksp);
     }
 

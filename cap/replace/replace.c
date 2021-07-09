@@ -16,7 +16,7 @@ struct replace {
     int optind;
     char **argv;
     struct Opts opts;
-    errstack_t *errstack;
+    PadErrStack *errstack;
 };
 
 /**
@@ -98,7 +98,7 @@ replacecmd_del(replacecmd_t *self) {
         return;
     }
 
-    errstack_del(self->errstack);
+    PadErrStack_Del(self->errstack);
     free(self);
 }
 
@@ -109,7 +109,7 @@ replacecmd_new(const CapConfig *config, int argc, char **argv) {
     self->config = config;
     self->argc = argc;
     self->argv = argv;
-    self->errstack = errstack_new();
+    self->errstack = PadErrStack_New();
 
     if (!replacecmd_parse_opts(self)) {
         replacecmd_del(self);
@@ -176,7 +176,7 @@ replace(replacecmd_t *self) {
         goto error;
     }
 
-    unescape_text(target, target_, NULL);
+    Pad_Unescape_text(target, target_, NULL);
     int result = sreplace(fout, content, PadStr_Getc(target), replaced);
 
     fclose(fout);
@@ -196,7 +196,7 @@ int
 replacecmd_run(replacecmd_t *self) {
     int result = replace(self);
     if (result != 0) {
-        errstack_trace_simple(self->errstack, stderr);
+        PadErrStack_Trace_simple(self->errstack, stderr);
     }
     return result;
 }

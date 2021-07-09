@@ -83,13 +83,13 @@ replace_slashes(const char *s) {
 
     for (const char *p = s; *p; ++p) {
         if (*p == '\\') {
-            str_pushb(dst, '/');
+            PadStr_PushBack(dst, '/');
         } else {
-            str_pushb(dst, *p);
+            PadStr_PushBack(dst, *p);
         }
     }
 
-    return str_esc_del(dst);
+    return PadStr_EscDel(dst);
 }
 
 int
