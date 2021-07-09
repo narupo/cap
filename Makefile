@@ -83,7 +83,8 @@ init:
 	build$(SEP)insert \
 	build$(SEP)clone \
 	build$(SEP)replace \
-	build$(SEP)lang
+	build$(SEP)lang \
+	build$(SEP)lang$(SEP)builtin
 	$(CPR) tests_env build$(SEP)tests_env
 
 .PHONY: cc
@@ -122,7 +123,8 @@ SRCS := \
 	build/insert/insert.c \
 	build/clone/clone.c \
 	build/replace/replace.c \
-	build/lang/importer.c
+	build/lang/importer.c \
+	build/lang/builtin/functions.c
 
 OBJS := $(SRCS:.c=.o)
 
@@ -216,4 +218,6 @@ build/replace/replace.o: cap/replace/replace.c cap/replace/replace.h
 build/find/arguments_manager.o: cap/find/arguments_manager.c cap/find/arguments_manager.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/lang/importer.o: cap/lang/importer.c cap/lang/importer.h
+	$(CC) $(CFLAGS) -c $< -o $@
+build/lang/builtin/functions.o: cap/lang/builtin/functions.c cap/lang/builtin/functions.h
 	$(CC) $(CFLAGS) -c $< -o $@
