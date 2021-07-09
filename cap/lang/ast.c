@@ -297,7 +297,7 @@ ast_del_nodes(const ast_t *self, node_t *node) {
         nodearr_del_without_nodes(array_elems->nodearr);
     } break;
     case NODE_TYPE_DICT: {
-        _node_dict_t *dict = node->real;
+        _node_PadDict *dict = node->real;
         ast_del_nodes(self, dict->dict_elems);
     } break;
     case NODE_TYPE_DICT_ELEMS: {
@@ -345,8 +345,8 @@ ast_del_nodes(const ast_t *self, node_t *node) {
         }
         nodearr_del_without_nodes(func_def->contents);
 
-        for (int32_t i = 0; i < nodedict_len(func_def->blocks); ++i) {
-            const node_dict_item_t *item = nodedict_getc_index(func_def->blocks, i);
+        for (int32_t i = 0; i < nodePadDict_Len(func_def->blocks); ++i) {
+            const node_dict_item_t *item = nodePadDict_GetcIndex(func_def->blocks, i);
             ast_del_nodes(self, item->value);
         }
         nodedict_del_without_nodes(func_def->blocks);
@@ -622,13 +622,13 @@ ast_dump(const ast_t *self, FILE *fout) {
     ctx_dump(self->ref_context, fout);
 }
 
-context_t *
+PadCtx *
 ast_get_ref_context(ast_t *self) {
     return self->ref_context;
 }
 
 void
-ast_set_ref_context(ast_t *ast, context_t *ref_context) {
+ast_set_ref_context(ast_t *ast, PadCtx *ref_context) {
     ast->ref_context = ref_context;
 }
 

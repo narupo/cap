@@ -41,7 +41,7 @@ struct ast {
     node_t *root;
 
     // reference of context. update when traverse tree (do not delete)
-    context_t *ref_context;
+    PadCtx *ref_context;
 
     // options for builtin opts module
     opts_t *opts;
@@ -110,7 +110,7 @@ void
 ast_move_opts(ast_t *self, opts_t *move_opts);
 
 void
-ast_set_ref_context(ast_t *ast, context_t *ref_context);
+ast_set_ref_context(ast_t *ast, PadCtx *ref_context);
 
 void
 ast_set_ref_gc(ast_t *ast, gc_t *ref_gc);
@@ -233,7 +233,7 @@ ast_dump(const ast_t *self, FILE *fout);
  *
  * @return reference to ast_t (do not delete)
  */
-context_t *
+PadCtx *
 ast_get_ref_context(ast_t *self);
 
 /**

@@ -105,7 +105,7 @@ print_fname(const lscmd_t *self, FILE *fout, bool print_color, const char *path,
 
     if (PadFile_IsDir(fpath)) {
         term_cfprintf(fout, TERM_WHITE, TERM_GREEN, TERM_BRIGHT, "%s", name);
-    } else if (symlink_is_link_file(fpath)) {
+    } else if (CapSymlink_IsLinkFile(fpath)) {
         term_cfprintf(fout, TERM_CYAN, TERM_BLACK, TERM_BRIGHT, "%s", name);
     } else {
         term_cfprintf(fout, TERM_GREEN, TERM_BLACK, TERM_BRIGHT, "%s", name);
@@ -142,13 +142,13 @@ lscmd_dir2arr(const lscmd_t *self, file_dir_t *dir) {
         return NULL;
     }
 
-    for (file_dirnode_t *nd; (nd = PadFileDir_Read(dir)); ) {
-        const char *name = PadFileDirNode_Name(nd);
+    for (PadDirNode *nd; (nd = PadDir_Read(dir)); ) {
+        const char *name = PadDirNode_Name(nd);
         if (lscmd_isdotfile(self, name) && !self->opts.is_all) {
             continue;
         }
         cstrarr_push(arr, name);
-        file_dirnodedel(nd);
+        PadDirNode_Del(nd);
     }
 
     return arr;
@@ -161,7 +161,7 @@ lscmd_ls(const lscmd_t *self, const char *path) {
         return 1;
     }
 
-    file_dir_t *dir = PadFileDir_Open(path);
+    file_dir_t *dir = PadDir_Open(path);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", path);
         return 2;
@@ -177,7 +177,7 @@ lscmd_ls(const lscmd_t *self, const char *path) {
     lscmd_arrdump(self, stdout, path, arr);
     cstrarr_del(arr);
 
-    if (PadFileDir_Close(dir) < 0) {
+    if (PadDir_Close(dir) < 0) {
         PadErr_Err("failed to close directory \"%s\"", path);
         return 4;
     }

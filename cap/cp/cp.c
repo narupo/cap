@@ -229,8 +229,8 @@ copy_re(CapCpCmd *self, const char *dst_path, const char *src_path) {
         return false;
     }
 
-    for (file_dirnode_t *node; (node = PadFileDir_Read(dir)); ) {
-        const char *fname = PadFileDirNode_Name(node);
+    for (PadDirNode *node; (node = PadFileDir_Read(dir)); ) {
+        const char *fname = PadDirNode_Name(node);
         if (!strcmp(fname, ".") || !strcmp(fname, "..")) {
             continue;
         }

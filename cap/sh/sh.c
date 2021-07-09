@@ -20,7 +20,7 @@ struct sh {
     int optind;
     char **argv;
     struct Opts opts;
-    cmdline_t *cmdline;
+    PadCmdline *cmdline;
     kit_t *kit;
     int last_exit_code;
     char line_buf[LINE_BUFFER_SIZE];
@@ -117,7 +117,7 @@ shcmd_del(shcmd_t *self) {
     }
 
     // DO NOT DELETE config and argv
-    cmdline_del(self->cmdline);
+    PadCmdline_Del(self->cmdline);
     kit_del(self->kit);
     free(self);
 }
@@ -129,7 +129,7 @@ shcmd_new(CapConfig *config, int argc, char **argv) {
     self->config = config;
     self->argc = argc;
     self->argv = argv;
-    self->cmdline = cmdline_new();
+    self->cmdline = PadCmdline_New();
     self->kit = kit_new(config);
 
     if (!shcmd_parse_opts(self)) {
@@ -153,7 +153,7 @@ shcmd_create_prompt(shcmd_t *self, char *dst, int32_t dstsz) {
     char *dp = dst;
 
     for (; *b && dp < dend; ++b, ++dp) {
-#ifdef _CAP_WINDOWS
+#ifdef CAP__WINDOWS
         *dp = *b == '\\' ? '/' : *b;
 #else
         *dp = *b;
@@ -186,7 +186,7 @@ shcmd_input(shcmd_t *self) {
 int
 shcmd_exec_alias(shcmd_t *self, bool *found, int argc, char **argv) {
     *found = false;
-    almgr_t *almgr = almgr_new(self->config);
+    CapAliasMgr *almgr = CapAliasMgr_New(self->config);
 
     // find alias value by name
     // find first from local scope
@@ -194,7 +194,7 @@ shcmd_exec_alias(shcmd_t *self, bool *found, int argc, char **argv) {
     const char *cmdname = argv[0];
     char alias_val[1024];
     if (almgr_find_alias_value(almgr, alias_val, sizeof alias_val, cmdname, CAP_SCOPE_LOCAL) == NULL) {
-        almgr_clear_error(almgr);
+        CapAliasMgr_Clear_error(almgr);
         if (almgr_find_alias_value(almgr, alias_val, sizeof alias_val, cmdname, CAP_SCOPE_GLOBAL) == NULL) {
             *found = false;
             return 1;
@@ -204,22 +204,22 @@ shcmd_exec_alias(shcmd_t *self, bool *found, int argc, char **argv) {
     *found = true;
 
     // create cap's command line with alias value
-    string_t *cmdline = str_new();
+    string_t *cmdline = PadStr_New();
 
-    str_app(cmdline, alias_val);
-    str_app(cmdline, " ");
+    PadStr_App(cmdline, alias_val);
+    PadStr_App(cmdline, " ");
     for (int i = 1; i < argc; ++i) {
-        str_app(cmdline, "\"");
-        str_app(cmdline, argv[i]);
-        str_app(cmdline, "\"");
-        str_app(cmdline, " ");
+        PadStr_App(cmdline, "\"");
+        PadStr_App(cmdline, argv[i]);
+        PadStr_App(cmdline, "\"");
+        PadStr_App(cmdline, " ");
     }
     str_popb(cmdline);
 
     // convert command to application's arguments
     cl_t *cl = cl_new();
-    cl_parse_str(cl, str_getc(cmdline));
-    str_del(cmdline);
+    cl_parse_str(cl, PadStr_Getc(cmdline));
+    PadStr_Del(cmdline);
 
     int re_argc = cl_len(cl);
     char **re_argv = cl_escdel(cl);
@@ -272,37 +272,37 @@ shcmd_exec_command(shcmd_t *self, int argc, char **argv) {
 
     const char *cmdname = argv[0];
 
-    if (cstr_eq(cmdname, "exit")) {
+    if (PadCStr_Eq(cmdname, "exit")) {
         return 1;
-    } else if (cstr_eq(cmdname, "clear")) {
+    } else if (PadCStr_Eq(cmdname, "clear")) {
         clear_screen();
-    } else if (argc >= 2 && cstr_eq(cmdname, "echo") && cstr_eq(argv[1], "$?")) {
+    } else if (argc >= 2 && PadCStr_Eq(cmdname, "echo") && PadCStr_Eq(argv[1], "$?")) {
         printf("%d\n", self->last_exit_code);
-    } else if (cstr_eq(cmdname, "home")) {
+    } else if (PadCStr_Eq(cmdname, "home")) {
         routine(homecmd);
         config_init(self->config);
-    } else if (cstr_eq(cmdname, "cd")) {
+    } else if (PadCStr_Eq(cmdname, "cd")) {
         routine(cdcmd);
         config_init(self->config);
-    } else if (cstr_eq(cmdname, "pwd")) {
+    } else if (PadCStr_Eq(cmdname, "pwd")) {
         routine(pwdcmd);
-    } else if (cstr_eq(cmdname, "ls")) {
+    } else if (PadCStr_Eq(cmdname, "ls")) {
         routine(lscmd);
-    } else if (cstr_eq(cmdname, "cat")) {
+    } else if (PadCStr_Eq(cmdname, "cat")) {
         routine(catcmd);
-    } else if (cstr_eq(cmdname, "run")) {
+    } else if (PadCStr_Eq(cmdname, "run")) {
         routine(runcmd);
-    } else if (cstr_eq(cmdname, "exec")) {
+    } else if (PadCStr_Eq(cmdname, "exec")) {
         routine(execcmd);
-    } else if (cstr_eq(cmdname, "alias")) {
+    } else if (PadCStr_Eq(cmdname, "alias")) {
         routine(alcmd);
-    } else if (cstr_eq(cmdname, "edit")) {
+    } else if (PadCStr_Eq(cmdname, "edit")) {
         routine(editcmd);
-    } else if (cstr_eq(cmdname, "editor")) {
+    } else if (PadCStr_Eq(cmdname, "editor")) {
         routine(editorcmd);
-    } else if (cstr_eq(cmdname, "mkdir")) {
+    } else if (PadCStr_Eq(cmdname, "mkdir")) {
         routine(mkdircmd);
-    } else if (cstr_eq(cmdname, "rm")) {
+    } else if (PadCStr_Eq(cmdname, "rm")) {
         rmcmd_t *cmd = rmcmd_new(self->config, argc, argv);
         result = rmcmd_run(cmd);
         switch (rmcmd_errno(cmd)) {
@@ -310,19 +310,19 @@ shcmd_exec_command(shcmd_t *self, int argc, char **argv) {
         default: PadErr_Err(rmcmd_what(cmd)); break;
         }
         rmcmd_del(cmd);
-    } else if (cstr_eq(cmdname, "mv")) {
+    } else if (PadCStr_Eq(cmdname, "mv")) {
         routine(mvcmd);
-    } else if (cstr_eq(cmdname, "cp")) {
+    } else if (PadCStr_Eq(cmdname, "cp")) {
         routine(cpcmd);
-    } else if (cstr_eq(cmdname, "snippet")) {
+    } else if (PadCStr_Eq(cmdname, "snippet")) {
         routine(snptcmd);
-    } else if (cstr_eq(cmdname, "link")) {
+    } else if (PadCStr_Eq(cmdname, "link")) {
         routine(linkcmd);
-    } else if (cstr_eq(cmdname, "make")) {
+    } else if (PadCStr_Eq(cmdname, "make")) {
         routine(makecmd);
-    } else if (cstr_eq(cmdname, "cook")) {
+    } else if (PadCStr_Eq(cmdname, "cook")) {
         routine(cookcmd);
-    } else if (cstr_eq(cmdname, "find")) {
+    } else if (PadCStr_Eq(cmdname, "find")) {
         routine(findcmd);
     } else {
         result = execute_all(self, argc, argv);
@@ -346,16 +346,16 @@ shcmd_update(shcmd_t *self) {
         return 0;
     }
 
-    if (!cmdline_parse(self->cmdline, self->line_buf)) {
+    if (!PadCmdline_Parse(self->cmdline, self->line_buf)) {
         PadErr_Err("failed to parse command line");
         return 1;
     }
 
-    if (cmdline_len(self->cmdline) == 0) {
+    if (PadCmdline_Len(self->cmdline) == 0) {
         return 0;
     }
 
-    const cmdline_object_t *obj = cmdline_getc(self->cmdline, 0);
+    const cmdline_object_t *obj = PadCmdline_Getc(self->cmdline, 0);
     if (obj->type != CMDLINE_OBJECT_TYPE_CMD) {
         return 0;
     }

@@ -12,8 +12,8 @@ cook *
 cp *
 edit *
 editor *
-exec
-find
+exec *
+find *
 home
 hub
 insert

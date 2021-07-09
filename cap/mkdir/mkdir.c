@@ -104,7 +104,7 @@ mkdircmd_mkdirp(mkdircmd_t *self) {
             return 1;
         }
     } else {
-        const char* org = get_origin(self->config, argpath);
+        const char* org = Cap_GetOrigin(self->config, argpath);
         char tmppath[FILE_NPATH];
 
         snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
@@ -134,7 +134,7 @@ mkdircmd_mkdir(mkdircmd_t *self) {
             return 1;
         }
     } else {
-        const char *org = get_origin(self->config, argpath);
+        const char *org = Cap_GetOrigin(self->config, argpath);
         char tmppath[FILE_NPATH];
 
         snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);

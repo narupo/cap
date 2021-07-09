@@ -132,7 +132,7 @@ solve_path(char *dst, int32_t dstsz, const char *path) {
     tokenizer_t *tkr = tkr_new(mem_move(opt)); \
     ast_t *ast = ast_new(config); \
     gc_t *gc = gc_new(); \
-    context_t *ctx = ctx_new(gc); \
+    PadCtx *ctx = ctx_new(gc); \
 
 #define trv_cleanup \
     ctx_del(ctx); \
@@ -399,247 +399,247 @@ cstrarr_tests[] = {
 **********/
 
 void
-test_cmdline_new(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_New(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_del(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Del(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_parse_0(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Parse_0(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
-    assert(cmdline_parse(cmdline, "abc"));
+    assert(PadCmdline_Parse(cmdline, "abc"));
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_parse_1(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Parse_1(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
-    assert(cmdline_parse(cmdline, "abc && def"));
+    assert(PadCmdline_Parse(cmdline, "abc && def"));
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_parse_2(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Parse_2(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
-    assert(cmdline_parse(cmdline, "abc | def"));
+    assert(PadCmdline_Parse(cmdline, "abc | def"));
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_parse_3(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Parse_3(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
-    assert(cmdline_parse(cmdline, "abc > def"));
+    assert(PadCmdline_Parse(cmdline, "abc > def"));
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_parse(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Parse(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
     const cmdline_object_t *obj = NULL;
 
-    assert(cmdline_parse(cmdline, "abc && def | ghi > jkl"));
-    assert(cmdline_len(cmdline) == 7);
-    obj = cmdline_getc(cmdline, 0);
+    assert(PadCmdline_Parse(cmdline, "abc && def | ghi > jkl"));
+    assert(PadCmdline_Len(cmdline) == 7);
+    obj = PadCmdline_Getc(cmdline, 0);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "abc"));
+    assert(!strcmp(PadStr_Getc(obj->command), "abc"));
     assert(cl_len(obj->cl) == 1);
-    obj = cmdline_getc(cmdline, 1);
+    obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_AND);
-    obj = cmdline_getc(cmdline, 2);
+    obj = PadCmdline_Getc(cmdline, 2);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "def"));
+    assert(!strcmp(PadStr_Getc(obj->command), "def"));
     assert(cl_len(obj->cl) == 1);
-    obj = cmdline_getc(cmdline, 3);
+    obj = PadCmdline_Getc(cmdline, 3);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_PIPE);
-    obj = cmdline_getc(cmdline, 4);
+    obj = PadCmdline_Getc(cmdline, 4);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "ghi"));
+    assert(!strcmp(PadStr_Getc(obj->command), "ghi"));
     assert(cl_len(obj->cl) == 1);
-    obj = cmdline_getc(cmdline, 5);
+    obj = PadCmdline_Getc(cmdline, 5);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_REDIRECT);
-    obj = cmdline_getc(cmdline, 6);
+    obj = PadCmdline_Getc(cmdline, 6);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "jkl"));
+    assert(!strcmp(PadStr_Getc(obj->command), "jkl"));
     assert(cl_len(obj->cl) == 1);
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_parse_pipe(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Parse_pipe(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
     const cmdline_object_t *obj = NULL;
 
-    assert(cmdline_parse(cmdline, "abc"));
-    assert(cmdline_len(cmdline) == 1);
-    obj = cmdline_getc(cmdline, 0);
+    assert(PadCmdline_Parse(cmdline, "abc"));
+    assert(PadCmdline_Len(cmdline) == 1);
+    obj = PadCmdline_Getc(cmdline, 0);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "abc"));
+    assert(!strcmp(PadStr_Getc(obj->command), "abc"));
     assert(cl_len(obj->cl) == 1);
 
-    assert(cmdline_parse(cmdline, "abc | def"));
-    assert(cmdline_len(cmdline) == 3);
-    obj = cmdline_getc(cmdline, 0);
+    assert(PadCmdline_Parse(cmdline, "abc | def"));
+    assert(PadCmdline_Len(cmdline) == 3);
+    obj = PadCmdline_Getc(cmdline, 0);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "abc"));
+    assert(!strcmp(PadStr_Getc(obj->command), "abc"));
     assert(cl_len(obj->cl) == 1);
-    obj = cmdline_getc(cmdline, 1);
+    obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_PIPE);
-    obj = cmdline_getc(cmdline, 2);
+    obj = PadCmdline_Getc(cmdline, 2);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "def"));
+    assert(!strcmp(PadStr_Getc(obj->command), "def"));
     assert(cl_len(obj->cl) == 1);
 
-    assert(cmdline_parse(cmdline, "abc -d efg | hij -d \"klm\""));
-    assert(cmdline_len(cmdline) == 3);
-    obj = cmdline_getc(cmdline, 0);
+    assert(PadCmdline_Parse(cmdline, "abc -d efg | hij -d \"klm\""));
+    assert(PadCmdline_Len(cmdline) == 3);
+    obj = PadCmdline_Getc(cmdline, 0);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "abc -d efg"));
+    assert(!strcmp(PadStr_Getc(obj->command), "abc -d efg"));
     assert(cl_len(obj->cl) == 3);
-    obj = cmdline_getc(cmdline, 1);
+    obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_PIPE);
-    obj = cmdline_getc(cmdline, 2);
+    obj = PadCmdline_Getc(cmdline, 2);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "hij -d \"klm\""));
+    assert(!strcmp(PadStr_Getc(obj->command), "hij -d \"klm\""));
     assert(cl_len(obj->cl) == 3);
 
-    assert(cmdline_parse(cmdline, "a | b | c | d | e"));
-    assert(cmdline_len(cmdline) == 9);
+    assert(PadCmdline_Parse(cmdline, "a | b | c | d | e"));
+    assert(PadCmdline_Len(cmdline) == 9);
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_parse_and(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Parse_and(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
     const cmdline_object_t *obj = NULL;
 
-    assert(cmdline_parse(cmdline, "abc && def"));
-    assert(cmdline_len(cmdline) == 3);
-    obj = cmdline_getc(cmdline, 0);
+    assert(PadCmdline_Parse(cmdline, "abc && def"));
+    assert(PadCmdline_Len(cmdline) == 3);
+    obj = PadCmdline_Getc(cmdline, 0);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "abc"));
+    assert(!strcmp(PadStr_Getc(obj->command), "abc"));
     assert(cl_len(obj->cl) == 1);
-    obj = cmdline_getc(cmdline, 1);
+    obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_AND);
-    obj = cmdline_getc(cmdline, 2);
+    obj = PadCmdline_Getc(cmdline, 2);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "def"));
+    assert(!strcmp(PadStr_Getc(obj->command), "def"));
     assert(cl_len(obj->cl) == 1);
 
-    assert(cmdline_parse(cmdline, "abc -d efg && hij -d \"klm\""));
-    assert(cmdline_len(cmdline) == 3);
-    obj = cmdline_getc(cmdline, 0);
+    assert(PadCmdline_Parse(cmdline, "abc -d efg && hij -d \"klm\""));
+    assert(PadCmdline_Len(cmdline) == 3);
+    obj = PadCmdline_Getc(cmdline, 0);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "abc -d efg"));
+    assert(!strcmp(PadStr_Getc(obj->command), "abc -d efg"));
     assert(cl_len(obj->cl) == 3);
-    obj = cmdline_getc(cmdline, 1);
+    obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_AND);
-    obj = cmdline_getc(cmdline, 2);
+    obj = PadCmdline_Getc(cmdline, 2);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "hij -d \"klm\""));
+    assert(!strcmp(PadStr_Getc(obj->command), "hij -d \"klm\""));
     assert(cl_len(obj->cl) == 3);
 
-    assert(cmdline_parse(cmdline, "a && b && c && d && e"));
-    assert(cmdline_len(cmdline) == 9);
+    assert(PadCmdline_Parse(cmdline, "a && b && c && d && e"));
+    assert(PadCmdline_Len(cmdline) == 9);
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_parse_redirect(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Parse_redirect(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
     const cmdline_object_t *obj = NULL;
 
-    assert(cmdline_parse(cmdline, "abc > def"));
-    assert(cmdline_len(cmdline) == 3);
-    obj = cmdline_getc(cmdline, 0);
+    assert(PadCmdline_Parse(cmdline, "abc > def"));
+    assert(PadCmdline_Len(cmdline) == 3);
+    obj = PadCmdline_Getc(cmdline, 0);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "abc"));
+    assert(!strcmp(PadStr_Getc(obj->command), "abc"));
     assert(cl_len(obj->cl) == 1);
-    obj = cmdline_getc(cmdline, 1);
+    obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_REDIRECT);
-    obj = cmdline_getc(cmdline, 2);
+    obj = PadCmdline_Getc(cmdline, 2);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "def"));
+    assert(!strcmp(PadStr_Getc(obj->command), "def"));
     assert(cl_len(obj->cl) == 1);
 
-    assert(cmdline_parse(cmdline, "abc -d efg > hij -d \"klm\""));
-    assert(cmdline_len(cmdline) == 3);
-    obj = cmdline_getc(cmdline, 0);
+    assert(PadCmdline_Parse(cmdline, "abc -d efg > hij -d \"klm\""));
+    assert(PadCmdline_Len(cmdline) == 3);
+    obj = PadCmdline_Getc(cmdline, 0);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "abc -d efg"));
+    assert(!strcmp(PadStr_Getc(obj->command), "abc -d efg"));
     assert(cl_len(obj->cl) == 3);
-    obj = cmdline_getc(cmdline, 1);
+    obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_REDIRECT);
-    obj = cmdline_getc(cmdline, 2);
+    obj = PadCmdline_Getc(cmdline, 2);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
-    assert(!strcmp(str_getc(obj->command), "hij -d \"klm\""));
+    assert(!strcmp(PadStr_Getc(obj->command), "hij -d \"klm\""));
     assert(cl_len(obj->cl) == 3);
 
-    assert(cmdline_parse(cmdline, "a > b > c > d > e"));
-    assert(cmdline_len(cmdline) == 9);
+    assert(PadCmdline_Parse(cmdline, "a > b > c > d > e"));
+    assert(PadCmdline_Len(cmdline) == 9);
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
 test_cmdline_resize(void) {
-    cmdline_t *cmdline = cmdline_new();
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
     assert(cmdline_resize(NULL, 0) == NULL);
@@ -649,12 +649,12 @@ test_cmdline_resize(void) {
     assert(cmdline_resize(cmdline, 8));
     assert(cmdline_resize(cmdline, 16));
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
 test_cmdline_moveb(void) {
-    cmdline_t *cmdline = cmdline_new();
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
     assert(cmdline_moveb(NULL, NULL) == NULL);
@@ -664,33 +664,33 @@ test_cmdline_moveb(void) {
 
     assert(cmdline_moveb(cmdline, mem_move(obj)));
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_len(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Len(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
     assert(cmdline_moveb(NULL, NULL) == NULL);
     assert(cmdline_moveb(cmdline, NULL) == NULL);
-    assert(cmdline_len(NULL) == -1);
+    assert(PadCmdline_Len(NULL) == -1);
 
     cmdline_object_t *obj1 = cmdlineobj_new(CMDLINE_OBJECT_TYPE_CMD);
     cmdline_object_t *obj2 = cmdlineobj_new(CMDLINE_OBJECT_TYPE_CMD);
 
     assert(cmdline_moveb(cmdline, mem_move(obj1)));
-    assert(cmdline_len(cmdline) == 1);
+    assert(PadCmdline_Len(cmdline) == 1);
 
     assert(cmdline_moveb(cmdline, mem_move(obj2)));
-    assert(cmdline_len(cmdline) == 2);
+    assert(PadCmdline_Len(cmdline) == 2);
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
 test_cmdline_clear(void) {
-    cmdline_t *cmdline = cmdline_new();
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
     cmdline_clear(NULL);
@@ -698,61 +698,61 @@ test_cmdline_clear(void) {
     cmdline_object_t *obj = cmdlineobj_new(CMDLINE_OBJECT_TYPE_CMD);
 
     assert(cmdline_moveb(cmdline, mem_move(obj)));
-    assert(cmdline_len(cmdline) == 1);
+    assert(PadCmdline_Len(cmdline) == 1);
 
     cmdline_clear(cmdline);
-    assert(cmdline_len(cmdline) == 0);
+    assert(PadCmdline_Len(cmdline) == 0);
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
-test_cmdline_getc(void) {
-    cmdline_t *cmdline = cmdline_new();
+test_PadCmdline_Getc(void) {
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
-    assert(cmdline_getc(NULL, -1) == NULL);
-    assert(cmdline_getc(cmdline, -1) == NULL);
-    assert(cmdline_getc(cmdline, 0) == NULL);
+    assert(PadCmdline_Getc(NULL, -1) == NULL);
+    assert(PadCmdline_Getc(cmdline, -1) == NULL);
+    assert(PadCmdline_Getc(cmdline, 0) == NULL);
 
     cmdline_object_t *obj = cmdlineobj_new(CMDLINE_OBJECT_TYPE_CMD);
 
     assert(cmdline_moveb(cmdline, mem_move(obj)));
-    assert(cmdline_len(cmdline) == 1);
+    assert(PadCmdline_Len(cmdline) == 1);
 
-    assert(cmdline_getc(cmdline, 0));
-    assert(cmdline_getc(cmdline, 1) == NULL);
+    assert(PadCmdline_Getc(cmdline, 0));
+    assert(PadCmdline_Getc(cmdline, 1) == NULL);
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 void
 test_cmdline_has_error(void) {
-    cmdline_t *cmdline = cmdline_new();
+    PadCmdline *cmdline = PadCmdline_New();
     assert(cmdline);
 
-    assert(cmdline_parse(cmdline, "||||") == NULL);
+    assert(PadCmdline_Parse(cmdline, "||||") == NULL);
     assert(cmdline_has_error(cmdline));
 
-    cmdline_del(cmdline);
+    PadCmdline_Del(cmdline);
 }
 
 static const struct testcase
-cmdline_tests[] = {
-    {"cmdline_new", test_cmdline_new},
-    {"cmdline_del", test_cmdline_del},
-    {"cmdline_parse", test_cmdline_parse},
-    {"cmdline_parse_0", test_cmdline_parse_0},
-    {"cmdline_parse_1", test_cmdline_parse_1},
-    {"cmdline_parse_2", test_cmdline_parse_2},
-    {"cmdline_parse_3", test_cmdline_parse_3},
-    {"cmdline_parse_pipe", test_cmdline_parse_pipe},
-    {"cmdline_parse_and", test_cmdline_parse_and},
-    {"cmdline_parse_redirect", test_cmdline_parse_redirect},
+PadCmdlineests[] = {
+    {"PadCmdline_New", test_PadCmdline_New},
+    {"PadCmdline_Del", test_PadCmdline_Del},
+    {"PadCmdline_Parse", test_PadCmdline_Parse},
+    {"PadCmdline_Parse_0", test_PadCmdline_Parse_0},
+    {"PadCmdline_Parse_1", test_PadCmdline_Parse_1},
+    {"PadCmdline_Parse_2", test_PadCmdline_Parse_2},
+    {"PadCmdline_Parse_3", test_PadCmdline_Parse_3},
+    {"PadCmdline_Parse_pipe", test_PadCmdline_Parse_pipe},
+    {"PadCmdline_Parse_and", test_PadCmdline_Parse_and},
+    {"PadCmdline_Parse_redirect", test_PadCmdline_Parse_redirect},
     {"cmdline_resize", test_cmdline_resize},
     {"cmdline_moveb", test_cmdline_moveb},
     {"cmdline_clear", test_cmdline_clear},
-    {"cmdline_getc", test_cmdline_getc},
+    {"PadCmdline_Getc", test_PadCmdline_Getc},
     {"cmdline_has_error", test_cmdline_has_error},
     {0},
 };
@@ -930,12 +930,12 @@ test_cstring_cstr_split(void) {
 }
 
 static void
-test_cstring_cstr_eq(void) {
-    assert(!cstr_eq(NULL, NULL));
-    assert(!cstr_eq("abc", NULL));
+test_cstring_PadCStr_Eq(void) {
+    assert(!PadCStr_Eq(NULL, NULL));
+    assert(!PadCStr_Eq("abc", NULL));
 
-    assert(cstr_eq("abc", "abc"));
-    assert(!cstr_eq("abc", "def"));
+    assert(PadCStr_Eq("abc", "abc"));
+    assert(!PadCStr_Eq("abc", "def"));
 }
 
 static void
@@ -956,7 +956,7 @@ cstring_tests[] = {
     {"PadCStr_App_fmt", test_cstring_PadCStr_App_fmt},
     {"cstr_edup", test_cstring_cstr_edup},
     {"cstr_split", test_cstring_cstr_split},
-    {"cstr_eq", test_cstring_cstr_eq},
+    {"PadCStr_Eq", test_cstring_PadCStr_Eq},
     {"cstr_isdigit", test_cstring_cstr_isdigit},
     {0},
 };
@@ -966,16 +966,16 @@ cstring_tests[] = {
 *********/
 
 static void
-test_str_del(void) {
-    string_t *s = str_new();
+test_PadStr_Del(void) {
+    string_t *s = PadStr_New();
     assert(s != NULL);
-    str_del(NULL);
-    str_del(s);
+    PadStr_Del(NULL);
+    PadStr_Del(s);
 }
 
 static void
 test_str_esc_del(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_esc_del(NULL) == NULL);
     char *ptr = str_esc_del(s);
@@ -984,181 +984,181 @@ test_str_esc_del(void) {
 }
 
 static void
-test_str_new(void) {
-    string_t *s = str_new();
+test_PadStr_New(void) {
+    string_t *s = PadStr_New();
     assert(s != NULL);
-    str_del(s);
+    PadStr_Del(s);
 }
 
 static void
-test_str_new_cstr(void) {
-    assert(str_new_cstr(NULL) == NULL);
+test_PadStr_New_cstr(void) {
+    assert(PadStr_New_cstr(NULL) == NULL);
     
-    string_t *s = str_new_cstr("abc");
+    string_t *s = PadStr_New_cstr("abc");
     assert(s);
-    assert(!strcmp(str_getc(s), "abc"));
-    str_del(s);
+    assert(!strcmp(PadStr_Getc(s), "abc"));
+    PadStr_Del(s);
 }
 
 static void
 test_str_deep_copy(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_set(s, "1234") != NULL);
     assert(str_deep_copy(NULL) == NULL);
     string_t *o = str_deep_copy(s);
     assert(o != NULL);
-    assert(strcmp(str_getc(o), "1234") == 0);
-    str_del(o);
-    str_del(s);
+    assert(strcmp(PadStr_Getc(o), "1234") == 0);
+    PadStr_Del(o);
+    PadStr_Del(s);
 }
 
 static void
-test_str_len(void) {
-    string_t *s = str_new();
+test_PadStr_Len(void) {
+    string_t *s = PadStr_New();
     assert(s != NULL);
-    assert(str_len(NULL) == -1);
-    assert(str_len(s) == 0);
-    assert(str_app(s, "abc") != NULL);
-    assert(str_len(s) == 3);
-    str_del(s);
+    assert(PadStr_Len(NULL) == -1);
+    assert(PadStr_Len(s) == 0);
+    assert(PadStr_App(s, "abc") != NULL);
+    assert(PadStr_Len(s) == 3);
+    PadStr_Del(s);
 }
 
 static void
 test_str_capa(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_capa(NULL) == -1);
     assert(str_capa(s) == 4);
-    assert(str_app(s, "1234") != NULL);
+    assert(PadStr_App(s, "1234") != NULL);
     assert(str_capa(s) == 8);
-    str_del(s);
+    PadStr_Del(s);
 }
 
 static void
-test_str_getc(void) {
-    string_t *s = str_new();
+test_PadStr_Getc(void) {
+    string_t *s = PadStr_New();
     assert(s != NULL);
-    assert(str_getc(NULL) == NULL);
-    assert(strcmp(str_getc(s), "") == 0);
-    assert(str_app(s, "1234") != NULL);
-    assert(strcmp(str_getc(s), "1234") == 0);
-    str_del(s);
+    assert(PadStr_Getc(NULL) == NULL);
+    assert(strcmp(PadStr_Getc(s), "") == 0);
+    assert(PadStr_App(s, "1234") != NULL);
+    assert(strcmp(PadStr_Getc(s), "1234") == 0);
+    PadStr_Del(s);
 }
 
 static void
 test_str_empty(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_empty(NULL) == 0);
     assert(str_empty(s) == 1);
-    assert(str_app(s, "1234") != NULL);
+    assert(PadStr_App(s, "1234") != NULL);
     assert(str_empty(s) == 0);
-    str_del(s);
+    PadStr_Del(s);
 }
 
 static void
-test_str_clear(void) {
-    string_t *s = str_new();
+test_PadStr_Clear(void) {
+    string_t *s = PadStr_New();
     assert(s != NULL);
-    assert(str_app(NULL, "1234") == NULL);
-    assert(str_app(s, NULL) == NULL);
-    assert(str_app(s, "1234") != NULL);
-    assert(str_len(s) == 4);
-    str_clear(s);
-    assert(str_len(s) == 0);
-    str_del(s);
+    assert(PadStr_App(NULL, "1234") == NULL);
+    assert(PadStr_App(s, NULL) == NULL);
+    assert(PadStr_App(s, "1234") != NULL);
+    assert(PadStr_Len(s) == 4);
+    PadStr_Clear(s);
+    assert(PadStr_Len(s) == 0);
+    PadStr_Del(s);
 }
 
 static void
 test_str_set(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_set(NULL, "1234") == NULL);
     assert(str_set(s, NULL) == NULL);
     assert(str_set(s, "1234") != NULL);
-    assert(strcmp(str_getc(s), "1234") == 0);
+    assert(strcmp(PadStr_Getc(s), "1234") == 0);
     assert(str_set(s, "12") != NULL);
-    assert(strcmp(str_getc(s), "12") == 0);
-    str_del(s);
+    assert(strcmp(PadStr_Getc(s), "12") == 0);
+    PadStr_Del(s);
 }
 
 static void
 test_str_resize(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_capa(NULL) == -1);
     assert(str_capa(s) == 4);
     assert(str_resize(s, 4*2) != NULL);
     assert(str_capa(s) == 8);
-    str_del(s);
+    PadStr_Del(s);
 }
 
 static void
 test_str_pushb(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_pushb(NULL, '1') == NULL);
     assert(str_pushb(s, 0) == NULL);
     assert(str_pushb(s, '\0') == NULL);
     assert(str_pushb(s, '1') != NULL);
     assert(str_pushb(s, '2') != NULL);
-    assert(strcmp(str_getc(s), "12") == 0);
-    str_del(s);
+    assert(strcmp(PadStr_Getc(s), "12") == 0);
+    PadStr_Del(s);
 }
 
 static void
 test_str_popb(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_popb(NULL) == '\0');
     assert(str_set(s, "1234") != NULL);
-    assert(strcmp(str_getc(s), "1234") == 0);
+    assert(strcmp(PadStr_Getc(s), "1234") == 0);
     assert(str_popb(s) == '4');
     assert(str_popb(s) == '3');
-    assert(strcmp(str_getc(s), "12") == 0);
-    str_del(s);
+    assert(strcmp(PadStr_Getc(s), "12") == 0);
+    PadStr_Del(s);
 }
 
 static void
 test_str_pushf(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_pushf(NULL, '1') == NULL);
     assert(str_pushf(s, 0) == NULL);
     assert(str_pushf(s, '\0') == NULL);
     assert(str_pushf(s, '1') != NULL);
     assert(str_pushf(s, '2') != NULL);
-    assert(strcmp(str_getc(s), "21") == 0);
-    str_del(s);
+    assert(strcmp(PadStr_Getc(s), "21") == 0);
+    PadStr_Del(s);
 }
 
 static void
 test_str_popf(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_popf(NULL) == '\0');
     assert(str_set(s, "1234") != NULL);
     assert(str_popf(s) == '1');
     assert(str_popf(s) == '2');
-    assert(strcmp(str_getc(s), "34") == 0);
-    str_del(s);
+    assert(strcmp(PadStr_Getc(s), "34") == 0);
+    PadStr_Del(s);
 }
 
 static void
-test_str_app(void) {
-    string_t *s = str_new();
+test_PadStr_App(void) {
+    string_t *s = PadStr_New();
     assert(s != NULL);
-    assert(str_app(NULL, "1234") == NULL);
-    assert(str_app(s, NULL) == NULL);
-    assert(str_app(s, "1234") != NULL);
-    assert(strcmp(str_getc(s), "1234") == 0);
-    str_del(s);
+    assert(PadStr_App(NULL, "1234") == NULL);
+    assert(PadStr_App(s, NULL) == NULL);
+    assert(PadStr_App(s, "1234") != NULL);
+    assert(strcmp(PadStr_Getc(s), "1234") == 0);
+    PadStr_Del(s);
 }
 
 static void
-test_str_app_stream(void) {
-    string_t *s = str_new();
+test_PadStr_App_stream(void) {
+    string_t *s = PadStr_New();
     assert(s != NULL);
 
     char curdir[1024];
@@ -1168,53 +1168,53 @@ test_str_app_stream(void) {
 
     FILE *fin = fopen(path, "r");
     assert(fin != NULL);
-    assert(str_app_stream(NULL, fin) == NULL);
-    assert(str_app_stream(s, NULL) == NULL);
-    assert(str_app_stream(s, fin) != NULL);
+    assert(PadStr_App_stream(NULL, fin) == NULL);
+    assert(PadStr_App_stream(s, NULL) == NULL);
+    assert(PadStr_App_stream(s, fin) != NULL);
     assert(fclose(fin) == 0);
 
-    str_del(s);
+    PadStr_Del(s);
 }
 
 static void
-test_str_app_other(void) {
-    string_t *s = str_new();
+test_PadStr_App_other(void) {
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_set(s, "1234") != NULL);
-    string_t *o = str_new();
+    string_t *o = PadStr_New();
     assert(o != NULL);
     assert(str_set(o, "1234") != NULL);
-    assert(str_app_other(NULL, o) == NULL);
-    assert(str_app_other(s, NULL) == NULL);
-    assert(str_app_other(s, o) != NULL);
-    assert(strcmp(str_getc(s), "12341234") == 0);
-    str_del(o);
-    str_del(s);
+    assert(PadStr_App_other(NULL, o) == NULL);
+    assert(PadStr_App_other(s, NULL) == NULL);
+    assert(PadStr_App_other(s, o) != NULL);
+    assert(strcmp(PadStr_Getc(s), "12341234") == 0);
+    PadStr_Del(o);
+    PadStr_Del(s);
 
-    s = str_new();
+    s = PadStr_New();
     assert(str_set(s, "1234") != NULL);
-    assert(str_app_other(s, s) != NULL);
-    assert(strcmp(str_getc(s), "12341234") == 0);
-    str_del(s);
+    assert(PadStr_App_other(s, s) != NULL);
+    assert(strcmp(PadStr_Getc(s), "12341234") == 0);
+    PadStr_Del(s);
 }
 
 static void
-test_str_app_fmt(void) {
-    string_t *s = str_new();
+test_PadStr_App_fmt(void) {
+    string_t *s = PadStr_New();
     assert(s != NULL);
     char buf[1024];
-    assert(str_app_fmt(NULL, buf, sizeof buf, "%s", "test") == NULL);
-    assert(str_app_fmt(s, NULL, sizeof buf, "%s", "test") == NULL);
-    assert(str_app_fmt(s, buf, 0, "%s", "test") == NULL);
-    assert(str_app_fmt(s, buf, sizeof buf, NULL, "test") == NULL);
-    assert(str_app_fmt(s, buf, sizeof buf, "%s %d %c", "1234", 1, '2') != NULL);
-    assert(strcmp(str_getc(s), "1234 1 2") == 0);
-    str_del(s);
+    assert(PadStr_App_fmt(NULL, buf, sizeof buf, "%s", "test") == NULL);
+    assert(PadStr_App_fmt(s, NULL, sizeof buf, "%s", "test") == NULL);
+    assert(PadStr_App_fmt(s, buf, 0, "%s", "test") == NULL);
+    assert(PadStr_App_fmt(s, buf, sizeof buf, NULL, "test") == NULL);
+    assert(PadStr_App_fmt(s, buf, sizeof buf, "%s %d %c", "1234", 1, '2') != NULL);
+    assert(strcmp(PadStr_Getc(s), "1234 1 2") == 0);
+    PadStr_Del(s);
 }
 
 static void
 test_str_rstrip(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_set(s, "1234") != NULL);
     assert(str_rstrip(NULL, "34") == NULL);
@@ -1222,15 +1222,15 @@ test_str_rstrip(void) {
 
     string_t *o = str_rstrip(s, "34");
     assert(o);
-    assert(strcmp(str_getc(o), "12") == 0);
+    assert(strcmp(PadStr_Getc(o), "12") == 0);
 
-    str_del(o);
-    str_del(s);
+    PadStr_Del(o);
+    PadStr_Del(s);
 }
 
 static void
 test_str_lstrip(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_set(s, "1234") != NULL);
     assert(str_lstrip(NULL, "12") == NULL);
@@ -1238,15 +1238,15 @@ test_str_lstrip(void) {
 
     string_t *o = str_lstrip(s, "12");
     assert(o);
-    assert(strcmp(str_getc(o), "34") == 0);
+    assert(strcmp(PadStr_Getc(o), "34") == 0);
 
-    str_del(o);
-    str_del(s);
+    PadStr_Del(o);
+    PadStr_Del(s);
 }
 
 static void
 test_str_strip(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_set(s, "--1234--") != NULL);
     assert(str_strip(NULL, "-") == NULL);
@@ -1254,15 +1254,15 @@ test_str_strip(void) {
 
     string_t *o = str_strip(s, "-");
     assert(o);
-    assert(strcmp(str_getc(o), "1234") == 0);
+    assert(strcmp(PadStr_Getc(o), "1234") == 0);
 
-    str_del(o);
-    str_del(s);
+    PadStr_Del(o);
+    PadStr_Del(s);
 }
 
 static void
 test_str_findc(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_set(s, "1234") != NULL);
     assert(str_findc(NULL, "") == NULL);
@@ -1270,327 +1270,327 @@ test_str_findc(void) {
     const char *fnd = str_findc(s, "23");
     assert(fnd != NULL);
     assert(strcmp(fnd, "234") == 0);
-    str_del(s);
+    PadStr_Del(s);
 }
 
 static void
 test_str_lower(void) {
     assert(str_lower(NULL) == NULL);
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_set(s, "ABC") != NULL);
     string_t *cp = str_lower(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc"));
-    str_del(cp);
-    str_del(s);
+    assert(!strcmp(PadStr_Getc(cp), "abc"));
+    PadStr_Del(cp);
+    PadStr_Del(s);
 }
 
 static void
 test_str_upper(void) {
     assert(str_upper(NULL) == NULL);
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_set(s, "abc") != NULL);
     string_t *cp = str_upper(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "ABC"));
-    str_del(cp);
-    str_del(s);
+    assert(!strcmp(PadStr_Getc(cp), "ABC"));
+    PadStr_Del(cp);
+    PadStr_Del(s);
 }
 
 static void
 test_str_capitalize(void) {
     assert(str_capitalize(NULL) == NULL);
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
     assert(str_set(s, "abc") != NULL);
     string_t *cp = str_capitalize(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "Abc"));
-    str_del(cp);
-    str_del(s);
+    assert(!strcmp(PadStr_Getc(cp), "Abc"));
+    PadStr_Del(cp);
+    PadStr_Del(s);
 }
 
 static void
 test_str_snake(void) {
     assert(str_snake(NULL) == NULL);
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
 
     assert(str_set(s, "abc") != NULL);
     string_t *cp = str_snake(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abcDefGhi") != NULL);
     cp = str_snake(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc_def_ghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc_def_ghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "AbcDefGhi") != NULL);
     cp = str_snake(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc_def_ghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc_def_ghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abc-def-ghi") != NULL);
     cp = str_snake(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc_def_ghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc_def_ghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "_abcDefGhi") != NULL);
     cp = str_snake(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc_def_ghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc_def_ghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "-abcDefGhi") != NULL);
     cp = str_snake(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc_def_ghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc_def_ghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "_-abcDefGhi") != NULL);
     cp = str_snake(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc_def_ghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc_def_ghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abcDefGhi_abc-DefGhi") != NULL);
     cp = str_snake(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc_def_ghi_abc_def_ghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc_def_ghi_abc_def_ghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abcDefGhi__abc--DefGhi") != NULL);
     cp = str_snake(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc_def_ghi_abc_def_ghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc_def_ghi_abc_def_ghi"));
+    PadStr_Del(cp);
 
-    str_del(s);
+    PadStr_Del(s);
 }
 
 static void
 test_str_camel(void) {
 #undef showcp
-#define showcp() printf("cp[%s]\n", str_getc(cp))
+#define showcp() printf("cp[%s]\n", PadStr_Getc(cp))
 
     assert(str_camel(NULL) == NULL);
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
 
     assert(str_set(s, "abc") != NULL);
     string_t *cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "ABC") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "aBC"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "aBC"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "AFormatB") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "aFormatB"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "aFormatB"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "ABFormat") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "aBFormat"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "aBFormat"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abcDefGhi") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcDefGhi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcDefGhi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "AbcDefGhi") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcDefGhi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcDefGhi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abc-def-ghi") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcDefGhi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcDefGhi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "_abcDefGhi") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcDefGhi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcDefGhi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "-abcDefGhi") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcDefGhi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcDefGhi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "_-abcDefGhi") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcDefGhi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcDefGhi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abcDefGhi_abc-DefGhi") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcDefGhiAbcDefGhi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcDefGhiAbcDefGhi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abcDefGhi__abc--DefGhi") != NULL);
     cp = str_camel(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcDefGhiAbcDefGhi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcDefGhiAbcDefGhi"));
+    PadStr_Del(cp);
 
-    str_del(s);
+    PadStr_Del(s);
 }
 
 static void
 test_str_hacker(void) {
 #undef showcp
-#define showcp() printf("cp[%s]\n", str_getc(cp))
+#define showcp() printf("cp[%s]\n", PadStr_Getc(cp))
 
     assert(str_hacker(NULL) == NULL);
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     assert(s != NULL);
 
     assert(str_set(s, "abc") != NULL);
     string_t *cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "ABC") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "AFormatB") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "aformatb"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "aformatb"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "ABFormat") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abformat"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abformat"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abcDefGhi") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcdefghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcdefghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "AbcDefGhi") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcdefghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcdefghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abc-def-ghi") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcdefghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcdefghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "_abcDefGhi") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcdefghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcdefghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "-abcDefGhi") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcdefghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcdefghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "_-abcDefGhi") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcdefghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcdefghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abcDefGhi_abc-DefGhi") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcdefghiabcdefghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcdefghiabcdefghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abcDefGhi__abc--DefGhi") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcdefghiabcdefghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcdefghiabcdefghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abcDefGhi__abc--DefGhi") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abcdefghiabcdefghi"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abcdefghiabcdefghi"));
+    PadStr_Del(cp);
 
     assert(str_set(s, "abc0_12def_gh34i") != NULL);
     cp = str_hacker(s);
     assert(cp);
-    assert(!strcmp(str_getc(cp), "abc012defgh34i"));
-    str_del(cp);
+    assert(!strcmp(PadStr_Getc(cp), "abc012defgh34i"));
+    PadStr_Del(cp);
 
-    str_del(s);
+    PadStr_Del(s);
 }
 
 static void
 test_str_mul(void) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
     str_set(s, "abc");
 
     assert(str_mul(NULL, 0) == NULL);
 
     string_t *m = str_mul(s, 2);
-    assert(!strcmp(str_getc(m), "abcabc"));
+    assert(!strcmp(PadStr_Getc(m), "abcabc"));
 
-    str_del(s);
+    PadStr_Del(s);
 }
 
 static const struct testcase
 string_tests[] = {
-    {"str_del", test_str_del},
+    {"PadStr_Del", test_PadStr_Del},
     {"str_esc_del", test_str_esc_del},
-    {"str_new", test_str_new},
-    {"str_new_cstr", test_str_new_cstr},
+    {"PadStr_New", test_PadStr_New},
+    {"PadStr_New_cstr", test_PadStr_New_cstr},
     {"str_deep_copy", test_str_deep_copy},
     {"str_deep_copy", test_str_deep_copy},
-    {"str_len", test_str_len},
+    {"PadStr_Len", test_PadStr_Len},
     {"str_capa", test_str_capa},
-    {"str_getc", test_str_getc},
+    {"PadStr_Getc", test_PadStr_Getc},
     {"str_empty", test_str_empty},
-    {"str_clear", test_str_clear},
+    {"PadStr_Clear", test_PadStr_Clear},
     {"str_set", test_str_set},
     {"str_resize", test_str_resize},
     {"str_pushb", test_str_pushb},
     {"str_popb", test_str_popb},
     {"str_pushf", test_str_pushf},
     {"str_popf", test_str_popf},
-    {"str_app", test_str_app},
-    {"str_app_stream", test_str_app_stream},
-    {"str_app_other", test_str_app_other},
-    {"str_app_fmt", test_str_app_fmt},
+    {"PadStr_App", test_PadStr_App},
+    {"PadStr_App_stream", test_PadStr_App_stream},
+    {"PadStr_App_other", test_PadStr_App_other},
+    {"PadStr_App_fmt", test_PadStr_App_fmt},
     {"str_rstrip", test_str_rstrip},
     {"str_lstrip", test_str_lstrip},
     {"str_strip", test_str_strip},
@@ -2409,7 +2409,7 @@ test_char16_strcmp(void) {
 
 static const struct testcase
 unicode_tests[] = {
-    {"uni_del", test_str_del},
+    {"uni_del", test_PadStr_Del},
     {"uni_esc_del", test_str_esc_del},
     {"uni_new", test_uni_new},
     {"uni_deep_copy", test_uni_deep_copy},
@@ -2737,106 +2737,106 @@ test_PadFile_WriteLine(void) {
 }
 
 static void
-test_file_dirnodedel(void) {
-    PadFileDir_Close(NULL);
-    assert(PadFileDir_Open(NULL) == NULL);
-    assert(PadFileDir_Read(NULL) == NULL);
-    file_dirnodedel(NULL);
+test_PadDirNode_Del(void) {
+    PadDir_Close(NULL);
+    assert(PadDir_Open(NULL) == NULL);
+    assert(PadDir_Read(NULL) == NULL);
+    PadDirNode_Del(NULL);
 
-    struct file_dir *dir = PadFileDir_Open(get_test_dirpath());
+    struct file_dir *dir = PadDir_Open(get_test_dirpath());
     assert(dir != NULL);
 
-    for (struct file_dirnode *node; (node = PadFileDir_Read(dir)); ) {
-        const char *dname = PadFileDirNode_Name(node);
+    for (struct file_dirnode *node; (node = PadDir_Read(dir)); ) {
+        const char *dname = PadDirNode_Name(node);
         assert(dname != NULL);
-        file_dirnodedel(node);
+        PadDirNode_Del(node);
     }
 
-    assert(PadFileDir_Close(dir) == 0);
+    assert(PadDir_Close(dir) == 0);
 }
 
 static void
-test_PadFileDirNode_Name(void) {
-    // test_PadFileDir_Close
+test_PadDirNode_Name(void) {
+    // test_PadDir_Close
 }
 
 static void
-test_PadFileDir_Close(void) {
-    // test_PadFileDir_Close
+test_PadDir_Close(void) {
+    // test_PadDir_Close
 }
 
 static void
-test_PadFileDir_Open(void) {
-    // test_PadFileDir_Close
+test_PadDir_Open(void) {
+    // test_PadDir_Close
 }
 
 static void
-test_PadFileDir_Read(void) {
-    // test_PadFileDir_Close
+test_PadDir_Read(void) {
+    // test_PadDir_Close
 }
 
 static void
-test_file_conv_line_encoding(void) {
+test_PadFile_ConvLineEnc(void) {
     char *encoded;
 
-    encoded = file_conv_line_encoding(NULL, "abc");
+    encoded = PadFile_ConvLineEnc(NULL, "abc");
     assert(!encoded);
 
-    encoded = file_conv_line_encoding("nothing", "abc");
+    encoded = PadFile_ConvLineEnc("nothing", "abc");
     assert(!encoded);
 
-    encoded = file_conv_line_encoding("crlf", NULL);
+    encoded = PadFile_ConvLineEnc("crlf", NULL);
     assert(!encoded);
 
-    encoded = file_conv_line_encoding("crlf", "abc");
+    encoded = PadFile_ConvLineEnc("crlf", "abc");
     assert(encoded);
     assert(!strcmp(encoded, "abc"));
     free(encoded);
 
     // to crlf
-    encoded = file_conv_line_encoding("crlf", "abc\r\ndef\r\n");
+    encoded = PadFile_ConvLineEnc("crlf", "abc\r\ndef\r\n");
     assert(encoded);
     assert(!strcmp(encoded, "abc\r\ndef\r\n"));
     free(encoded);
 
-    encoded = file_conv_line_encoding("crlf", "abc\rdef\r");
+    encoded = PadFile_ConvLineEnc("crlf", "abc\rdef\r");
     assert(encoded);
     assert(!strcmp(encoded, "abc\r\ndef\r\n"));
     free(encoded);
 
-    encoded = file_conv_line_encoding("crlf", "abc\ndef\n");
+    encoded = PadFile_ConvLineEnc("crlf", "abc\ndef\n");
     assert(encoded);
     assert(!strcmp(encoded, "abc\r\ndef\r\n"));
     free(encoded);
 
     // to cr
-    encoded = file_conv_line_encoding("cr", "abc\r\ndef\r\n");
+    encoded = PadFile_ConvLineEnc("cr", "abc\r\ndef\r\n");
     assert(encoded);
     assert(!strcmp(encoded, "abc\rdef\r"));
     free(encoded);
 
-    encoded = file_conv_line_encoding("cr", "abc\rdef\r");
+    encoded = PadFile_ConvLineEnc("cr", "abc\rdef\r");
     assert(encoded);
     assert(!strcmp(encoded, "abc\rdef\r"));
     free(encoded);
 
-    encoded = file_conv_line_encoding("cr", "abc\ndef\n");
+    encoded = PadFile_ConvLineEnc("cr", "abc\ndef\n");
     assert(encoded);
     assert(!strcmp(encoded, "abc\rdef\r"));
     free(encoded);
 
     // to lf
-    encoded = file_conv_line_encoding("lf", "abc\r\ndef\r\n");
+    encoded = PadFile_ConvLineEnc("lf", "abc\r\ndef\r\n");
     assert(encoded);
     assert(!strcmp(encoded, "abc\ndef\n"));
     free(encoded);
 
-    encoded = file_conv_line_encoding("lf", "abc\rdef\r");
+    encoded = PadFile_ConvLineEnc("lf", "abc\rdef\r");
     assert(encoded);
     assert(!strcmp(encoded, "abc\ndef\n"));
     free(encoded);
 
-    encoded = file_conv_line_encoding("lf", "abc\ndef\n");
+    encoded = PadFile_ConvLineEnc("lf", "abc\ndef\n");
     assert(encoded);
     assert(!strcmp(encoded, "abc\ndef\n"));
     free(encoded);
@@ -2920,12 +2920,12 @@ file_tests[] = {
     {"file_getline", test_file_getline},
     {"PadFile_ReadLine", test_PadFile_ReadLine},
     {"PadFile_WriteLine", test_PadFile_WriteLine},
-    {"file_dirnodedel", test_file_dirnodedel},
-    {"PadFileDirNode_Name", test_PadFileDirNode_Name},
-    {"PadFileDir_Close", test_PadFileDir_Close},
-    {"PadFileDir_Open", test_PadFileDir_Open},
-    {"PadFileDir_Read", test_PadFileDir_Read},
-    {"file_conv_line_encoding", test_file_conv_line_encoding},
+    {"PadDirNode_Del", test_PadDirNode_Del},
+    {"PadDirNode_Name", test_PadDirNode_Name},
+    {"PadDir_Close", test_PadDir_Close},
+    {"PadDir_Open", test_PadDir_Open},
+    {"PadDir_Read", test_PadDir_Read},
+    {"PadFile_ConvLineEnc", test_PadFile_ConvLineEnc},
     {"file_get_user_home", test_file_get_user_home},
     {"file_remove", test_file_remove},
     {"file_rename", test_file_rename},
@@ -3454,7 +3454,7 @@ test_util_Cap_SolveCmdlineArgPath(void) {
 
     char fname[FILE_NPATH];
 
-#ifdef _CAP_WINDOWS
+#ifdef CAP__WINDOWS
     snprintf(config->home_path, sizeof config->home_path, "C:\\path\\to\\home");
     snprintf(config->cd_path, sizeof config->cd_path, "C:\\path\\to\\cd");
 
@@ -3545,24 +3545,24 @@ test_util_Cap_IsOutOfHome_2(void) {
 }
 
 static void
-test_util_get_origin(void) {
+test_util_Cap_GetOrigin(void) {
     CapConfig *config = config_new();
 
     strcpy(config->home_path, "/home");
     strcpy(config->cd_path, "/cd");
 
-    assert(get_origin(NULL, NULL) == NULL);
-    assert(get_origin(config, NULL) == NULL);
+    assert(Cap_GetOrigin(NULL, NULL) == NULL);
+    assert(Cap_GetOrigin(config, NULL) == NULL);
 
-    const char *org = get_origin(config, "/file");
+    const char *org = Cap_GetOrigin(config, "/file");
     assert(!strcmp(org, "/home"));
 
     config->scope = CAP_SCOPE_LOCAL;
-    org = get_origin(config, "file");
+    org = Cap_GetOrigin(config, "file");
     assert(!strcmp(org, "/cd"));
 
     config->scope = CAP_SCOPE_GLOBAL;
-    org = get_origin(config, "file");
+    org = Cap_GetOrigin(config, "file");
     assert(!strcmp(org, "/home"));
 
     config_del(config);
@@ -3738,7 +3738,7 @@ utiltests[] = {
     {"escape", test_util_escape},
     {"compile_argv", test_util_compile_argv},
     {"pop_tail_slash", test_util_pop_tail_slash},
-    {"get_origin", test_util_get_origin},
+    {"Cap_GetOrigin", test_util_Cap_GetOrigin},
     {"trim_first_line", test_util_trim_first_line},
     {"clear_screen", test_util_clear_screen},
     // {"show_snippet", test_util_show_snippet},
@@ -5798,7 +5798,7 @@ test_cc_dict(void) {
     node_chain_t *chain;
     node_factor_t *factor;
     node_atom_t *atom;
-    _node_dict_t *dict;
+    _node_PadDict *dict;
     node_dict_elems_t *dict_elems;
     node_dict_elem_t *dict_elem;
     node_simple_assign_t *simple_assign;
@@ -12424,7 +12424,7 @@ test_trv_comparison(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = 1 == 1 @}{: a :}");
     {
@@ -12934,7 +12934,7 @@ test_trv_array_index(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     // tkr_parse(tkr, "{@ a[0] @}");
     // {
@@ -13050,7 +13050,7 @@ test_trv_text_block_old(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "abc");
     {
@@ -13075,7 +13075,7 @@ test_trv_ref_block_old(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: nil :}");
     {
@@ -13191,7 +13191,7 @@ test_trv_assign_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = 1 @}{: a :}");
     {
@@ -13389,7 +13389,7 @@ test_trv_array(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = [] @}{: a :}");
     {
@@ -13465,7 +13465,7 @@ test_trv_index(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = \"abc\" @}{: a :}");
     {
@@ -13852,7 +13852,7 @@ test_trv_string_index(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = \"ab\" \n @}{: a[0] :}");
     {
@@ -13928,7 +13928,7 @@ test_trv_multi_assign(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     // error
 
@@ -13988,7 +13988,7 @@ test_trv_and_test(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     // nil and objects
 
@@ -15308,7 +15308,7 @@ test_trv_assign_list(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     // success
 
@@ -15496,7 +15496,7 @@ test_trv_test_list(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ 1, 2 @}");
     {
@@ -15540,7 +15540,7 @@ test_trv_negative_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 :}");
     {
@@ -15626,7 +15626,7 @@ test_trv_dot_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: \"ABC\".lower() :}");
     {
@@ -15788,7 +15788,7 @@ test_trv_call(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ def f(): return 1 end @}{: f() :}");
     {
@@ -15844,7 +15844,7 @@ test_trv_func_def(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ def f(): end @}{: f() :}");
     {
@@ -16040,7 +16040,7 @@ test_trv_builtin_string(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     /********
     * upper *
@@ -16362,7 +16362,7 @@ test_trv_builtin_functions(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     /********
     * alias *
@@ -16375,7 +16375,7 @@ test_trv_builtin_functions(void) {
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
         assert(!ast_has_errors(ast));
-        const alinfo_t *alinfo = ctx_getc_alinfo(ctx);
+        const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
         const char *value = alinfo_getc_value(alinfo, "abc");
         assert(value);
         assert(!strcmp(value, "def"));
@@ -16388,7 +16388,7 @@ test_trv_builtin_functions(void) {
         ctx_clear(ctx);
         trv_traverse(ast, ctx);
         assert(!ast_has_errors(ast));
-        const alinfo_t *alinfo = ctx_getc_alinfo(ctx);
+        const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
         const char *value = alinfo_getc_value(alinfo, "abc");
         assert(value);
         assert(!strcmp(value, "def"));
@@ -16723,7 +16723,7 @@ test_trv_builtin_functions_type_dict(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ d = {\"a\": 1} @}");
     {
@@ -16785,7 +16785,7 @@ test_trv_builtin_functions_type(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: type(nil) :}");
     {
@@ -16898,7 +16898,7 @@ test_trv_builtin_functions_len_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: len([1, 2]) :}");
     {
@@ -16954,7 +16954,7 @@ test_trv_traverse(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     /*******
     * test *
@@ -18815,7 +18815,7 @@ test_trv_traverse(void) {
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
         assert(!ast_has_errors(ast));
-        object_dict_t *varmap = ctx_get_varmap(ctx);
+        object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
     }
 
@@ -18830,7 +18830,7 @@ test_trv_traverse(void) {
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
         assert(!ast_has_errors(ast));
-        object_dict_t *varmap = ctx_get_varmap(ctx);
+        object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
     }
 
@@ -18844,7 +18844,7 @@ test_trv_traverse(void) {
         (cc_compile(ast, tkr_get_tokens(tkr)));
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
-        object_dict_t *varmap = ctx_get_varmap(ctx);
+        object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
         assert(ast_has_errors(ast));
         assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined in ref block"));
@@ -18861,7 +18861,7 @@ test_trv_traverse(void) {
         (cc_compile(ast, tkr_get_tokens(tkr)));
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
-        object_dict_t *varmap = ctx_get_varmap(ctx);
+        object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
         assert(ast_has_errors(ast));
         assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined in ref block"));
@@ -18878,7 +18878,7 @@ test_trv_traverse(void) {
         (cc_compile(ast, tkr_get_tokens(tkr)));
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
-        object_dict_t *varmap = ctx_get_varmap(ctx);
+        object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
         assert(ast_has_errors(ast));
         assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined in ref block"));
@@ -18895,7 +18895,7 @@ test_trv_traverse(void) {
         (cc_compile(ast, tkr_get_tokens(tkr)));
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
-        object_dict_t *varmap = ctx_get_varmap(ctx);
+        object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
         assert(ast_has_errors(ast));
         assert(!strcmp(ast_getc_first_error_message(ast), "\"c\" is not defined in ref block"));
@@ -18913,7 +18913,7 @@ test_trv_traverse(void) {
         (cc_compile(ast, tkr_get_tokens(tkr)));
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
-        object_dict_t *varmap = ctx_get_varmap(ctx);
+        object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
@@ -18932,7 +18932,7 @@ test_trv_traverse(void) {
         (cc_compile(ast, tkr_get_tokens(tkr)));
         ctx_clear(ctx);
         (trv_traverse(ast, ctx));
-        object_dict_t *varmap = ctx_get_varmap(ctx);
+        object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n3\n1"));
     }
@@ -18980,7 +18980,7 @@ test_trv_assign_and_reference_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i = 0\n"
@@ -19032,7 +19032,7 @@ test_trv_assign_and_reference_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i = j = 0\n"
@@ -19060,7 +19060,7 @@ test_trv_assign_and_reference_2(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i = 1\n"
@@ -19089,7 +19089,7 @@ test_trv_assign_and_reference_3(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i, j = 1, 1\n"
@@ -19117,7 +19117,7 @@ test_trv_assign_and_reference_4(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i = 1\n"
@@ -19146,7 +19146,7 @@ test_trv_assign_and_reference_5(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i = 1, 2\n"
@@ -19175,7 +19175,7 @@ test_trv_assign_and_reference_6(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i = [1, 2]\n"
@@ -19205,7 +19205,7 @@ test_trv_assign_and_reference_7(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i, j = [1, 2]\n"
@@ -19233,7 +19233,7 @@ test_trv_assign_and_reference_8(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i, j = k, l = 1, 2\n"
@@ -19261,7 +19261,7 @@ test_trv_assign_and_reference_9(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i = { \"a\": 1 }\n"
@@ -19312,7 +19312,7 @@ test_trv_assign_and_reference_11(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   def f():\n"
@@ -19343,7 +19343,7 @@ test_trv_assign_and_reference_12(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   def f(a):\n"
@@ -19375,7 +19375,7 @@ test_trv_assign_and_reference_13(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   i = j = 0\n"
@@ -19484,7 +19484,7 @@ test_trv_code_block(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@@}");
     {
@@ -19600,7 +19600,7 @@ test_trv_ref_block(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 :}");
     {
@@ -19686,7 +19686,7 @@ test_trv_text_block(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "1");
     {
@@ -19752,7 +19752,7 @@ test_trv_import_stmt_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     /**********************
     * import as statement *
@@ -20116,7 +20116,7 @@ test_trv_from_import_stmt_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import f1 \n f1() @}");
@@ -20144,7 +20144,7 @@ test_trv_from_import_stmt_2(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr,
         "{@ import \":tests/lang/modules/hello.cap\" as hello \n"
@@ -20174,7 +20174,7 @@ test_trv_from_import_stmt_3(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import ( f1, f2 ) \n "
@@ -20203,7 +20203,7 @@ test_trv_if_stmt_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ if 1: puts(1) end @}");
     {
@@ -20299,7 +20299,7 @@ test_trv_if_stmt_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ if 1: @}1{@ end @}");
     {
@@ -20365,7 +20365,7 @@ test_trv_if_stmt_2(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ if 1: if 1: puts(1) end end @}");
     {
@@ -20430,7 +20430,7 @@ test_trv_if_stmt_3(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ end @}{@ end @}");
     {
@@ -20536,7 +20536,7 @@ test_trv_if_stmt_4(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ i = 1 \n if i: puts(1) end @}");
     {
@@ -20608,7 +20608,7 @@ test_trv_if_stmt_5(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "."));
@@ -21129,7 +21129,7 @@ test_trv_elif_stmt_2(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ if 0: elif 1: if 1: puts(1) end end @}");
     {
@@ -21225,7 +21225,7 @@ test_trv_elif_stmt_3(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ if 1: @}1{@ end @}{@ end @}");
     {
@@ -21672,7 +21672,7 @@ test_trv_else_stmt_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ if 0: else: puts(1) end @}");
     {
@@ -21758,7 +21758,7 @@ test_trv_else_stmt_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ if 0: @}{@ else: @}1{@ end @}");
     {
@@ -21854,7 +21854,7 @@ test_trv_else_stmt_2(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ if 0: else: if 1: puts(1) end end @}");
     {
@@ -22100,7 +22100,7 @@ test_trv_for_stmt_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ for i=0; i<2; i +=1: puts(i) end @}");
     {
@@ -22236,7 +22236,7 @@ test_trv_for_stmt_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ i=0 for i<2: puts(i)\ni+=1 end @}");
     {
@@ -22302,7 +22302,7 @@ test_trv_for_stmt_2(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ for i, j = 0, 0; i != 4; i += 1, j += 2: end @}{: i :},{: j :}");
     {
@@ -22328,7 +22328,7 @@ test_trv_for_stmt_3(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ for i = 0; i < 2; i += 1: @}{: i :},{@ end @}");
     {
@@ -23047,7 +23047,7 @@ test_trv_return_stmt_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ def f(): return 1 end @}{: f() :}");
     {
@@ -23073,7 +23073,7 @@ test_trv_return_stmt_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   def f():\n"
@@ -23460,7 +23460,7 @@ test_trv_func_def_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ def f(): end @}");
     {
@@ -23486,7 +23486,7 @@ test_trv_func_def_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ def f(a, b): puts(a, b) end f(1, 2) @}");
     {
@@ -23512,7 +23512,7 @@ test_trv_func_def_2(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
         "def func(a, b):\n"
@@ -23523,7 +23523,7 @@ test_trv_func_def_2(void) {
         ast_clear(ast);
         (cc_compile(ast, tkr_get_tokens(tkr)));
         (trv_traverse(ast, ctx));
-        object_dict_t *varmap = ctx_get_varmap(ctx);
+        object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
     }
 
@@ -23541,7 +23541,7 @@ test_trv_func_def_3(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ def f(): end \n a = not f @}");
     {
@@ -23566,7 +23566,7 @@ test_trv_func_def_4(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ i = 1 \n def f(): puts(i) end \n f() @}");
     {
@@ -23592,7 +23592,7 @@ test_trv_func_def_5(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ def f(arg): end \n f() @}");
     {
@@ -23618,7 +23618,7 @@ test_trv_func_def_6(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@\n"
     "   def f(n, desc):\n"
@@ -23651,7 +23651,7 @@ test_trv_func_def_7(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "."));
@@ -24464,7 +24464,7 @@ test_trv_assign_list_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = 1 @}{: a :}");
     {
@@ -24490,7 +24490,7 @@ test_trv_assign_list_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = 1, b = 2 @}{: a :},{: b :}");
     {
@@ -24516,7 +24516,7 @@ test_trv_assign_list_2(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = b = 1 @}{: a :},{: b :}");
     {
@@ -24542,7 +24542,7 @@ test_trv_assign_list_3(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = b = 1, c = 2 @}{: a :},{: b :},{: c :}");
     {
@@ -24568,7 +24568,7 @@ test_trv_multi_assign_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a, b = 1, 2 @}{: a :},{: b :}");
     {
@@ -24594,7 +24594,7 @@ test_trv_or_test_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 or 0 :}");
     {
@@ -24620,7 +24620,7 @@ test_trv_and_test_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 and 1 :}");
     {
@@ -24646,7 +24646,7 @@ test_trv_not_test_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: not 0 :}");
     {
@@ -24672,7 +24672,7 @@ test_trv_comparison_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 == 1 :}");
     {
@@ -24698,7 +24698,7 @@ test_trv_comparison_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 != 1 :}");
     {
@@ -24724,7 +24724,7 @@ test_trv_comparison_2(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 < 2 :}");
     {
@@ -24750,7 +24750,7 @@ test_trv_comparison_3(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 2 > 1 :}");
     {
@@ -24776,7 +24776,7 @@ test_trv_comparison_4(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 <= 2 :}");
     {
@@ -24802,7 +24802,7 @@ test_trv_comparison_5(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 2 >= 1 :}");
     {
@@ -24828,7 +24828,7 @@ test_trv_asscalc_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     /*****
     * ok *
@@ -24922,7 +24922,7 @@ test_trv_asscalc_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     /*****
     * ok *
@@ -25016,7 +25016,7 @@ test_trv_asscalc_2(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     /*****
     * ok *
@@ -25160,7 +25160,7 @@ test_trv_asscalc_3(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     /*****
     * ok *
@@ -25671,7 +25671,7 @@ test_trv_expr_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 + 1 :}");
     {
@@ -25707,7 +25707,7 @@ test_trv_expr_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 - 1 :}");
     {
@@ -26025,7 +26025,7 @@ test_trv_term_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 2 * 2 :}");
     {
@@ -26250,7 +26250,7 @@ test_trv_call_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ def f(): end f() @}");
     {
@@ -26431,7 +26431,7 @@ test_trv_index_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = [0, 1] @}{: a[0] :},{: a[1] :}");
     {
@@ -26457,7 +26457,7 @@ test_trv_index_1(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ a = [0, 1] @}{: a[0] :}");
     {
@@ -26605,7 +26605,7 @@ test_trv_nil(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: nil :}");
     {
@@ -26631,7 +26631,7 @@ test_trv_false(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: false :}");
     {
@@ -26657,7 +26657,7 @@ test_trv_true(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: true :}");
     {
@@ -26683,7 +26683,7 @@ test_trv_digit(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: 1 :}");
     {
@@ -26709,7 +26709,7 @@ test_trv_string(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{: \"abc\" :}");
     {
@@ -26912,7 +26912,7 @@ test_trv_identifier(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ i = 1 @}{: i :}");
     {
@@ -26938,7 +26938,7 @@ test_trv_builtin_array_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ arr = [1, 2] \n arr.push(3) @}{: len(arr) :}");
     {
@@ -27004,7 +27004,7 @@ test_trv_builtin_dict_0(void) {
     tokenizer_t *tkr = tkr_new(mem_move(opt));
     ast_t *ast = ast_new(config);
     gc_t *gc = gc_new();
-    context_t *ctx = ctx_new(gc);
+    PadCtx *ctx = ctx_new(gc);
 
     tkr_parse(tkr, "{@ d = {\"a\": 1} @}{: d.get(1) :}");
     {
@@ -28085,7 +28085,7 @@ test_symlink_norm_path(void) {
     assert(symlink_norm_path(config, path, 0, NULL) == NULL);
     assert(symlink_norm_path(config, path, sizeof path, NULL) == NULL);
 
-#ifdef _CAP_WINDOWS
+#ifdef CAP__WINDOWS
     assert(symlink_norm_path(config, path, sizeof path, "C:\\path\\to\\dir") == path);
     assert(strcmp(path, "C:\\path\\to\\dir") == 0);
 
@@ -28482,17 +28482,17 @@ lang_gc_tests[] = {
 static void
 test_lang_objdict_move(void) {
     gc_t *gc = gc_new();
-    object_dict_t *d = objdict_new(gc);
+    object_PadDict *d = objdict_new(gc);
 
     object_t *obj1 = obj_new_int(gc, 1);
     obj_inc_ref(obj1);
     objdict_move(d, "abc", obj1);
-    assert(objdict_len(d) == 1);
+    assert(objPadDict_Len(d) == 1);
 
     object_t *obj2 = obj_new_int(gc, 1);
     obj_inc_ref(obj2);
     objdict_move(d, "def", obj2);
-    assert(objdict_len(d) == 2);
+    assert(objPadDict_Len(d) == 2);
 
     object_dict_item_t *item1 = objdict_get(d, "abc");
     assert(obj1 == item1->value);
@@ -28507,17 +28507,17 @@ test_lang_objdict_move(void) {
 static void
 test_lang_objdict_set(void) {
     gc_t *gc = gc_new();
-    object_dict_t *d = objdict_new(gc);
+    object_PadDict *d = objdict_new(gc);
 
     object_t *obj1 = obj_new_int(gc, 1);
     obj_inc_ref(obj1);
     objdict_move(d, "abc", obj1);
-    assert(objdict_len(d) == 1);
+    assert(objPadDict_Len(d) == 1);
 
     object_t *obj2 = obj_new_int(gc, 1);
     obj_inc_ref(obj2);
     objdict_move(d, "def", obj2);
-    assert(objdict_len(d) == 2);
+    assert(objPadDict_Len(d) == 2);
 
     object_dict_item_t *item1 = objdict_get(d, "abc");
     assert(obj1 == item1->value);
@@ -28536,15 +28536,15 @@ test_lang_objdict_pop(void) {
     **********/
 
     gc_t *gc = gc_new();
-    object_dict_t *d = objdict_new(gc);
+    object_PadDict *d = objdict_new(gc);
     object_t *obj = obj_new_int(gc, 0);
 
     obj_inc_ref(obj);
     objdict_move(d, "abc", obj);
-    assert(objdict_len(d) == 1);
+    assert(objPadDict_Len(d) == 1);
     object_t *popped = objdict_pop(d, "abc");
     assert(popped);
-    assert(objdict_len(d) == 0);
+    assert(objPadDict_Len(d) == 0);
     assert(obj == popped);
 
     objdict_del(d);
@@ -28564,7 +28564,7 @@ test_lang_objdict_pop(void) {
         obj_inc_ref(obj);
         objdict_move(d, key, obj);
     }
-    assert(objdict_len(d) == 10);
+    assert(objPadDict_Len(d) == 10);
 
     for (int32_t i = 0; i < 10; ++i) {
         char key[10];
@@ -28572,14 +28572,14 @@ test_lang_objdict_pop(void) {
         object_t *popped = objdict_pop(d, key);
         assert(popped);
     }
-    assert(objdict_len(d) == 0);
+    assert(objPadDict_Len(d) == 0);
 
     objdict_del(d);
     gc_del(gc);
 }
 
 static const struct testcase
-lang_object_dict_tests[] = {
+lang_object_PadDictests[] = {
     {"move", test_lang_objdict_move},
     {"set", test_lang_objdict_set},
     {"pop", test_lang_objdict_pop},
@@ -30256,7 +30256,7 @@ testmodules[] = {
     {"unicode", unicode_tests},
     {"file", file_tests},
     {"cl", cl_tests},
-    {"cmdline", cmdline_tests},
+    {"cmdline", PadCmdlineests},
     {"error", error_tests},
     {"util", utiltests},
     {"path", pathtests},
@@ -30267,7 +30267,7 @@ testmodules[] = {
     {"symlink", symlink_tests},
     {"error_stack", errstack_tests},
     {"gc", lang_gc_tests},
-    {"objdict", lang_object_dict_tests},
+    {"objdict", lang_object_PadDictests},
     {0},
 };
 

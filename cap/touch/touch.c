@@ -118,7 +118,7 @@ static int
 touchcmd_touch(touchcmd_t *self, const char *argpath) {
     char path[FILE_NPATH];
     char tmppath[FILE_NPATH];
-    const char *org = get_origin(self->config, argpath);
+    const char *org = Cap_GetOrigin(self->config, argpath);
 
     snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
     if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmppath)) {

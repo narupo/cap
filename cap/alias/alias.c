@@ -222,7 +222,7 @@ static int
 show_list(CapAlCmd *self) {
     const PadCtx *ctx = CapAlMgr_GetcCtx(self->almgr);
     const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
-    const dict_t *key_val_map = PadAliasInfo_GetcKeyValueMap(alinfo);
+    const PadDict *key_val_map = PadAliasInfo_GetcKeyValueMap(alinfo);
     int keymaxlen = 0;
     int valmaxlen = 0;
 
@@ -295,7 +295,7 @@ show_alias_value(CapAlCmd *self) {
 
 int
 CapAlCmd_ShowDescOfAlias(CapAlCmd *self) {
-    const context_t *ctx = CapAlMgr_GetcCtx(self->almgr);
+    const PadCtx *ctx = CapAlMgr_GetcCtx(self->almgr);
     const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
     const char *key = self->argv[self->optind];
     const char *desc = PadAliasInfo_GetcDesc(alinfo, key);

@@ -335,7 +335,7 @@ insert_at(insertcmd_t *self, const char *path, int32_t pos, const char *elem) {
 
 static char *
 fix_elem(insertcmd_t *self, const char *raw) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
 
     for (const char *p = raw; *p; p += 1) {
         switch (*p) {

@@ -19,109 +19,109 @@
 #include <lang/context.h>
 
 struct alias_manager;
-typedef struct alias_manager almgr_t;
+typedef struct alias_manager CapAliasMgr;
 
 /**
  * Destruct module
  *
- * @param[in] self pointer to dynamic allocate memory of almgr_t
+ * @param[in] self pointer to dynamic allocate memory of CapAliasMgr
  */
 void
-almgr_del(almgr_t *self);
+almgr_del(CapAliasMgr *self);
 
 /**
  * Construct module
  *
  * @param[in] config read-only pointer to CapConfig
  *
- * @return success to pointer to dynamic allocate memory of almgr_t
+ * @return success to pointer to dynamic allocate memory of CapAliasMgr
  * @return failed to pointer to NULL 
  */
-almgr_t *
-almgr_new(const CapConfig *config);
+CapAliasMgr *
+CapAliasMgr_New(const CapConfig *config);
 
 /**
  * Find alias value by key and scope
  *
- * @param[in] self pointer to dynamic allocate memory of almgr_t
+ * @param[in] self pointer to dynamic allocate memory of CapAliasMgr
  * @param[in] dst pointer to destination
  * @param[in] dstsz number of size of destination
  * @param[in] key string of key
  * @param[in] scope number of scope (@see constant.h)
  *
- * @return found to pointer to dynamic allocate memory of almgr_t
+ * @return found to pointer to dynamic allocate memory of CapAliasMgr
  * @return not found to pointer to NULL
  */
-almgr_t *
-almgr_find_alias_value(almgr_t *self, char *dst, uint32_t dstsz, const char *key, int scope);
+CapAliasMgr *
+almgr_find_alias_value(CapAliasMgr *self, char *dst, uint32_t dstsz, const char *key, int scope);
 
 /**
  * Load alias list by scope
  *
- * @param[in] self pointer to dynamic allocate memory of almgr_t
+ * @param[in] self pointer to dynamic allocate memory of CapAliasMgr
  * @param[in] scope number of scope of environment
  *
- * @return success to pointer to dynamic allocate memory of almgr_t
+ * @return success to pointer to dynamic allocate memory of CapAliasMgr
  * @return failed to NULL
  */
-almgr_t *
-almgr_load_alias_list(almgr_t *self, int scope);
+CapAliasMgr *
+almgr_load_alias_list(CapAliasMgr *self, int scope);
 
 /**
  * Load alias list by path
  *
- * @param[in] self pointer to almgr_t
+ * @param[in] self pointer to CapAliasMgr
  * @param[in] path path on file system
  *
- * @return success to pointer to almgr_t
+ * @return success to pointer to CapAliasMgr
  * @return failed to NULL
  */
-almgr_t *
-almgr_load_path(almgr_t *self, const char *path);
+CapAliasMgr *
+CapAliasMgr_LoadPath(CapAliasMgr *self, const char *path);
 
 /**
  * Check if has error
  *
- * @param[in] self pointer to dynamic allocate memory of almgr_t
+ * @param[in] self pointer to dynamic allocate memory of CapAliasMgr
  *
  * @return if has error to true
  * @return if not has error to false
  */
 bool
-almgr_has_error(const almgr_t *self);
+almgr_has_error(const CapAliasMgr *self);
 
 /**
  * Clear error 
  *
- * @param[in] self pointer to dynamic allocate memory of almgr_t
+ * @param[in] self pointer to dynamic allocate memory of CapAliasMgr
  */
 void
-almgr_clear_error(almgr_t *self);
+CapAliasMgr_Clear_error(CapAliasMgr *self);
 
 /**
  * Clear status
  *
- * @param[in] self pointer to almgr_t
+ * @param[in] self pointer to CapAliasMgr
  */
 void
-almgr_clear(almgr_t *self);
+CapAliasMgr_Clear(CapAliasMgr *self);
 
 /**
  * Get error detail
  *
- * @param[in] self pointer to dynamic allocate memory of almgr_t
+ * @param[in] self pointer to dynamic allocate memory of CapAliasMgr
  *
  * @return pointer to string of error detail
  */
 const char *
-almgr_get_error_detail(const almgr_t *self);
+almgr_get_error_detail(const CapAliasMgr *self);
 
 /**
  * Get context
  *
- * @param[in] self pointer to dynamic allocate memory of almgr_t
+ * @param[in] self pointer to dynamic allocate memory of CapAliasMgr
  *
- * @return pointer to context_t
+ * @return pointer to PadCtx
  */
-const context_t *
-almgr_getc_context(const almgr_t *self);
+const PadCtx *
+CapAliasMgr_GetcContext(const CapAliasMgr *self);

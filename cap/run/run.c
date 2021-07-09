@@ -52,7 +52,7 @@ runcmd_read_script_line(runcmd_t *self, char *dst, size_t dstsz, const char *pat
     }
     at = at + strlen(needle);
 
-#ifdef _CAP_WINDOWS
+#ifdef CAP__WINDOWS
     // fix script path for Windows (trim execute file name only, remove directories)
     char *last = at+strlen(at)-1;
     char *beg = at;
@@ -84,7 +84,7 @@ runcmd_run(runcmd_t *self) {
     }
 
     const char *argpath = self->argv[1];
-    const char *org = get_origin(self->config, argpath);
+    const char *org = Cap_GetOrigin(self->config, argpath);
 
     // Create script path
     char tmppath[FILE_NPATH];
@@ -108,19 +108,19 @@ runcmd_run(runcmd_t *self) {
     }
 
     // Create command line
-    string_t *cmdline = str_new();
+    string_t *cmdline = PadStr_New();
     if (strlen(script)) {
-        str_app(cmdline, script);
-        str_app(cmdline, " ");
+        PadStr_App(cmdline, script);
+        PadStr_App(cmdline, " ");
     }
-    str_app(cmdline, filepath);
-    str_app(cmdline, " ");
+    PadStr_App(cmdline, filepath);
+    PadStr_App(cmdline, " ");
 
     for (int32_t i = 2; i < self->argc; ++i) {
-        str_app(cmdline, "\"");
-        str_app(cmdline, self->argv[i]);
-        str_app(cmdline, "\"");
-        str_app(cmdline, " ");
+        PadStr_App(cmdline, "\"");
+        PadStr_App(cmdline, self->argv[i]);
+        PadStr_App(cmdline, "\"");
+        PadStr_App(cmdline, " ");
     }
     str_popb(cmdline);
 
@@ -131,15 +131,15 @@ runcmd_run(runcmd_t *self) {
         option |= SAFESYSTEM_DETACH;
     }
 
-    const char *scmdline = str_getc(cmdline);
+    const char *scmdline = PadStr_Getc(cmdline);
     int status = Pad_SafeSystem(scmdline, option);
-#if _CAP_WINDOWS
+#if CAP__WINDOWS
     int exit_code = status;
 #else
     int exit_code = WEXITSTATUS(status);
 #endif
 
     // Done
-    str_del(cmdline);
+    PadStr_Del(cmdline);
     return exit_code;
 }

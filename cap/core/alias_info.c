@@ -1,12 +1,12 @@
 #include <core/alias_info.h>
 
 struct alias_info {
-    dict_t *key_val_map;
-    dict_t *key_desc_map;
+    PadDict *key_val_map;
+    PadDict *key_desc_map;
 };
 
 void
-alinfo_del(alinfo_t *self) {
+alinfo_del(PadAliasInfo *self) {
     if (!self) {
         return;
     }
@@ -16,9 +16,9 @@ alinfo_del(alinfo_t *self) {
     free(self);
 }
 
-alinfo_t *
+PadAliasInfo *
 alinfo_new(void) {
-    alinfo_t *self = mem_calloc(1, sizeof(*self));
+    PadAliasInfo *self = mem_calloc(1, sizeof(*self));
     if (!self) {
         return NULL;
     }
@@ -38,13 +38,13 @@ alinfo_new(void) {
     return self;
 }
 
-alinfo_t *
-alinfo_deep_copy(const alinfo_t *other) {
+PadAliasInfo *
+alinfo_deep_copy(const PadAliasInfo *other) {
     if (!other) {
         return NULL;
     }
 
-    alinfo_t *self = mem_calloc(1, sizeof(*self));
+    PadAliasInfo *self = mem_calloc(1, sizeof(*self));
     if (!self) {
         return NULL;
     }
@@ -64,13 +64,13 @@ alinfo_deep_copy(const alinfo_t *other) {
     return self;
 }
 
-alinfo_t *
-alinfo_shallow_copy(const alinfo_t *other) {
+PadAliasInfo *
+alinfo_shallow_copy(const PadAliasInfo *other) {
     if (!other) {
         return NULL;
     }
 
-    alinfo_t *self = mem_calloc(1, sizeof(*self));
+    PadAliasInfo *self = mem_calloc(1, sizeof(*self));
     if (!self) {
         return NULL;
     }
@@ -91,7 +91,7 @@ alinfo_shallow_copy(const alinfo_t *other) {
 }
 
 const char *
-alinfo_getc_value(const alinfo_t *self, const char *key) {
+alinfo_getc_value(const PadAliasInfo *self, const char *key) {
    const dict_item_t *item = dict_getc(self->key_val_map, key);
    if (!item) {
        return NULL;
@@ -101,7 +101,7 @@ alinfo_getc_value(const alinfo_t *self, const char *key) {
 }
 
 const char *
-alinfo_getc_desc(const alinfo_t *self, const char *key) {
+alinfo_getc_desc(const PadAliasInfo *self, const char *key) {
    const dict_item_t *item = dict_getc(self->key_desc_map, key);
    if (!item) {
        return NULL;
@@ -110,9 +110,9 @@ alinfo_getc_desc(const alinfo_t *self, const char *key) {
    return item->value;
 }
 
-alinfo_t *
-alinfo_set_value(alinfo_t *self, const char *key, const char *value) {
-    dict_t *result = dict_set(self->key_val_map, key, value);
+PadAliasInfo *
+alinfo_set_value(PadAliasInfo *self, const char *key, const char *value) {
+    PadDict *result = dict_set(self->key_val_map, key, value);
     if (!result) {
         return NULL;
     }
@@ -120,9 +120,9 @@ alinfo_set_value(alinfo_t *self, const char *key, const char *value) {
     return self;
 }
 
-alinfo_t *
-alinfo_set_desc(alinfo_t *self, const char *key, const char *desc) {
-    dict_t *result = dict_set(self->key_desc_map, key, desc);
+PadAliasInfo *
+alinfo_set_desc(PadAliasInfo *self, const char *key, const char *desc) {
+    PadDict *result = dict_set(self->key_desc_map, key, desc);
     if (!result) {
         return NULL;
     }
@@ -131,17 +131,17 @@ alinfo_set_desc(alinfo_t *self, const char *key, const char *desc) {
 }
 
 void
-alinfo_clear(alinfo_t *self) {
+alinfo_clear(PadAliasInfo *self) {
     dict_clear(self->key_val_map);
     dict_clear(self->key_desc_map);
 }
 
-const dict_t *
-alinfo_getc_key_value_map(const alinfo_t *self) {
+const PadDict *
+PadAliasInfo_GetcKeyValueMap(const PadAliasInfo *self) {
     return self->key_val_map;
 }
 
-const dict_t *
-alinfo_getc_key_desc_map(const alinfo_t *self) {
+const PadDict *
+alinfo_getc_key_desc_map(const PadAliasInfo *self) {
     return self->key_desc_map;
 }

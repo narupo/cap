@@ -198,15 +198,15 @@ Cap_ExecSnippet(const CapConfig *config, bool *found, int argc, char **argv, con
         return 1;
     }
 
-    PadFileDir *dir = PadFileDir_Open(config->codes_dir_path);
+    PadDir *dir = PadDir_Open(config->codes_dir_path);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", config->codes_dir_path);
         return 1;
     }
 
     *found = false;
-    for (PadFileDirNode *node; (node = PadFileDir_Read(dir)); ) {
-        const char *fname = PadFileDirNode_Name(node);
+    for (PadDirNode *node; (node = PadDir_Read(dir)); ) {
+        const char *fname = PadDirNode_Name(node);
         if (Pad_IsDotFile(fname)) {
             continue;
         }
@@ -214,13 +214,13 @@ Cap_ExecSnippet(const CapConfig *config, bool *found, int argc, char **argv, con
         if (PadCStr_Eq(fname, name)) {
             *found = true;
             if (!show_snippet(config, fname, argc, argv)) {
-                PadFileDir_Close(dir);
+                PadDir_Close(dir);
                 return 1;
             }
         }
     }
 
-    PadFileDir_Close(dir);
+    PadDir_Close(dir);
     return *found ? 0 : -1;
 }
 

@@ -63,7 +63,7 @@ read_sympath(const CapConfig *config, char *sympath, uint32_t sympathsz, const c
 
 static void
 fix_path_seps(char *dst, uint32_t dstsz, const char *src) {
-#ifdef _CAP_WINDOWS
+#ifdef CAP__WINDOWS
     char replace_sep = '/';
 #else
     char replace_sep = '\\';
@@ -83,7 +83,7 @@ fix_path_seps(char *dst, uint32_t dstsz, const char *src) {
 
 static const char *
 find_path_head(const char *path) {
-#ifdef _CAP_WINDOWS
+#ifdef CAP__WINDOWS
     const char *p = skip_drive_letter(path);
     if (!p) {
         return path;
@@ -116,22 +116,22 @@ __CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, cons
     char **save_toks = NULL;
     char sympath[FILE_NPATH];
 
-    string_t *path = str_new();
-#ifdef _CAP_WINDOWS
+    string_t *path = PadStr_New();
+#ifdef CAP__WINDOWS
     // append drive letter
     str_pushb(path, normpath[0]);
-    str_app(path, ":\\");
+    PadStr_App(path, ":\\");
 #endif
     for (char **toksp = toks; *toksp; ++toksp) {
         str_pushb(path, FILE_SEP);
-        str_app(path, *toksp);
-        // printf("path[%s] toksp[%s]\n", str_getc(path), *toksp);
-        if (PadFile_IsDir(str_getc(path))) {
+        PadStr_App(path, *toksp);
+        // printf("path[%s] toksp[%s]\n", PadStr_Getc(path), *toksp);
+        if (PadFile_IsDir(PadStr_Getc(path))) {
             continue;
         }
 
         sympath[0] = '\0';
-        if (!read_sympath(config, sympath, sizeof sympath, str_getc(path))) {
+        if (!read_sympath(config, sympath, sizeof sympath, PadStr_Getc(path))) {
             continue;
         }
         // printf("sympath[%s]\n", sympath);
@@ -151,10 +151,10 @@ __CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, cons
     str_set(path, sympath);
     for (char **toksp = save_toks; *toksp; ++toksp) {
         str_pushb(path, FILE_SEP);
-        str_app(path, *toksp);
+        PadStr_App(path, *toksp);
     }
 
-    if (!__CapSymlink_FollowPath(config, dst, dstsz, str_getc(path), dep+1)) {
+    if (!__CapSymlink_FollowPath(config, dst, dstsz, PadStr_Getc(path), dep+1)) {
         goto fail;
     }
 
@@ -163,7 +163,7 @@ __CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, cons
             free(*toksp); \
         } \
         free(toks); \
-        str_del(path); \
+        PadStr_Del(path); \
     }
 
 done:
@@ -218,7 +218,7 @@ symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char
         return NULL;
     }
 
-#ifdef _CAP_WINDOWS
+#ifdef CAP__WINDOWS
     const char *hasdriveletter = strchr(drtpath, ':');
 #endif
 
@@ -228,7 +228,7 @@ symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char
 
     for (int32_t i = 0; i < cstrarr_len(srctoks); ++i) {
         const char *tok = cstrarr_getc(srctoks, i);
-        if (cstr_eq(tok, "..")) {
+        if (PadCStr_Eq(tok, "..")) {
             char *el = cstrarr_pop_move(dsttoks);
             free(el);
         } else {
@@ -239,7 +239,7 @@ symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char
     // save normalized path by tokens
     dst[0] = '\0';
 
-#ifdef _CAP_WINDOWS
+#ifdef CAP__WINDOWS
     // append drive letter of Windows
     if (hasdriveletter) {
         PadCStr_App_fmt(dst, dstsz, "%c:", drtpath[0]);
@@ -267,7 +267,7 @@ symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char
 }
 
 bool
-symlink_is_link_file(const char *path) {
+CapSymlink_IsLinkFile(const char *path) {
     char line[FILE_NPATH + 100];
     if (!PadFile_ReadLine(line, sizeof line, path)) {
         return false;

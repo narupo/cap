@@ -79,7 +79,7 @@ pwdcmd_new(const CapConfig *config, int argc, char **argv) {
 
 char *
 replace_slashes(const char *s) {
-    string_t *dst = str_new();
+    string_t *dst = PadStr_New();
 
     for (const char *p = s; *p; ++p) {
         if (*p == '\\') {

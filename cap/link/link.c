@@ -127,7 +127,7 @@ linkcmd_unlink(linkcmd_t *self) {
     }
 
     const char *linkname = self->argv[self->optind];
-    const char *org = get_origin(self->config, linkname);
+    const char *org = Cap_GetOrigin(self->config, linkname);
 
     char path[FILE_NPATH];
     if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", org, linkname)) {
@@ -140,7 +140,7 @@ linkcmd_unlink(linkcmd_t *self) {
         return 1;
     }
 
-    if (!symlink_is_link_file(path)) {
+    if (!CapSymlink_IsLinkFile(path)) {
         PadErr_Err("\"%s\" is not Cap's symbolic link", linkname);
         return 1;
     }
@@ -167,7 +167,7 @@ linkcmd_link(linkcmd_t *self) {
     }
 
     const char *cappath = self->argv[self->optind+1];
-    const char *org = get_origin(self->config, linkname);
+    const char *org = Cap_GetOrigin(self->config, linkname);
 
     char dstpath[FILE_NPATH];
     if (!PadFile_Solvefmt(dstpath, sizeof dstpath, "%s/%s", org, linkname)) {

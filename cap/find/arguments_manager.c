@@ -5,7 +5,7 @@ struct arguments_manager {
 };
 
 void
-argsmgr_del(argsmgr_t *self) {
+argsmgr_del(CapArgsMgr *self) {
     if (!self) {
         return;
     }
@@ -14,9 +14,9 @@ argsmgr_del(argsmgr_t *self) {
     free(self);
 }
 
-argsmgr_t *
+CapArgsMgr *
 argsmgr_new(char *argv[]) {
-    argsmgr_t *self = PadMem_ECalloc(1, sizeof(*self));
+    CapArgsMgr *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->args = cstrarr_new();
 
@@ -28,12 +28,12 @@ argsmgr_new(char *argv[]) {
 }
 
 const char *
-argsmgr_getc(const argsmgr_t *self, int32_t idx) {
+argsmgr_getc(const CapArgsMgr *self, int32_t idx) {
     return cstrarr_getc(self->args, idx);
 }
 
 bool
-argsmgr_contains_all(const argsmgr_t *self, const char *target) {
+CapArgsMgr_ContainsAll(const CapArgsMgr *self, const char *target) {
     bool contain = true;
     for (int32_t i = 0; i < cstrarr_len(self->args); ++i) {
         const char *arg = cstrarr_getc(self->args, i);

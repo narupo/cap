@@ -3,9 +3,9 @@
 #define _CAP_VERSION "0.35.48"
 
 #if defined(_WIN32) || defined(_WIN64)
-# define _CAP_WINDOWS 1 /* cap: core/constant.h */
+# define CAP__WINDOWS 1 /* cap: core/constant.h */
 #else
-# undef _CAP_WINDOWS
+# undef CAP__WINDOWS
 #endif
 
 static const int CAP_SCOPE_LOCAL = 1;

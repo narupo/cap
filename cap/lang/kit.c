@@ -15,7 +15,7 @@ struct kit {
     tokenizer_t *tkr;
     ast_t *ast;
     gc_t *gc;
-    context_t *ctx;
+    PadCtx *ctx;
     errstack_t *errstack;
     bool gc_is_reference;
 };
@@ -240,7 +240,7 @@ kit_getc_error_stack(const kit_t *self) {
     return self->errstack;
 }
 
-context_t *
+PadCtx *
 kit_get_context(kit_t *self) {
     return self->ctx;
 }

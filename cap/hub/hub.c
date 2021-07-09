@@ -147,7 +147,7 @@ hubcmd_new(CapConfig *move_config, int argc, char **move_argv) {
 int
 hubcmd_run_command(hubcmd_t *self) {
     const char *cmd = self->cmd_argv[0];
-    if (cstr_eq(cmd, "runserver")) {
+    if (PadCStr_Eq(cmd, "runserver")) {
         puts(cmd);
     }
     return 0;

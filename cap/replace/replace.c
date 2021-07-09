@@ -154,7 +154,7 @@ replace(replacecmd_t *self) {
     const char *replaced = self->argv[optind + 2];
     assert(cap_fname && target_ && replaced);
 
-    string_t *target = str_new();
+    string_t *target = PadStr_New();
     char *content = NULL;
     FILE *fout = NULL;
 
@@ -177,14 +177,14 @@ replace(replacecmd_t *self) {
     }
 
     unescape_text(target, target_, NULL);
-    int result = sreplace(fout, content, str_getc(target), replaced);
+    int result = sreplace(fout, content, PadStr_Getc(target), replaced);
 
     fclose(fout);
     free(content);
-    str_del(target);
+    PadStr_Del(target);
     return result;
 error:
-    str_del(target);
+    PadStr_Del(target);
     free(content);
     if (fout) {
         fclose(fout);

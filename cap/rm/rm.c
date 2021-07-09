@@ -126,15 +126,15 @@ rmcmd_remove_r(rmcmd_t *self, const char *dirpath) {
         return false;
     }
 
-    file_dir_t *dir = PadFileDir_Open(dirpath);
+    file_dir_t *dir = PadDir_Open(dirpath);
     if (!dir) {
         PadCStr_App_fmt(self->what, sizeof self->what, "failed to open directory \"%s\".", dirpath);
         self->errno_ = RMCMD_ERR_OPENDIR;
         return false;
     }
 
-    for (file_dirnode_t *node; (node = PadFileDir_Read(dir)); ) {
-        const char *dirname = PadFileDirNode_Name(node);
+    for (PadDirNode *node; (node = PadDir_Read(dir)); ) {
+        const char *dirname = PadDirNode_Name(node);
         if (!strcmp(dirname, ".") || !strcmp(dirname, "..")) {
             continue;
         }
@@ -170,7 +170,7 @@ rmcmd_remove_r(rmcmd_t *self, const char *dirpath) {
         }
     }
 
-    if (PadFileDir_Close(dir) != 0) {
+    if (PadDir_Close(dir) != 0) {
         PadCStr_App_fmt(self->what, sizeof self->what, "failed to close directory \"%s\".", dirpath);
         self->errno_ = RMCMD_ERR_CLOSEDIR;
         return false;
@@ -189,7 +189,7 @@ rmcmd_rmr(rmcmd_t *self) {
             return 1;
         }
 
-        const char *org = get_origin(self->config, argpath);
+        const char *org = Cap_GetOrigin(self->config, argpath);
         char path[FILE_NPATH];
         char drtpath[FILE_NPATH];
 
@@ -225,7 +225,7 @@ rmcmd_rmr(rmcmd_t *self) {
 static int
 rmcmd_rm(rmcmd_t *self, const char *argpath) {
     char path[FILE_NPATH];
-    const char *org = get_origin(self->config, argpath);
+    const char *org = Cap_GetOrigin(self->config, argpath);
 
     char drtpath[FILE_NPATH];
     snprintf(drtpath, sizeof drtpath, "%s/%s", org, argpath);

@@ -57,22 +57,22 @@ snptcmd_new(const CapConfig *config, int argc, char **argv) {
 
 static int
 snptcmd_show_files(snptcmd_t *self) {
-    file_dir_t *dir = PadFileDir_Open(self->config->codes_dir_path);
+    file_dir_t *dir = PadDir_Open(self->config->codes_dir_path);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", self->config->codes_dir_path);
         return 1;
     }
 
-    for (file_dirnode_t *node; (node = PadFileDir_Read(dir)); ) {
-        const char *name = PadFileDirNode_Name(node);
+    for (PadDirNode *node; (node = PadDir_Read(dir)); ) {
+        const char *name = PadDirNode_Name(node);
         if (!strcmp(name, ".") || !strcmp(name, "..")) {
             continue;
         }
         puts(name);
-        file_dirnodedel(node);
+        PadDirNode_Del(node);
     }
 
-    PadFileDir_Close(dir);
+    PadDir_Close(dir);
     return 0;
 }
 
@@ -168,14 +168,14 @@ snptcmd_show(snptcmd_t *self) {
 
 static int
 snptcmd_clear(snptcmd_t *self) {
-    file_dir_t *dir = PadFileDir_Open(self->config->codes_dir_path);
+    file_dir_t *dir = PadDir_Open(self->config->codes_dir_path);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", self->config->codes_dir_path);
         return 1;
     }
 
-    for (file_dirnode_t *node; (node = PadFileDir_Read(dir)); ) {
-        const char *name = PadFileDirNode_Name(node);
+    for (PadDirNode *node; (node = PadDir_Read(dir)); ) {
+        const char *name = PadDirNode_Name(node);
         if (!strcmp(name, ".") || !strcmp(name, "..")) {
             continue;
         }
@@ -190,11 +190,11 @@ snptcmd_clear(snptcmd_t *self) {
             goto fail;
         }
 
-        file_dirnodedel(node);
+        PadDirNode_Del(node);
     }
 
 fail:
-    PadFileDir_Close(dir);
+    PadDir_Close(dir);
     return 0;
 }
 
@@ -203,11 +203,11 @@ snptcmd_run(snptcmd_t *self) {
     if (self->argc < 2) {
         snptcmd_show_usage(self);
         return 0;
-    } else if (cstr_eq(self->argv[1], "clear")) {
+    } else if (PadCStr_Eq(self->argv[1], "clear")) {
         return snptcmd_clear(self);
-    } else if (cstr_eq(self->argv[1], "ls")) {
+    } else if (PadCStr_Eq(self->argv[1], "ls")) {
         return snptcmd_show_files(self);
-    } else if (cstr_eq(self->argv[1], "add")) {
+    } else if (PadCStr_Eq(self->argv[1], "add")) {
         return snptcmd_add(self);
     }
     return snptcmd_show(self);

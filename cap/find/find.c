@@ -1,4 +1,4 @@
-#include "find/find.h"
+#include <cap/find/find.h>
 
 enum {
     FINDCMD_DEF_MAX_RECURSION = 8,
@@ -18,23 +18,23 @@ struct Opts {
 /**
  * Structure of command
  */
-struct find {
+struct CapFindCmd {
     const CapConfig *config;
     int argc;
     int optind;
     char **argv;
     struct Opts opts;
-    argsmgr_t *argsmgr;
-    almgr_t *almgr;  
+    CapArgsMgr *argsmgr;
+    CapAliasMgr *almgr;  
 };
 
 /**
  * Show usage of command
  *
- * @param[in] self pointer to findcmd_t
+ * @param[in] self pointer to CapFindCmd
  */
 static void
-findcmd_show_usage(findcmd_t *self) {
+usage(CapFindCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Usage:\n"
@@ -51,18 +51,19 @@ findcmd_show_usage(findcmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
 /**
  * Parse options
  *
- * @param[in] self pointer to findcmd_t 
+ * @param[in] self pointer to CapFindCmd 
  *
  * @return success to true
  * @return failed to false
  */
 static bool
-findcmd_parse_opts(findcmd_t *self) {
+parse_opts(CapFindCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -113,7 +114,7 @@ findcmd_parse_opts(findcmd_t *self) {
 }
 
 void
-findcmd_del(findcmd_t *self) {
+CapFindCmd_Del(CapFindCmd *self) {
     if (!self) {
         return;
     }
@@ -123,18 +124,21 @@ findcmd_del(findcmd_t *self) {
     free(self);
 }
 
-findcmd_t *
-findcmd_new(const CapConfig *config, int argc, char **argv) {
-    findcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapFindCmd *
+CapFindCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapFindCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
     strcpy(self->opts.origin, ".");
-    self->almgr = almgr_new(self->config);
+    self->almgr = CapAliasMgr_New(self->config);
 
-    if (!findcmd_parse_opts(self)) {
-        findcmd_del(self);
+    if (!parse_opts(self)) {
+        CapFindCmd_Del(self);
         return NULL;
     }
 
@@ -162,12 +166,12 @@ join_cap_path(char *dst, int32_t dstsz, const char *lhs, const char *rhs) {
 }
 
 static int
-find_files_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpath, int dep) {
+find_files_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirpath, int dep) {
     if (dep >= self->opts.max_recursion) {
         return 1;
     }
 
-    file_dir_t *dir = PadFileDir_Open(dirpath);
+    file_dir_t *dir = PadDir_Open(dirpath);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", dirpath);
         return 1;
@@ -176,14 +180,14 @@ find_files_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpath
     int ret = 0;
 
     for (;;) {
-        file_dirnode_t *node = PadFileDir_Read(dir);
+        PadDirNode *node = PadDir_Read(dir);
         if (!node) {
             break;
         }
 
-        const char *name = PadFileDirNode_Name(node);
-        if (cstr_eq(name, ".") || cstr_eq(name, "..")) {
-            file_dirnodedel(node);
+        const char *name = PadDirNode_Name(node);
+        if (PadCStr_Eq(name, ".") || PadCStr_Eq(name, "..")) {
+            PadDirNode_Del(node);
             continue;
         }
 
@@ -196,11 +200,11 @@ find_files_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpath
         char path[FILE_NPATH];
         if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmp_path)) {
             PadErr_Err("failed to follow path on find file recursive");
-            file_dirnodedel(node);
+            PadDirNode_Del(node);
             continue;
         }
 
-        if (argsmgr_contains_all(self->argsmgr, name)) {
+        if (CapArgsMgr_ContainsAll(self->argsmgr, name)) {
             if (self->opts.is_normalize) {
                 puts(path);
             } else {
@@ -208,26 +212,26 @@ find_files_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpath
             }
         }
 
-        if (symlink_is_link_file(path)) {
+        if (CapSymlink_IsLinkFile(path)) {
             // pass
         } else if (PadFile_IsDir(path)) {
             ret = find_files_r(self, path, cap_path, dep+1);
         }
 
-        file_dirnodedel(node);
+        PadDirNode_Del(node);
     }
 
-    PadFileDir_Close(dir);
+    PadDir_Close(dir);
 
     return ret;
 }
 
 static bool
-has_contents(const findcmd_t *self, const dict_t *alias_kvmap, int32_t *maxkeylen, int32_t *maxvallen) {
+has_contents(const CapFindCmd *self, const PadDict *alias_kvmap, int32_t *maxkeylen, int32_t *maxvallen) {
     bool has = false;
-    for (int32_t i = 0; i < dict_len(alias_kvmap); ++i) {
-        const dict_item_t *item = dict_getc_index(alias_kvmap, i);
-        if (argsmgr_contains_all(self->argsmgr, item->key)) {
+    for (int32_t i = 0; i < PadDict_Len(alias_kvmap); ++i) {
+        const dict_item_t *item = PadDict_GetcIndex(alias_kvmap, i);
+        if (CapArgsMgr_ContainsAll(self->argsmgr, item->key)) {
             int32_t keylen = strlen(item->key);
             int32_t vallen = strlen(item->value);
             *maxkeylen = keylen > *maxkeylen ? keylen : *maxkeylen;
@@ -240,7 +244,7 @@ has_contents(const findcmd_t *self, const dict_t *alias_kvmap, int32_t *maxkeyle
 }
 
 static int
-find_aliases_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpath, int dep) {
+find_aliases_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirpath, int dep) {
     char alpath[FILE_NPATH];
     if (dep >= self->opts.max_recursion) {
         return 1;
@@ -250,30 +254,30 @@ find_aliases_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpa
         // not error
     }
 
-    almgr_clear(self->almgr);
+    CapAliasMgr_Clear(self->almgr);
     if (PadFile_IsExists(alpath)) {
-        if (!almgr_load_path(self->almgr, alpath)) {
+        if (!CapAliasMgr_LoadPath(self->almgr, alpath)) {
             PadErr_Err("failed to load resource file \"%s\" for alias", alpath);
             return 1;
         }
     }
 
-    const context_t *ctx = almgr_getc_context(self->almgr);
-    const alinfo_t *alinfo = ctx_getc_alinfo(ctx);
-    const dict_t *alias_kvmap = alinfo_getc_key_value_map(alinfo);
+    const PadCtx *ctx = CapAliasMgr_GetcContext(self->almgr);
+    const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
+    const PadDict *alias_kvmap = PadAliasInfo_GetcKeyValueMap(alinfo);
     int32_t maxkeylen = 0;
     int32_t maxvallen = 0;
     bool hascontents = has_contents(self, alias_kvmap, &maxkeylen, &maxvallen);
     const char *disppath = self->opts.is_normalize ? dirpath : cap_dirpath;
     disppath = strlen(disppath) ? disppath : ".";
 
-    if (dict_len(alias_kvmap) && hascontents) {
+    if (PadDict_Len(alias_kvmap) && hascontents) {
         printf("%s\n\n", disppath);
     }
 
-    for (int32_t i = 0; i < dict_len(alias_kvmap); ++i) {
-        const dict_item_t *item = dict_getc_index(alias_kvmap, i);
-        if (argsmgr_contains_all(self->argsmgr, item->key)) {
+    for (int32_t i = 0; i < PadDict_Len(alias_kvmap); ++i) {
+        const dict_item_t *item = PadDict_GetcIndex(alias_kvmap, i);
+        if (CapArgsMgr_ContainsAll(self->argsmgr, item->key)) {
             printf("    %-*s    %-*s\n", maxkeylen, item->key, maxvallen, item->value);
         }
     }
@@ -282,7 +286,7 @@ find_aliases_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpa
         printf("\n");
     }
 
-    file_dir_t *dir = PadFileDir_Open(dirpath);
+    file_dir_t *dir = PadDir_Open(dirpath);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", dirpath);
         return 1;
@@ -291,14 +295,14 @@ find_aliases_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpa
     int ret = 0;
 
     for (;;) {
-        file_dirnode_t *node = PadFileDir_Read(dir);
+        PadDirNode *node = PadDir_Read(dir);
         if (!node) {
             break;
         }
 
-        const char *name = PadFileDirNode_Name(node);
-        if (cstr_eq(name, ".") || cstr_eq(name, "..")) {
-            file_dirnodedel(node);
+        const char *name = PadDirNode_Name(node);
+        if (PadCStr_Eq(name, ".") || PadCStr_Eq(name, "..")) {
+            PadDirNode_Del(node);
             continue;
         }
 
@@ -311,7 +315,7 @@ find_aliases_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpa
         char path[FILE_NPATH];
         if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmp_path)) {
             PadErr_Err("failed to follow path on find file recursive");
-            file_dirnodedel(node);
+            PadDirNode_Del(node);
             continue;
         }
 
@@ -319,15 +323,15 @@ find_aliases_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpa
             ret = find_aliases_r(self, path, cap_path, dep+1);
         }
 
-        file_dirnodedel(node);
+        PadDirNode_Del(node);
     }
 
     return ret;
 }
 
 static int
-find_start(const findcmd_t *self) {
-    const char *origin = get_origin(self->config, self->opts.origin);
+find_start(const CapFindCmd *self) {
+    const char *origin = Cap_GetOrigin(self->config, self->opts.origin);
     char tmppath[FILE_NPATH*2];
     snprintf(tmppath, sizeof tmppath, "%s/%s", origin, self->opts.origin);
 
@@ -345,12 +349,11 @@ find_start(const findcmd_t *self) {
 }
 
 int
-findcmd_run(findcmd_t *self) {
+CapFindCmd_Run(CapFindCmd *self) {
     int nargs = self->argc - self->optind;
 
     if (nargs == 0 || self->opts.is_help) {
-        findcmd_show_usage(self);
-        return 0;
+        usage(self);
     }
 
     return find_start(self);

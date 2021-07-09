@@ -483,14 +483,14 @@ app_execute_command_by_name(app_t *self, const char *name) {
  */
 static int
 app_execute_alias_by_name(app_t *self, bool *found, const char *name) {
-    almgr_t *almgr = almgr_new(self->config);
+    CapAliasMgr *almgr = CapAliasMgr_New(self->config);
 
     // find alias value by name
     // find first from local scope
     // not found to find from global scope
     char val[1024];
     if (almgr_find_alias_value(almgr, val, sizeof val, name, CAP_SCOPE_LOCAL) == NULL) {
-        almgr_clear_error(almgr);
+        CapAliasMgr_Clear_error(almgr);
         if (almgr_find_alias_value(almgr, val, sizeof val, name, CAP_SCOPE_GLOBAL) == NULL) {
             *found = false;
             return 1;

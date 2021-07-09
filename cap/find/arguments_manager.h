@@ -7,16 +7,16 @@
 #include "lib/cstring_array.h"
 
 struct arguments_manager;
-typedef struct arguments_manager argsmgr_t;
+typedef struct arguments_manager CapArgsMgr;
 
 void
-argsmgr_del(argsmgr_t *self);
+argsmgr_del(CapArgsMgr *self);
 
-argsmgr_t *
+CapArgsMgr *
 argsmgr_new(char *argv[]);
 
 const char *
-argsmgr_getc(const argsmgr_t *self, int32_t idx);
+argsmgr_getc(const CapArgsMgr *self, int32_t idx);
 
 bool
-argsmgr_contains_all(const argsmgr_t *self, const char *target);
+CapArgsMgr_ContainsAll(const CapArgsMgr *self, const char *target);

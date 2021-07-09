@@ -69,4 +69,4 @@ symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char
  * @return file is link to true, else false
  */
 bool
-symlink_is_link_file(const char *path);
+CapSymlink_IsLinkFile(const char *path);

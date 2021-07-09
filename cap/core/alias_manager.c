@@ -15,12 +15,12 @@ struct alias_manager {
     tokenizer_t *tkr;
     ast_t *ast;
     gc_t *gc;
-    context_t *context;
+    PadCtx *context;
     char error_detail[ERR_DETAIL_SIZE];
 };
 
 void
-almgr_del(almgr_t *self) {
+almgr_del(CapAliasMgr *self) {
     if (!self) {
         return;
     }
@@ -32,9 +32,9 @@ almgr_del(almgr_t *self) {
     free(self);
 }
 
-almgr_t *
-almgr_new(const CapConfig *config) {
-    almgr_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapAliasMgr *
+CapAliasMgr_New(const CapConfig *config) {
+    CapAliasMgr *self = PadMem_ECalloc(1, sizeof(*self));
 
     self->config = config;
 
@@ -48,7 +48,7 @@ almgr_new(const CapConfig *config) {
 }
 
 static void
-almgr_set_error_detail(almgr_t *self, const char *fmt, ...) {
+almgr_set_error_detail(CapAliasMgr *self, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vsnprintf(self->error_detail, sizeof self->error_detail, fmt, ap);
@@ -56,7 +56,7 @@ almgr_set_error_detail(almgr_t *self, const char *fmt, ...) {
 }
 
 static char *
-almgr_create_resource_path(almgr_t *self, char *dst, size_t dstsz, int scope) {
+almgr_create_resource_path(CapAliasMgr *self, char *dst, size_t dstsz, int scope) {
     const char *org = NULL;
 
     if (scope == CAP_SCOPE_LOCAL) {
@@ -79,15 +79,15 @@ almgr_create_resource_path(almgr_t *self, char *dst, size_t dstsz, int scope) {
     return dst;
 }
 
-almgr_t *
-almgr_load_path(almgr_t *self, const char *path) {
+CapAliasMgr *
+CapAliasMgr_LoadPath(CapAliasMgr *self, const char *path) {
     char *src = file_readcp_from_path(path);
     if (!src) {
         almgr_set_error_detail(self, "failed to read content from file \"%s\"", path);
         return NULL;
     }
 
-    almgr_t *ret = self;
+    CapAliasMgr *ret = self;
 
     tkr_parse(self->tkr, src);
     if (tkr_has_error_stack(self->tkr)) {
@@ -117,8 +117,8 @@ fail:
     return ret;
 }
 
-almgr_t *
-almgr_load_alias_list(almgr_t *self, int scope) {
+CapAliasMgr *
+almgr_load_alias_list(CapAliasMgr *self, int scope) {
     char path[FILE_NPATH];
     if (!almgr_create_resource_path(self, path, sizeof path, scope)) {
         almgr_set_error_detail(self, "failed to create path by scope %d", scope);
@@ -129,11 +129,11 @@ almgr_load_alias_list(almgr_t *self, int scope) {
         return NULL;
     }
 
-    return almgr_load_path(self, path);
+    return CapAliasMgr_LoadPath(self, path);
 }
 
-almgr_t *
-almgr_find_alias_value(almgr_t *self, char *dst, uint32_t dstsz, const char *key, int scope) {
+CapAliasMgr *
+almgr_find_alias_value(CapAliasMgr *self, char *dst, uint32_t dstsz, const char *key, int scope) {
     if (!almgr_load_alias_list(self, scope)) {
         return NULL;
     }
@@ -149,32 +149,32 @@ almgr_find_alias_value(almgr_t *self, char *dst, uint32_t dstsz, const char *key
 }
 
 bool
-almgr_has_error(const almgr_t *self) {
+almgr_has_error(const CapAliasMgr *self) {
     return self->error_detail[0] != '\0';
 }
 
 void
-almgr_clear(almgr_t *self) {
+CapAliasMgr_Clear(CapAliasMgr *self) {
     ctx_clear(self->context);
-    almgr_clear_error(self);
+    CapAliasMgr_Clear_error(self);
 }
 
 void
-almgr_clear_error(almgr_t *self) {
+CapAliasMgr_Clear_error(CapAliasMgr *self) {
     self->error_detail[0] = '\0';
 }
 
 const char *
-almgr_get_error_detail(const almgr_t *self) {
+almgr_get_error_detail(const CapAliasMgr *self) {
     return self->error_detail;
 }
 
-const alinfo_t *
-almgr_getc_alinfo(const almgr_t *self) {
-    return ctx_getc_alinfo(self->context);
+const PadAliasInfo *
+almgr_getc_alinfo(const CapAliasMgr *self) {
+    return PadCtx_GetcAliasInfo(self->context);
 }
 
-const context_t *
-almgr_getc_context(const almgr_t *self) {
+const PadCtx *
+CapAliasMgr_GetcContext(const CapAliasMgr *self) {
     return self->context;
 }
