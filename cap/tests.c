@@ -777,20 +777,20 @@ test_cstring_PadCStr_Copy(void) {
 }
 
 static void
-test_cstring_cstr_pop_newline(void) {
+test_cstring_PadCStr_PopNewline(void) {
     char a[] = "test\n";
 
-    assert(cstr_pop_newline(NULL) == NULL);
+    assert(PadCStr_PopNewline(NULL) == NULL);
 
-    assert(cstr_pop_newline(a));
+    assert(PadCStr_PopNewline(a));
     assert(!strcmp(a, "test"));
 
     char b[] = "b\r\n";
-    assert(cstr_pop_newline(b));
+    assert(PadCStr_PopNewline(b));
     assert(!strcmp(b, "b"));
 
     char c[] = "c\r\n\n";
-    assert(cstr_pop_newline(c));
+    assert(PadCStr_PopNewline(c));
     assert(!strcmp(c, "c"));
 }
 
@@ -950,7 +950,7 @@ test_cstring_cstr_isdigit(void) {
 static const struct testcase
 cstring_tests[] = {
     {"PadCStr_Copy", test_cstring_PadCStr_Copy},
-    {"cstr_pop_newline", test_cstring_cstr_pop_newline},
+    {"PadCStr_PopNewline", test_cstring_PadCStr_PopNewline},
     {"cstr_cpywithout", test_cstring_cstr_cpywithout},
     {"PadCStr_App", test_cstring_PadCStr_App},
     {"PadCStr_AppFmt", test_cstring_PadCStr_AppFmt},
@@ -1108,14 +1108,14 @@ test_PadStr_PushBack(void) {
 }
 
 static void
-test_str_popb(void) {
+test_PadStr_PopBack(void) {
     string_t *s = PadStr_New();
     assert(s != NULL);
-    assert(str_popb(NULL) == '\0');
+    assert(PadStr_PopBack(NULL) == '\0');
     assert(str_set(s, "1234") != NULL);
     assert(strcmp(PadStr_Getc(s), "1234") == 0);
-    assert(str_popb(s) == '4');
-    assert(str_popb(s) == '3');
+    assert(PadStr_PopBack(s) == '4');
+    assert(PadStr_PopBack(s) == '3');
     assert(strcmp(PadStr_Getc(s), "12") == 0);
     PadStr_Del(s);
 }
@@ -1584,7 +1584,7 @@ string_tests[] = {
     {"str_set", test_str_set},
     {"str_resize", test_str_resize},
     {"PadStr_PushBack", test_PadStr_PushBack},
-    {"str_popb", test_str_popb},
+    {"PadStr_PopBack", test_PadStr_PopBack},
     {"str_pushf", test_str_pushf},
     {"str_popf", test_str_popf},
     {"PadStr_App", test_PadStr_App},
@@ -2706,14 +2706,14 @@ test_PadFile_BaseName(void) {
 }
 
 static void
-test_file_getline(void) {
+test_PadFile_GetLine(void) {
     FILE *fin = get_test_fin();
     assert(fin != NULL);
     char line[1024];
-    assert(file_getline(NULL, sizeof line, fin) == EOF);
-    assert(file_getline(line, 0, fin) == EOF);
-    assert(file_getline(line, sizeof line, NULL) == EOF);
-    assert(file_getline(line, sizeof line, fin) != EOF);
+    assert(PadFile_GetLine(NULL, sizeof line, fin) == EOF);
+    assert(PadFile_GetLine(line, 0, fin) == EOF);
+    assert(PadFile_GetLine(line, sizeof line, NULL) == EOF);
+    assert(PadFile_GetLine(line, sizeof line, fin) != EOF);
     assert(strcmp(get_test_fcontent_nonewline(), line) == 0);
     assert(PadFile_Close(fin) == 0);
 }
@@ -2917,7 +2917,7 @@ file_tests[] = {
     {"file_suffix", test_file_suffix},
     {"file_dirname", test_file_dirname},
     {"PadFile_BaseName", test_PadFile_BaseName},
-    {"file_getline", test_file_getline},
+    {"PadFile_GetLine", test_PadFile_GetLine},
     {"PadFile_ReadLine", test_PadFile_ReadLine},
     {"PadFile_WriteLine", test_PadFile_WriteLine},
     {"PadDirNode_Del", test_PadDirNode_Del},
@@ -29048,7 +29048,7 @@ test_runcmd_default(void) {
 }
 
 static const struct testcase
-runcmd_tests[] = {
+CapRunCmdests[] = {
     {"default", test_runcmd_default},
     {0},
 };
@@ -30234,7 +30234,7 @@ testmodules[] = {
     {"ls", CapLsCmdests},
     {"cat", catcmd_tests},
     {"make", CapMakeCmdests},
-    {"run", runcmd_tests},
+    {"run", CapRunCmdests},
     {"exec", CapExecCmdests},
     {"alias", alcmd_tests},
     {"edit", CapEditCmdests},

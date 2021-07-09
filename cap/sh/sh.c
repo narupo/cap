@@ -176,7 +176,7 @@ shcmd_input(shcmd_t *self) {
     fflush(stderr);
 
     self->line_buf[0] = '\0';
-    if (file_getline(self->line_buf, sizeof self->line_buf, stdin) == EOF) {
+    if (PadFile_GetLine(self->line_buf, sizeof self->line_buf, stdin) == EOF) {
         return 1;
     }
 
@@ -214,7 +214,7 @@ shcmd_exec_alias(shcmd_t *self, bool *found, int argc, char **argv) {
         PadStr_App(cmdline, "\"");
         PadStr_App(cmdline, " ");
     }
-    str_popb(cmdline);
+    PadStr_PopBack(cmdline);
 
     // convert command to application's arguments
     cl_t *cl = cl_new();

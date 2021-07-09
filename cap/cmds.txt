@@ -28,7 +28,7 @@ mv *
 pwd *
 replace *
 rm *
-run
+run *
 sh
 snippet
 tests.c

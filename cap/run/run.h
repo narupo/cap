@@ -1,23 +1,24 @@
 #pragma once
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <lib/string.h>
-#include <lib/cstring.h>
-#include <lib/cstring_array.h>
-#include <core/constant.h>
-#include <core/util.h>
-#include <core/config.h>
-#include <core/symlink.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <pad/lib/string.h>
+#include <pad/lib/cstring.h>
+#include <pad/lib/cstring_array.h>
 
-struct runcmd;
-typedef struct runcmd runcmd_t;
+#include <cap/core/constant.h>
+#include <cap/core/util.h>
+#include <cap/core/config.h>
+#include <cap/core/symlink.h>
+
+struct CapRunCmd;
+typedef struct CapRunCmd CapRunCmd;
 
 void
-runcmd_del(runcmd_t *self);
+CapRunCmd_Del(CapRunCmd *self);
 
-runcmd_t *
-runcmd_new(const CapConfig *config, int argc, char **argv);
+CapRunCmd *
+CapRunCmd_New(const CapConfig *config, int argc, char **argv);
 
 int
-runcmd_run(runcmd_t *self);
+CapRunCmd_Run(CapRunCmd *self);

@@ -26,7 +26,7 @@ read_sympath(const CapConfig *config, char *sympath, uint32_t sympathsz, const c
 
     uint32_t symheaderlen = strlen(SYMLINK_HEADER);
     char line[FILE_NPATH + symheaderlen + 1];
-    int32_t linelen = file_getline(line, sizeof line, fin);
+    int32_t linelen = PadFile_GetLine(line, sizeof line, fin);
     if (linelen == EOF) {
         fclose(fin);
         return NULL;

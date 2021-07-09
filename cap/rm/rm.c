@@ -1,4 +1,4 @@
-#include <rm/rm.h>
+#include <cap/rm/rm.h>
 
 extern int opterr;
 extern int optind;

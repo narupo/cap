@@ -5,24 +5,26 @@ enum {
     NCMDLINE = 256
 };
 
-struct runcmd {
+struct CapRunCmd {
     const CapConfig *config;
     int argc;
     char **argv;
 };
 
 void
-runcmd_del(runcmd_t *self) {
+CapRunCmd_Del(CapRunCmd *self) {
     if (!self) {
         return;
     }
-
-    free(self);
+    Pad_SafeFree(self);
 }
 
-runcmd_t *
-runcmd_new(const CapConfig *config, int argc, char **argv) {
-    runcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapRunCmd *
+CapRunCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapRunCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
@@ -32,7 +34,7 @@ runcmd_new(const CapConfig *config, int argc, char **argv) {
 }
 
 static char *
-runcmd_read_script_line(runcmd_t *self, char *dst, size_t dstsz, const char *path) {
+read_script_line(CapRunCmd *self, char *dst, size_t dstsz, const char *path) {
     // read first line of file
     FILE *fin = fopen(path, "rb");
     if (!fin) {
@@ -40,8 +42,8 @@ runcmd_read_script_line(runcmd_t *self, char *dst, size_t dstsz, const char *pat
     }
 
     char tmp[dstsz];
-    file_getline(tmp, sizeof tmp, fin);
-    cstr_pop_newline(tmp);
+    PadFile_GetLine(tmp, sizeof tmp, fin);
+    PadCStr_PopNewline(tmp);
 
     // find !
     const char *needle = "!";
@@ -77,7 +79,7 @@ runcmd_read_script_line(runcmd_t *self, char *dst, size_t dstsz, const char *pat
 }
 
 int
-runcmd_run(runcmd_t *self) {
+CapRunCmd_Run(CapRunCmd *self) {
     if (self->argc < 2) {
         PadErr_Err("need script file name");
         return 1;
@@ -103,7 +105,7 @@ runcmd_run(runcmd_t *self) {
 
     // Read script line in file
     char script[NSCRIPTNAME];
-    if (!runcmd_read_script_line(self, script, sizeof script, filepath)) {
+    if (!read_script_line(self, script, sizeof script, filepath)) {
         script[0] = '\0';
     }
 
@@ -122,7 +124,7 @@ runcmd_run(runcmd_t *self) {
         PadStr_App(cmdline, "\"");
         PadStr_App(cmdline, " ");
     }
-    str_popb(cmdline);
+    PadStr_PopBack(cmdline);
 
     // Start process communication
     int option = SAFESYSTEM_DEFAULT;
