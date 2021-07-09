@@ -11,16 +11,16 @@
 /**
  * structure and type of command
  */
-struct editorcmd;
-typedef struct editorcmd editorcmd_t;
+struct CapEditorCmd;
+typedef struct CapEditorCmd CapEditorCmd;
 
 /**
  * destruct command
  *
- * @param[in] self pointer to editorcmd_t
+ * @param[in] self pointer to CapEditorCmd
  */
 void
-editorcmd_del(editorcmd_t *self);
+CapEditorCmd_Del(CapEditorCmd *self);
 
 /**
  * construct command
@@ -29,19 +29,19 @@ editorcmd_del(editorcmd_t *self);
  * @param[in] argc   number of arguments
  * @param[in] argv   reference to array of arguments 
  *
- * @return success to pointer to editorcmd_t
+ * @return success to pointer to CapEditorCmd
  * @return failed to NULL
  */
-editorcmd_t *
-editorcmd_new(const CapConfig *config, int argc, char **argv);
+CapEditorCmd *
+CapEditorCmd_New(const CapConfig *config, int argc, char **argv);
 
 /**
  * run command
  *
- * @param[in] self pointer to editorcmd_t
+ * @param[in] self pointer to CapEditorCmd
  *
  * @return success to number of 0
  * @return failed to number of not 0
  */
 int
-editorcmd_run(editorcmd_t *self);
+CapEditorCmd_Run(CapEditorCmd *self);

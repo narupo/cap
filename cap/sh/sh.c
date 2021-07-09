@@ -307,7 +307,7 @@ shcmd_exec_command(shcmd_t *self, int argc, char **argv) {
         result = rmcmd_run(cmd);
         switch (rmcmd_errno(cmd)) {
         case RMCMD_ERR_NOERR: break;
-        default: PadErr_Error(rmcmd_what(cmd)); break;
+        default: PadErr_Err(rmcmd_what(cmd)); break;
         }
         rmcmd_del(cmd);
     } else if (cstr_eq(cmdname, "mv")) {
@@ -347,7 +347,7 @@ shcmd_update(shcmd_t *self) {
     }
 
     if (!cmdline_parse(self->cmdline, self->line_buf)) {
-        PadErr_Error("failed to parse command line");
+        PadErr_Err("failed to parse command line");
         return 1;
     }
 

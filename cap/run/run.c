@@ -79,7 +79,7 @@ runcmd_read_script_line(runcmd_t *self, char *dst, size_t dstsz, const char *pat
 int
 runcmd_run(runcmd_t *self) {
     if (self->argc < 2) {
-        PadErr_Error("need script file name");
+        PadErr_Err("need script file name");
         return 1;
     }
 
@@ -92,12 +92,12 @@ runcmd_run(runcmd_t *self) {
 
     char filepath[FILE_NPATH];
     if (!CapSymlink_FollowPath(self->config, filepath, sizeof filepath, tmppath)) {
-        PadErr_Error("failed to follow path");
+        PadErr_Err("failed to follow path");
         return 1;
     }
 
     if (Cap_IsOutOfHome(self->config->home_path, filepath)) {
-        PadErr_Error("invalid script. \"%s\" is out of home.", filepath);
+        PadErr_Err("invalid script. \"%s\" is out of home.", filepath);
         return 1;
     }
 

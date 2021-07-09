@@ -95,7 +95,7 @@ replace_slashes(const char *s) {
 int
 pwdcmd_run(pwdcmd_t *self) {
     if (!pwdcmd_parse_opts(self)) {
-        PadErr_Error("failed to parse option");
+        PadErr_Err("failed to parse option");
         return 1;
     }
 
@@ -108,7 +108,7 @@ pwdcmd_run(pwdcmd_t *self) {
         int32_t homelen = strlen(home);
         int32_t cdlen = strlen(cd);
         if (cdlen-homelen < 0) {
-            PadErr_Error("invalid cd \"%s\" or home \"%s\"", cd, home);
+            PadErr_Err("invalid cd \"%s\" or home \"%s\"", cd, home);
             return 4;
         }
         if (cdlen-homelen == 0) {

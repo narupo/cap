@@ -169,7 +169,7 @@ find_files_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpath
 
     file_dir_t *dir = PadFileDir_Open(dirpath);
     if (!dir) {
-        PadErr_Error("failed to open directory \"%s\"", dirpath);
+        PadErr_Err("failed to open directory \"%s\"", dirpath);
         return 1;
     }
 
@@ -195,7 +195,7 @@ find_files_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpath
 
         char path[FILE_NPATH];
         if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmp_path)) {
-            PadErr_Error("failed to follow path on find file recursive");
+            PadErr_Err("failed to follow path on find file recursive");
             file_dirnodedel(node);
             continue;
         }
@@ -253,7 +253,7 @@ find_aliases_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpa
     almgr_clear(self->almgr);
     if (PadFile_IsExists(alpath)) {
         if (!almgr_load_path(self->almgr, alpath)) {
-            PadErr_Error("failed to load resource file \"%s\" for alias", alpath);
+            PadErr_Err("failed to load resource file \"%s\" for alias", alpath);
             return 1;
         }
     }
@@ -284,7 +284,7 @@ find_aliases_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpa
 
     file_dir_t *dir = PadFileDir_Open(dirpath);
     if (!dir) {
-        PadErr_Error("failed to open directory \"%s\"", dirpath);
+        PadErr_Err("failed to open directory \"%s\"", dirpath);
         return 1;
     }
 
@@ -310,7 +310,7 @@ find_aliases_r(const findcmd_t *self, const char *dirpath, const char *cap_dirpa
 
         char path[FILE_NPATH];
         if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmp_path)) {
-            PadErr_Error("failed to follow path on find file recursive");
+            PadErr_Err("failed to follow path on find file recursive");
             file_dirnodedel(node);
             continue;
         }
@@ -333,7 +333,7 @@ find_start(const findcmd_t *self) {
 
     char path[FILE_NPATH];
     if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmppath)) {
-        PadErr_Error("failed to follow path in find files");
+        PadErr_Err("failed to follow path in find files");
         return 1;
     }
     

@@ -46,7 +46,7 @@ lscmd_parse_opts(lscmd_t *self) {
         case 'a': self->opts.is_all = true; break;
         case '?':
         default:
-            PadErr_Error("unknown option");
+            PadErr_Err("unknown option");
             return false;
             break;
         }
@@ -99,7 +99,7 @@ print_fname(const lscmd_t *self, FILE *fout, bool print_color, const char *path,
 
     char fpath[FILE_NPATH];
     if (!PadFile_Solvefmt(fpath, sizeof fpath, "%s/%s", path, name)) {
-        PadErr_Error("failed to solve path by name \"%s\"", name);
+        PadErr_Err("failed to solve path by name \"%s\"", name);
         return;
     }
 
@@ -157,19 +157,19 @@ lscmd_dir2arr(const lscmd_t *self, file_dir_t *dir) {
 static int
 lscmd_ls(const lscmd_t *self, const char *path) {
     if (Cap_IsOutOfHome(self->config->home_path, path)) {
-        PadErr_Error("\"%s\" is out of home", path);
+        PadErr_Err("\"%s\" is out of home", path);
         return 1;
     }
 
     file_dir_t *dir = PadFileDir_Open(path);
     if (!dir) {
-        PadErr_Error("failed to open directory \"%s\"", path);
+        PadErr_Err("failed to open directory \"%s\"", path);
         return 2;
     }
 
     cstring_array_t *arr = lscmd_dir2arr(self, dir);
     if (!arr) {
-        PadErr_Error("failed to read directory \"%s\"", path);
+        PadErr_Err("failed to read directory \"%s\"", path);
         return 3;
     }
 
@@ -178,7 +178,7 @@ lscmd_ls(const lscmd_t *self, const char *path) {
     cstrarr_del(arr);
 
     if (PadFileDir_Close(dir) < 0) {
-        PadErr_Error("failed to close directory \"%s\"", path);
+        PadErr_Err("failed to close directory \"%s\"", path);
         return 4;
     }
 
@@ -196,7 +196,7 @@ lscmd_run(lscmd_t *self) {
 
     if (optind - self->argc == 0) {
         if (!CapSymlink_FollowPath(self->config, realpath, sizeof realpath, self->config->cd_path)) {
-            PadErr_Error("failed to follow path");
+            PadErr_Err("failed to follow path");
             return 1;
         }
         return lscmd_ls(self, realpath);

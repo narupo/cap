@@ -14,30 +14,30 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <lib/string.h>
-#include <lib/error.h>
-#include <lib/cmdline.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <pad/lib/string.h>
+#include <pad/lib/error.h>
+#include <pad/lib/cmdline.h>
 
-#include <core/constant.h>
-#include <core/util.h>
-#include <core/config.h>
-#include <core/symlink.h>
+#include <cap/core/constant.h>
+#include <cap/core/util.h>
+#include <cap/core/config.h>
+#include <cap/core/symlink.h>
 
 /**
  * Structure and type of command
  */
-struct exec;
-typedef struct exec execcmd_t;
+struct CapExecCmd;
+typedef struct CapExecCmd CapExecCmd;
 
 /**
  * Destruct command
  *
- * @param[in] self pointer to execcmd_t
+ * @param[in] self pointer to CapExecCmd
  */
 void
-execcmd_del(execcmd_t *self);
+CapExecCmd_Del(CapExecCmd *self);
 
 /**
  * Construct command
@@ -46,19 +46,19 @@ execcmd_del(execcmd_t *self);
  * @param[in] argc        number of arguments
  * @param[in] move_argv   pointer to array of arguments with move semantics
  *
- * @return success to pointer to execcmd_t
+ * @return success to pointer to CapExecCmd
  * @return failed to NULL
  */
-execcmd_t *
-execcmd_new(const CapConfig *config, int argc, char **argv);
+CapExecCmd *
+CapExecCmd_New(const CapConfig *config, int argc, char **argv);
 
 /**
  * Run command
  *
- * @param[in] self pointer to execcmd_t
+ * @param[in] self pointer to CapExecCmd
  *
  * @return success to number of 0
  * @return failed to number of not 0
  */
 int
-execcmd_run(execcmd_t *self);
+CapExecCmd_Run(CapExecCmd *self);

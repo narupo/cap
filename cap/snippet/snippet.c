@@ -59,7 +59,7 @@ static int
 snptcmd_show_files(snptcmd_t *self) {
     file_dir_t *dir = PadFileDir_Open(self->config->codes_dir_path);
     if (!dir) {
-        PadErr_Error("failed to open directory \"%s\"", self->config->codes_dir_path);
+        PadErr_Err("failed to open directory \"%s\"", self->config->codes_dir_path);
         return 1;
     }
 
@@ -79,7 +79,7 @@ snptcmd_show_files(snptcmd_t *self) {
 static int
 snptcmd_add(snptcmd_t *self) {
     if (self->argc < 3) {
-        PadErr_Error("failed to add snippet. need file name");
+        PadErr_Err("failed to add snippet. need file name");
         return 1;
     }
 
@@ -87,19 +87,19 @@ snptcmd_add(snptcmd_t *self) {
     char path[FILE_NPATH];
 
     if (!strlen(self->config->codes_dir_path)) {
-        PadErr_Error("codes directory path is empty");
+        PadErr_Err("codes directory path is empty");
         return 1;
     }
 
     if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
-        PadErr_Error("failed to solve path for \"%s\"", name);
+        PadErr_Err("failed to solve path for \"%s\"", name);
         return 1;
     }
 
     printf("path[%s]\n", path);
     FILE *fout = PadFile_Open(path, "wb");
     if (!fout) {
-        PadErr_Error("failed to open snippet \"%s\"", name);
+        PadErr_Err("failed to open snippet \"%s\"", name);
         return 1;
     }
 
@@ -115,7 +115,7 @@ snptcmd_add(snptcmd_t *self) {
 static int
 snptcmd_show(snptcmd_t *self) {
     if (self->argc < 2) {
-        PadErr_Error("failed to show snippet. need file name");
+        PadErr_Err("failed to show snippet. need file name");
         return 1;
     }
 
@@ -123,19 +123,19 @@ snptcmd_show(snptcmd_t *self) {
     char path[FILE_NPATH];
 
     if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
-        PadErr_Error("failed to solve path for \"%s\"", name);
+        PadErr_Err("failed to solve path for \"%s\"", name);
         return 1;
     }
 
     FILE *fin = PadFile_Open(path, "rb");
     if (!fin) {
-        PadErr_Error("failed to open snippet \"%s\"", name);
+        PadErr_Err("failed to open snippet \"%s\"", name);
         return 1;
     }
 
     char *content = file_readcp(fin);
     if (!content) {
-        PadErr_Error("failed to read snippet code from \"%s\"", path);
+        PadErr_Err("failed to read snippet code from \"%s\"", path);
         return 1;
     }
 
@@ -170,7 +170,7 @@ static int
 snptcmd_clear(snptcmd_t *self) {
     file_dir_t *dir = PadFileDir_Open(self->config->codes_dir_path);
     if (!dir) {
-        PadErr_Error("failed to open directory \"%s\"", self->config->codes_dir_path);
+        PadErr_Err("failed to open directory \"%s\"", self->config->codes_dir_path);
         return 1;
     }
 
@@ -181,12 +181,12 @@ snptcmd_clear(snptcmd_t *self) {
         }
         char path[FILE_NPATH];
         if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
-            PadErr_Error("failed to solve path for \"%s\"", name);
+            PadErr_Err("failed to solve path for \"%s\"", name);
             goto fail;
         }
 
         if (file_remove(path) != 0) {
-            PadErr_Error("failed to remove file \"%s\"", path);
+            PadErr_Err("failed to remove file \"%s\"", path);
             goto fail;
         }
 

@@ -11,7 +11,7 @@ cmds.txt
 cook *
 cp *
 edit *
-editor
+editor *
 exec
 find
 home

@@ -13,16 +13,16 @@ struct Opts {
 /**
  * Structure of command
  */
-struct exec {
+struct CapExecCmd {
     const CapConfig *config;
     int argc;
     int optind;
     char **argv;
     struct Opts opts;
-    cmdline_t *cmdline;
+    PadCmdline *cmdline;
     int32_t cmdline_index;
     char what[1024];
-#ifdef _CAP_WINDOWS
+#ifdef CAP__WINDOWS
     string_t *read_buffer;
 #endif
 };
@@ -30,10 +30,10 @@ struct exec {
 /**
  * Show usage of command
  *
- * @param[in] self pointer to execcmd_t
+ * @param[in] self pointer to CapExecCmd
  */
 static void
-execcmd_show_usage(execcmd_t *self) {
+usage(CapExecCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Usage:\n"
@@ -46,18 +46,19 @@ execcmd_show_usage(execcmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
 /**
  * Parse options
  *
- * @param[in] self pointer to execcmd_t
+ * @param[in] self pointer to CapExecCmd
  *
  * @return success to true
  * @return failed to false
  */
 static bool
-execcmd_parse_opts(execcmd_t *self) {
+parse_opts(CapExecCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -99,32 +100,35 @@ execcmd_parse_opts(execcmd_t *self) {
 }
 
 void
-execcmd_del(execcmd_t *self) {
+CapExecCmd_Del(CapExecCmd *self) {
     if (!self) {
         return;
     }
 
-    cmdline_del(self->cmdline);
-#if _CAP_WINDOWS
-    str_del(self->read_buffer);
+    PadCmdline_Del(self->cmdline);
+#if CAP__WINDOWS
+    PadStr_Del(self->read_buffer);
 #endif
-    free(self);
+    Pad_SafeFree(self);
 }
 
-execcmd_t *
-execcmd_new(const CapConfig *config, int argc, char **argv) {
-    execcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapExecCmd *
+CapExecCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapExecCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
-    self->cmdline = cmdline_new();
-#if _CAP_WINDOWS
-    self->read_buffer = str_new();
+    self->cmdline = PadCmdline_New();
+#if CAP__WINDOWS
+    self->read_buffer = PadStr_New();
 #endif
 
-    if (!execcmd_parse_opts(self)) {
-        execcmd_del(self);
+    if (!parse_opts(self)) {
+        CapExecCmd_Del(self);
         return NULL;
     }
 
@@ -132,7 +136,7 @@ execcmd_new(const CapConfig *config, int argc, char **argv) {
 }
 
 static void
-execcmd_set_error(execcmd_t *self, const char *fmt, ...) {
+set_err(CapExecCmd *self, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vsnprintf(self->what, sizeof self->what, fmt, ap);
@@ -140,26 +144,25 @@ execcmd_set_error(execcmd_t *self, const char *fmt, ...) {
 }
 
 static bool
-execcmd_has_error(const execcmd_t *self) {
+has_err(const CapExecCmd *self) {
     return self->what[0] != '\0';
 }
 
-static execcmd_t *
-execcmd_exec_first(execcmd_t *self) {
-    const cmdline_object_t *first = cmdline_getc(self->cmdline, 0);
-    const char *cmd = str_getc(first->command);
-    // printf("cmd[%s]\n", cmd);
+static CapExecCmd *
+exec_first(CapExecCmd *self) {
+    const cmdline_object_t *first = PadCmdline_Getc(self->cmdline, 0);
+    const char *cmd = PadStr_Getc(first->command);
     Pad_SafeSystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
     return self;
 }
 
-#ifdef _CAP_WINDOWS
-static execcmd_t *
-execcmd_create_read_pipe(execcmd_t *self, HANDLE process, HANDLE *read_handle, HANDLE *write_handle) {
+#ifdef CAP__WINDOWS
+static CapExecCmd *
+create_read_pipe(CapExecCmd *self, HANDLE process, HANDLE *read_handle, HANDLE *write_handle) {
     HANDLE tmp_read_handle = NULL;
 
     if (!CreatePipe(&tmp_read_handle, write_handle, NULL, 0)) {
-        execcmd_set_error(self, "failed to create pipe");
+        set_err(self, "failed to create pipe");
         return NULL;
     }
 
@@ -171,14 +174,14 @@ execcmd_create_read_pipe(execcmd_t *self, HANDLE process, HANDLE *read_handle, H
         0,
         TRUE,
         DUPLICATE_SAME_ACCESS)) {
-        execcmd_set_error(self, "failed to duplicate handle");
+        set_err(self, "failed to duplicate handle");
         CloseHandle(tmp_read_handle);
         CloseHandle(*write_handle);
         return NULL;
     }
 
     if (!CloseHandle(tmp_read_handle)) {
-        execcmd_set_error(self, "failed to close handle");
+        set_err(self, "failed to close handle");
         CloseHandle(*read_handle);
         CloseHandle(*write_handle);
         return NULL;
@@ -187,12 +190,12 @@ execcmd_create_read_pipe(execcmd_t *self, HANDLE process, HANDLE *read_handle, H
     return self;
 }
 
-static execcmd_t *
-execcmd_create_write_pipe(execcmd_t *self, HANDLE process, HANDLE *read_handle, HANDLE *write_handle) {
+static CapExecCmd *
+create_write_pipe(CapExecCmd *self, HANDLE process, HANDLE *read_handle, HANDLE *write_handle) {
     HANDLE tmp_write_handle = NULL;
 
     if (!CreatePipe(read_handle, &tmp_write_handle, NULL, 0)) {
-        execcmd_set_error(self, "failed to create pipe");
+        set_err(self, "failed to create pipe");
         return NULL;
     }
 
@@ -204,14 +207,14 @@ execcmd_create_write_pipe(execcmd_t *self, HANDLE process, HANDLE *read_handle, 
         0,
         TRUE,
         DUPLICATE_SAME_ACCESS)) {
-        execcmd_set_error(self, "failed to duplicate handle");
+        set_err(self, "failed to duplicate handle");
         CloseHandle(tmp_write_handle);
         CloseHandle(*read_handle);
         return NULL;
     }
 
     if (!CloseHandle(tmp_write_handle)) {
-        execcmd_set_error(self, "failed to close handle");
+        set_err(self, "failed to close handle");
         CloseHandle(*read_handle);
         CloseHandle(*write_handle);
         return NULL;
@@ -220,8 +223,8 @@ execcmd_create_write_pipe(execcmd_t *self, HANDLE process, HANDLE *read_handle, 
     return self;
 }
 
-static execcmd_t *
-execcmd_pipe(execcmd_t *self, const cmdline_object_t *obj, const cmdline_object_t *ope) {
+static CapExecCmd *
+execcmd_pipe(CapExecCmd *self, const cmdline_object_t *obj, const cmdline_object_t *ope) {
     HANDLE hs1[2] = {0};
     HANDLE hs2[2] = {0};
     HANDLE process = GetCurrentProcess();
@@ -239,11 +242,11 @@ execcmd_pipe(execcmd_t *self, const cmdline_object_t *obj, const cmdline_object_
         close_hs2(); \
     }
 
-    if (!execcmd_create_read_pipe(self, process, &hs1[READ], &hs1[WRITE])) {
+    if (!create_read_pipe(self, process, &hs1[READ], &hs1[WRITE])) {
         return NULL;
     }
 
-    if (!execcmd_create_write_pipe(self, process, &hs2[READ], &hs2[WRITE])) {
+    if (!create_write_pipe(self, process, &hs2[READ], &hs2[WRITE])) {
         close_hs1();
         return NULL;
     }
@@ -257,17 +260,17 @@ execcmd_pipe(execcmd_t *self, const cmdline_object_t *obj, const cmdline_object_
     si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
     if (si.hStdOutput == INVALID_HANDLE_VALUE) {
-        execcmd_set_error(self, "failed to get stdout handle");
+        set_err(self, "failed to get stdout handle");
         close_hs();
         return NULL;
     }
     if (si.hStdError == INVALID_HANDLE_VALUE) {
-        execcmd_set_error(self, "failed to get stdout handle");
+        set_err(self, "failed to get stdout handle");
         close_hs();
         return NULL;
     }
 
-    LPTSTR cmdline = (LPTSTR) str_getc(obj->command);
+    LPTSTR cmdline = (LPTSTR) PadStr_Getc(obj->command);
     PROCESS_INFORMATION pi = {0};
 
     if (!CreateProcess(
@@ -281,13 +284,13 @@ execcmd_pipe(execcmd_t *self, const cmdline_object_t *obj, const cmdline_object_
         NULL,
         &si,
         &pi)) {
-        execcmd_set_error(self, "failed to create process");
+        set_err(self, "failed to create process");
         return NULL;
     }
 
     HANDLE child_process = pi.hProcess;
     if (!CloseHandle(pi.hThread)) {
-        execcmd_set_error(self, "failed to close thread handle");
+        set_err(self, "failed to close thread handle");
         close_hs();
         return NULL;
     }
@@ -300,14 +303,14 @@ execcmd_pipe(execcmd_t *self, const cmdline_object_t *obj, const cmdline_object_
 
     // write to pipe (parent write to child process)
     DWORD nwrite = 0;
-    WriteFile(hs1[WRITE], str_getc(self->read_buffer), str_len(self->read_buffer), &nwrite, NULL);
+    WriteFile(hs1[WRITE], PadStr_Getc(self->read_buffer), PadStr_Len(self->read_buffer), &nwrite, NULL);
     CloseHandle(hs1[WRITE]);
 
     // read from pipe (parent read from child process)
     char buf[512];
     DWORD nread = 0;
 
-    str_clear(self->read_buffer);
+    PadStr_Clear(self->read_buffer);
     for (;;) {
         memset(buf, 0, sizeof buf);
         ReadFile(hs2[READ], buf, sizeof(buf)-1, &nread, NULL);
@@ -316,15 +319,15 @@ execcmd_pipe(execcmd_t *self, const cmdline_object_t *obj, const cmdline_object_
         }
         buf[nread] = '\0';
 
-        char *text = file_conv_line_encoding(self->config->line_encoding, buf);
+        char *text = PadFile_ConvLineEnc(self->config->line_encoding, buf);
         if (!text) {
-            execcmd_set_error(self, "failed to convert line encoding");
+            set_err(self, "failed to convert line encoding");
             close_hs();
             return NULL;
         }
 
-        str_app(self->read_buffer, text);
-        free(text);
+        PadStr_App(self->read_buffer, text);
+        Pad_SafeFree(text);
     }
     CloseHandle(hs2[READ]);
 
@@ -332,7 +335,7 @@ execcmd_pipe(execcmd_t *self, const cmdline_object_t *obj, const cmdline_object_
     DWORD result = WaitForSingleObject(child_process, INFINITE);
     switch (result) {
     default:
-        execcmd_set_error(self, "failed to wait");
+        set_err(self, "failed to wait");
         close_hs();
         CloseHandle(child_process);
         return NULL;
@@ -341,7 +344,7 @@ execcmd_pipe(execcmd_t *self, const cmdline_object_t *obj, const cmdline_object_
         close_hs();
         CloseHandle(child_process);
         if (!ope) {
-            printf("%s", str_getc(self->read_buffer));
+            printf("%s", PadStr_Getc(self->read_buffer));
             fflush(stdout);
         }
         return self;
@@ -351,8 +354,8 @@ execcmd_pipe(execcmd_t *self, const cmdline_object_t *obj, const cmdline_object_
     return NULL; // impossible
 }
 
-static execcmd_t *
-execcmd_redirect(execcmd_t *self, const cmdline_object_t *obj, const cmdline_object_t *fileobj) {
+static CapExecCmd *
+execcmd_redirect(CapExecCmd *self, const cmdline_object_t *obj, const cmdline_object_t *fileobj) {
     HANDLE hs1[2] = {0};
     HANDLE hs2[2] = {0};
     HANDLE process = GetCurrentProcess();
@@ -370,11 +373,11 @@ execcmd_redirect(execcmd_t *self, const cmdline_object_t *obj, const cmdline_obj
         close_hs2(); \
     }
 
-    if (!execcmd_create_read_pipe(self, process, &hs1[READ], &hs1[WRITE])) {
+    if (!create_read_pipe(self, process, &hs1[READ], &hs1[WRITE])) {
         return NULL;
     }
 
-    if (!execcmd_create_write_pipe(self, process, &hs2[READ], &hs2[WRITE])) {
+    if (!create_write_pipe(self, process, &hs2[READ], &hs2[WRITE])) {
         close_hs1();
         return NULL;
     }
@@ -388,17 +391,17 @@ execcmd_redirect(execcmd_t *self, const cmdline_object_t *obj, const cmdline_obj
     si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
     if (si.hStdOutput == INVALID_HANDLE_VALUE) {
-        execcmd_set_error(self, "failed to get stdout handle");
+        set_err(self, "failed to get stdout handle");
         close_hs();
         return NULL;
     }
     if (si.hStdError == INVALID_HANDLE_VALUE) {
-        execcmd_set_error(self, "failed to get stdout handle");
+        set_err(self, "failed to get stdout handle");
         close_hs();
         return NULL;
     }
 
-    LPTSTR cmdline = (LPTSTR) str_getc(obj->command);
+    LPTSTR cmdline = (LPTSTR) PadStr_Getc(obj->command);
     PROCESS_INFORMATION pi = {0};
 
     if (!CreateProcess(
@@ -412,13 +415,13 @@ execcmd_redirect(execcmd_t *self, const cmdline_object_t *obj, const cmdline_obj
         NULL,
         &si,
         &pi)) {
-        execcmd_set_error(self, "failed to create process");
+        set_err(self, "failed to create process");
         return NULL;
     }
 
     HANDLE child_process = pi.hProcess;
     if (!CloseHandle(pi.hThread)) {
-        execcmd_set_error(self, "failed to close thread handle");
+        set_err(self, "failed to close thread handle");
         close_hs();
         return NULL;
     }
@@ -431,14 +434,14 @@ execcmd_redirect(execcmd_t *self, const cmdline_object_t *obj, const cmdline_obj
 
     // write to pipe (parent write to child process)
     DWORD nwrite = 0;
-    WriteFile(hs1[WRITE], str_getc(self->read_buffer), str_len(self->read_buffer), &nwrite, NULL);
+    WriteFile(hs1[WRITE], PadStr_Getc(self->read_buffer), PadStr_Len(self->read_buffer), &nwrite, NULL);
     CloseHandle(hs1[WRITE]);
 
     // read from pipe (parent read from child process)
     char buf[512];
     DWORD nread = 0;
 
-    str_clear(self->read_buffer);
+    PadStr_Clear(self->read_buffer);
     for (;;) {
         memset(buf, 0, sizeof buf);
         ReadFile(hs2[READ], buf, sizeof(buf)-1, &nread, NULL);
@@ -447,15 +450,15 @@ execcmd_redirect(execcmd_t *self, const cmdline_object_t *obj, const cmdline_obj
         }
         buf[nread] = '\0';
 
-        char *text = file_conv_line_encoding(self->config->line_encoding, buf);
+        char *text = PadFile_ConvLineEnc(self->config->line_encoding, buf);
         if (!text) {
-            execcmd_set_error(self, "failed to convert line encoding");
+            set_err(self, "failed to convert line encoding");
             close_hs();
             return NULL;
         }
 
-        str_app(self->read_buffer, text);
-        free(text);
+        PadStr_App(self->read_buffer, text);
+        Pad_SafeFree(text);
     }
     CloseHandle(hs2[READ]);
 
@@ -463,7 +466,7 @@ execcmd_redirect(execcmd_t *self, const cmdline_object_t *obj, const cmdline_obj
     DWORD result = WaitForSingleObject(child_process, INFINITE);
     switch (result) {
     default:
-        execcmd_set_error(self, "failed to wait");
+        set_err(self, "failed to wait");
         close_hs();
         CloseHandle(child_process);
         return NULL;
@@ -473,18 +476,18 @@ execcmd_redirect(execcmd_t *self, const cmdline_object_t *obj, const cmdline_obj
         CloseHandle(child_process);
 
         char fname[FILE_NPATH];
-        if (!Cap_SolveCmdlineArgPath(self->config, fname, sizeof fname, str_getc(fileobj->command))) {
-            execcmd_set_error(self, "failed to solve path of command line argument");
+        if (!Cap_SolveCmdlineArgPath(self->config, fname, sizeof fname, PadStr_Getc(fileobj->command))) {
+            set_err(self, "failed to solve path of command line argument");
             return NULL;
         }
 
         FILE *fout = PadFile_Open(fname, "wb");
         if (!fout) {
-            execcmd_set_error(self, "failed to open \"%s\"", fname);
+            set_err(self, "failed to open \"%s\"", fname);
             return NULL;
         }
 
-        fwrite(str_getc(self->read_buffer), str_len(self->read_buffer), 1, fout);
+        fwrite(PadStr_Getc(self->read_buffer), PadStr_Len(self->read_buffer), 1, fout);
 
         fclose(fout);
 
@@ -495,19 +498,19 @@ execcmd_redirect(execcmd_t *self, const cmdline_object_t *obj, const cmdline_obj
     return NULL; // impossible
 }
 
-static execcmd_t *
-execcmd_exec_all_win(execcmd_t *self) {
-    for (int32_t i = 0; i < cmdline_len(self->cmdline); i += 2) {
-        const cmdline_object_t *obj = cmdline_getc(self->cmdline, i);
-        const cmdline_object_t *ope = cmdline_getc(self->cmdline, i+1);
+static CapExecCmd *
+exec_all_win(CapExecCmd *self) {
+    for (int32_t i = 0; i < PadCmdline_Len(self->cmdline); i += 2) {
+        const cmdline_object_t *obj = PadCmdline_Getc(self->cmdline, i);
+        const cmdline_object_t *ope = PadCmdline_Getc(self->cmdline, i+1);
 
         if (ope && ope->type == CMDLINE_OBJECT_TYPE_AND) {
-            int exit_code = Pad_SafeSystem(str_getc(obj->command), SAFESYSTEM_UNSAFE_UNIX_ONLY);
+            int exit_code = Pad_SafeSystem(PadStr_Getc(obj->command), SAFESYSTEM_UNSAFE_UNIX_ONLY);
             if (exit_code != 0) {
                 break;
             }
         } else if (ope && ope->type == CMDLINE_OBJECT_TYPE_REDIRECT) {
-            const cmdline_object_t *fileobj = cmdline_getc(self->cmdline, i+2);
+            const cmdline_object_t *fileobj = PadCmdline_Getc(self->cmdline, i+2);
             if (!execcmd_redirect(self, obj, fileobj)) {
                 return NULL;
             }
@@ -523,19 +526,19 @@ execcmd_exec_all_win(execcmd_t *self) {
 }
 #else
 
-static execcmd_t *
-execcmd_exec_all_unix(execcmd_t *self) {
+static CapExecCmd *
+exec_all_unix(CapExecCmd *self) {
     int stdinno = dup(STDIN_FILENO);
     int stdoutno = dup(STDOUT_FILENO);
     int exit_code = 0;
 
-    for (int32_t i = 0; i < cmdline_len(self->cmdline); i += 2) {
-        const cmdline_object_t *obj = cmdline_getc(self->cmdline, i);
-        const cmdline_object_t *ope = cmdline_getc(self->cmdline, i+1);
+    for (int32_t i = 0; i < PadCmdline_Len(self->cmdline); i += 2) {
+        const cmdline_object_t *obj = PadCmdline_Getc(self->cmdline, i);
+        const cmdline_object_t *ope = PadCmdline_Getc(self->cmdline, i+1);
 
         if (ope && ope->type == CMDLINE_OBJECT_TYPE_AND) {
             // AND
-            const char *cmd = str_getc(obj->command);
+            const char *cmd = PadStr_Getc(obj->command);
             int status = Pad_SafeSystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
             exit_code = WEXITSTATUS(status);
             if (exit_code != 0) {
@@ -543,15 +546,15 @@ execcmd_exec_all_unix(execcmd_t *self) {
             }
         } else if (ope && ope->type == CMDLINE_OBJECT_TYPE_REDIRECT) {
             // REDIRECT
-            const cmdline_object_t *fileobj = cmdline_getc(self->cmdline, i+2);
+            const cmdline_object_t *fileobj = PadCmdline_Getc(self->cmdline, i+2);
             if (!fileobj) {
-                execcmd_set_error(self, "not found file object in redirect");
+                set_err(self, "not found file object in redirect");
                 break;
             }
 
             int fd[2] = {0};
             if (pipe(fd) != 0) {
-                execcmd_set_error(self, "failed to create pipe");
+                set_err(self, "failed to create pipe");
                 return NULL;
             }
 
@@ -563,7 +566,7 @@ execcmd_exec_all_unix(execcmd_t *self) {
                 dup2(fd[WRITE], STDOUT_FILENO);
                 close(fd[WRITE]);
 
-                const char *cmd = str_getc(obj->command);
+                const char *cmd = PadStr_Getc(obj->command);
                 int status = Pad_SafeSystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
                 exit_code = WEXITSTATUS(status);
                 (void) &exit_code;
@@ -579,14 +582,14 @@ execcmd_exec_all_unix(execcmd_t *self) {
                 close(fd[WRITE]);
 
                 char fname[FILE_NPATH];
-                if (!Cap_SolveCmdlineArgPath(self->config, fname, sizeof fname, str_getc(fileobj->command))) {
-                    execcmd_set_error(self, "failed to solve path of command line argument");
+                if (!Cap_SolveCmdlineArgPath(self->config, fname, sizeof fname, PadStr_Getc(fileobj->command))) {
+                    set_err(self, "failed to solve path of command line argument");
                     return NULL;
                 }
 
                 int filefd = open(fname, O_CREAT | O_WRONLY | O_TRUNC);
                 if (filefd == -1) {
-                    execcmd_set_error(self, "failed to open \"%s\"", fname);
+                    set_err(self, "failed to open \"%s\"", fname);
                     return NULL;
                 }
 
@@ -594,7 +597,7 @@ execcmd_exec_all_unix(execcmd_t *self) {
                 for (;;) {
                     ssize_t nread = read(fd[READ], buf, sizeof(buf)-1);
                     if (nread == -1) {
-                        execcmd_set_error(self, "failed to read from read descriptor");
+                        set_err(self, "failed to read from read descriptor");
                         return NULL;
                     } else if (nread == 0) {
                         break;
@@ -602,7 +605,7 @@ execcmd_exec_all_unix(execcmd_t *self) {
                     buf[nread] = '\0';
 
                     if (write(filefd, buf, nread) == -1) {
-                        execcmd_set_error(self, "failed to write to file descriptor");
+                        set_err(self, "failed to write to file descriptor");
                         break;
                     }
                 }
@@ -617,7 +620,7 @@ execcmd_exec_all_unix(execcmd_t *self) {
                 exit(0);
             } break;
             case -1: { // error
-                execcmd_set_error(self, "failed to fork (2)");
+                set_err(self, "failed to fork (2)");
                 close(fd[READ]);
                 close(fd[WRITE]);
                 return NULL;
@@ -627,7 +630,7 @@ execcmd_exec_all_unix(execcmd_t *self) {
             // PIPE
             int fd[2] = {0};
             if (pipe(fd) != 0) {
-                execcmd_set_error(self, "failed to create pipe");
+                set_err(self, "failed to create pipe");
                 return NULL;
             }
 
@@ -642,7 +645,7 @@ execcmd_exec_all_unix(execcmd_t *self) {
                     close(fd[WRITE]);
                 }
 
-                const char *cmd = str_getc(obj->command);
+                const char *cmd = PadStr_Getc(obj->command);
                 int status = Pad_SafeSystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
                 exit_code = WEXITSTATUS(status);
                 (void) &exit_code;
@@ -660,7 +663,7 @@ execcmd_exec_all_unix(execcmd_t *self) {
                 close(fd[READ]);
             } break;
             case -1: { // error
-                execcmd_set_error(self, "failed to fork");
+                set_err(self, "failed to fork");
                 close(fd[READ]);
                 close(fd[WRITE]);
                 return NULL;
@@ -676,31 +679,31 @@ done:
 }
 #endif
 
-static execcmd_t *
-execcmd_exec_all(execcmd_t *self) {
-    if (cmdline_len(self->cmdline) < 3) {
-        execcmd_set_error(self, "too few command line objects");
+static CapExecCmd *
+exec_all(CapExecCmd *self) {
+    if (PadCmdline_Len(self->cmdline) < 3) {
+        set_err(self, "too few command line objects");
         return NULL;
     }
 
-#ifdef _CAP_WINDOWS
-    return execcmd_exec_all_win(self);
+#ifdef CAP__WINDOWS
+    return exec_all_win(self);
 #else
-    return execcmd_exec_all_unix(self);
+    return exec_all_unix(self);
 #endif
 }
 
-static execcmd_t *
-execcmd_exec(execcmd_t *self, const char *cltxt) {
-    if (!cmdline_parse(self->cmdline, cltxt)) {
-        execcmd_set_error(self, "failed to parse command line");
+static CapExecCmd *
+cmd_exec(CapExecCmd *self, const char *cltxt) {
+    if (!PadCmdline_Parse(self->cmdline, cltxt)) {
+        set_err(self, "failed to parse command line");
         return NULL;
     }
 
-    if (cmdline_len(self->cmdline) == 1) {
-        return execcmd_exec_first(self);
+    if (PadCmdline_Len(self->cmdline) == 1) {
+        return exec_first(self);
     } else {
-        return execcmd_exec_all(self);
+        return exec_all(self);
     }
 
     return self;
@@ -708,7 +711,7 @@ execcmd_exec(execcmd_t *self, const char *cltxt) {
 
 static char *
 unescape_cl(const char *escaped) {
-    string_t *s = str_new();
+    string_t *s = PadStr_New();
 
     for (const char *p = escaped; *p; p += 1) {
         if (*p == '\\') {
@@ -722,11 +725,10 @@ unescape_cl(const char *escaped) {
 }
 
 int
-execcmd_run(execcmd_t *self) {
+CapExecCmd_Run(CapExecCmd *self) {
     if (self->argc - self->optind == 0 ||
         self->opts.is_help) {
-        execcmd_show_usage(self);
-        return 1;
+        usage(self);
     }
 
     for (int32_t i = self->optind; i < self->argc; ++i) {
@@ -735,12 +737,12 @@ execcmd_run(execcmd_t *self) {
         // printf("escaped_cltxt[%s]\n", escaped_cltxt);
         // printf("cltxt[%s]\n", cltxt);
 
-        if (!execcmd_exec(self, cltxt)) {
-            free(cltxt);
-            PadErr_Error(self->what);
+        if (!cmd_exec(self, cltxt)) {
+            Pad_SafeFree(cltxt);
+            PadErr_Err(self->what);
             return 1;
         }
-        free(cltxt);
+        Pad_SafeFree(cltxt);
     }
 
     return 0;

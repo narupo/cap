@@ -2729,10 +2729,10 @@ test_PadFile_ReadLine(void) {
 }
 
 static void
-test_file_writeline(void) {
-    assert(file_writeline(NULL, get_test_finpath()) == NULL);
-    assert(file_writeline(get_test_fcontent_nonewline(), NULL) == NULL);
-    assert(file_writeline(get_test_fcontent_nonewline(), get_test_finpath()));
+test_PadFile_WriteLine(void) {
+    assert(PadFile_WriteLine(NULL, get_test_finpath()) == NULL);
+    assert(PadFile_WriteLine(get_test_fcontent_nonewline(), NULL) == NULL);
+    assert(PadFile_WriteLine(get_test_fcontent_nonewline(), get_test_finpath()));
     test_PadFile_ReadLine();
 }
 
@@ -2919,7 +2919,7 @@ file_tests[] = {
     {"file_basename", test_file_basename},
     {"file_getline", test_file_getline},
     {"PadFile_ReadLine", test_PadFile_ReadLine},
-    {"file_writeline", test_file_writeline},
+    {"PadFile_WriteLine", test_PadFile_WriteLine},
     {"file_dirnodedel", test_file_dirnodedel},
     {"PadFileDirNode_Name", test_PadFileDirNode_Name},
     {"PadFileDir_Close", test_PadFileDir_Close},
@@ -3290,7 +3290,7 @@ test_error_error_1(void) {
     char buf[BUFSIZ] = {0};
     setbuf(stderr, buf);
 
-    PadErr_Error("this is error");
+    PadErr_Err("this is error");
     // assert(strcmp(buf, "Error: This is error. No such file or directory.\n") == 0);
 
     setbuf(stderr, NULL);
@@ -3298,9 +3298,9 @@ test_error_error_1(void) {
 
 static void
 test_error_error_2(void) {
-    PadErr_Error("test1");
-    PadErr_Error("test2");
-    PadErr_Error("test3");
+    PadErr_Err("test1");
+    PadErr_Err("test2");
+    PadErr_Err("test3");
 }
 
 /**
@@ -29063,7 +29063,7 @@ test_execcmd_default(void) {
 }
 
 static const struct testcase
-execcmd_tests[] = {
+CapExecCmdests[] = {
     {"default", test_execcmd_default},
     {0},
 };
@@ -29140,9 +29140,9 @@ test_editorcmd_default(void) {
 
     assert(solve_path(config->var_editor_path, sizeof config->var_editor_path, "./tests/editor/editor"));
 
-    editorcmd_t *editorcmd = editorcmd_new(config, argc, argv);
-    editorcmd_run(editorcmd);
-    editorcmd_del(editorcmd);
+    CapEditorCmd *editorcmd = CapEditorCmd_New(config, argc, argv);
+    CapEditorCmd_Run(editorcmd);
+    CapEditorCmd_Del(editorcmd);
 
     char line[256];
     assert(PadFile_ReadLine(line, sizeof line, "./tests/editor/editor"));
@@ -29154,7 +29154,7 @@ test_editorcmd_default(void) {
 }
 
 static const struct testcase
-editorcmd_tests[] = {
+CapEditorCmdests[] = {
     {"default", test_editorcmd_default},
     {0},
 };
@@ -30079,7 +30079,7 @@ static void
 test_bakecmd_1(void) {
     const char *bakefname = "tests/bake/target.cap";
     if (!PadFile_Copy_path(bakefname, "tests/bake/target.cap.org")) {
-        PadErr_Error("failed to copy tests/bake/target.cap.org");
+        PadErr_Err("failed to copy tests/bake/target.cap.org");
         return;
     }
     
@@ -30107,7 +30107,7 @@ static void
 test_bakecmd_2(void) {
     const char *bakefname = "tests/bake/target.cap";
     if (!PadFile_Copy_path(bakefname, "tests/bake/target.cap.org.2")) {
-        PadErr_Error("failed to copy tests/bake/target.cap.org");
+        PadErr_Err("failed to copy tests/bake/target.cap.org");
         return;
     }
     
@@ -30235,10 +30235,10 @@ testmodules[] = {
     {"cat", catcmd_tests},
     {"make", makecmd_tests},
     {"run", runcmd_tests},
-    {"exec", execcmd_tests},
+    {"exec", CapExecCmdests},
     {"alias", alcmd_tests},
     {"edit", CapEditCmdests},
-    {"editor", editorcmd_tests},
+    {"editor", CapEditorCmdests},
     {"mkdir", mkdircmd_tests},
     {"rm", rmcmd_tests},
     {"mv", mvcmd_tests},

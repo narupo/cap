@@ -131,22 +131,22 @@ linkcmd_unlink(linkcmd_t *self) {
 
     char path[FILE_NPATH];
     if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", org, linkname)) {
-        PadErr_Error("failed to solve path");
+        PadErr_Err("failed to solve path");
         return 1;
     }
 
     if (Cap_IsOutOfHome(self->config->home_path, path)) {
-        PadErr_Error("\"%s\" is out of home", linkname);
+        PadErr_Err("\"%s\" is out of home", linkname);
         return 1;
     }
 
     if (!symlink_is_link_file(path)) {
-        PadErr_Error("\"%s\" is not Cap's symbolic link", linkname);
+        PadErr_Err("\"%s\" is not Cap's symbolic link", linkname);
         return 1;
     }
 
     if (file_remove(path) != 0) {
-        PadErr_Error("failed to unlink");
+        PadErr_Err("failed to unlink");
         return 1;
     }
 
@@ -162,7 +162,7 @@ linkcmd_link(linkcmd_t *self) {
 
     const char *linkname = self->argv[self->optind];
     if (strstr(linkname, "..")) {
-        PadErr_Error("Cap's symbolic link is not allow relative path");
+        PadErr_Err("Cap's symbolic link is not allow relative path");
         return 1;
     }
 
@@ -171,19 +171,19 @@ linkcmd_link(linkcmd_t *self) {
 
     char dstpath[FILE_NPATH];
     if (!PadFile_Solvefmt(dstpath, sizeof dstpath, "%s/%s", org, linkname)) {
-        PadErr_Error("failed to solve path");
+        PadErr_Err("failed to solve path");
         return 1;
     }
 
     if (Cap_IsOutOfHome(self->config->home_path, dstpath)) {
-        PadErr_Error("\"%s\" is out of home", linkname);
+        PadErr_Err("\"%s\" is out of home", linkname);
         return 1;
     }
 
     char line[FILE_NPATH + 100];
     snprintf(line, sizeof line, "%s %s", SYMLINK_HEADER, cappath);
-    if (!file_writeline(line, dstpath)) {
-        PadErr_Error("failed to create link");
+    if (!PadFile_WriteLine(line, dstpath)) {
+        PadErr_Err("failed to create link");
         return 1;        
     }
 

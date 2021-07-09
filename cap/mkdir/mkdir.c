@@ -100,7 +100,7 @@ mkdircmd_mkdirp(mkdircmd_t *self) {
 
     if (argpath[0] == ':') {
         if (!PadFile_Solve(path, sizeof path, argpath+1)) {
-            PadErr_Error("failed to solve path");
+            PadErr_Err("failed to solve path");
             return 1;
         }
     } else {
@@ -110,13 +110,13 @@ mkdircmd_mkdirp(mkdircmd_t *self) {
         snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
 
         if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmppath)) {
-            PadErr_Error("failed to follow path");
+            PadErr_Err("failed to follow path");
             return 1;
         }
     }
 
     if (file_mkdirsq(path) != 0) {
-        PadErr_Error("failed to create directory \"%s\"", path);
+        PadErr_Err("failed to create directory \"%s\"", path);
         return 1;
     }
 
@@ -130,7 +130,7 @@ mkdircmd_mkdir(mkdircmd_t *self) {
 
     if (argpath[0] == ':') {
         if (!PadFile_Solve(path, sizeof path, argpath+1)) {
-            PadErr_Error("failed to solve path");
+            PadErr_Err("failed to solve path");
             return 1;
         }
     } else {
@@ -140,18 +140,18 @@ mkdircmd_mkdir(mkdircmd_t *self) {
         snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
 
         if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmppath)) {
-            PadErr_Error("failed to follow path");
+            PadErr_Err("failed to follow path");
             return 1;
         }
     }
 
     if (PadFile_IsExists(path)) {
-        PadErr_Error("failed to create directory. \"%s\" is exists", path);
+        PadErr_Err("failed to create directory. \"%s\" is exists", path);
         return 1;
     }
 
     if (PadFile_MkdirQ(path) != 0) {
-        PadErr_Error("failed to create directory \"%s\"", path);
+        PadErr_Err("failed to create directory \"%s\"", path);
         return 1;
     }
 

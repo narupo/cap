@@ -122,12 +122,12 @@ touchcmd_touch(touchcmd_t *self, const char *argpath) {
 
     snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
     if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmppath)) {
-        PadErr_Error("failed to solve path by \"%s\"", argpath);
+        PadErr_Err("failed to solve path by \"%s\"", argpath);
         return 1;
     }
 
     if (!file_trunc(path)) {
-        PadErr_Error("failed to truncate file");
+        PadErr_Err("failed to truncate file");
         return 1;
     }
 

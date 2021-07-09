@@ -42,14 +42,14 @@ parse_opts(CapEditCmd *self) {
         case 'g': self->opts.is_global = true; break;
         case '?':
         default:
-            PadErr_Error("unsupported option");
+            PadErr_Err("unsupported option");
             return NULL;
             break;
         }
     }
 
     if (self->argc < optind) {
-        PadErr_Error("failed to parse option");
+        PadErr_Err("failed to parse option");
         return NULL;
     }
 
@@ -97,7 +97,7 @@ read_editor(CapEditCmd *self) {
 static CapEditCmd *
 create_open_fname(CapEditCmd *self, const char *cap_path) {
     if (!Cap_SolveCmdlineArgPath(self->config, self->open_fname, sizeof self->open_fname, cap_path)) {
-        PadErr_Error("failed to solve cap path");
+        PadErr_Err("failed to solve cap path");
         return NULL;
     }
 

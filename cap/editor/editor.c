@@ -1,4 +1,4 @@
-#include <editor/editor.h>
+#include <cap/editor/editor.h>
 
 /**
  * structure of options
@@ -10,7 +10,7 @@ struct Opts {
 /**
  * structure of command
  */
-struct editorcmd {
+struct CapEditorCmd {
     const CapConfig *config;
     int argc;
     int optind;
@@ -22,10 +22,10 @@ struct editorcmd {
 /**
  * show usage of command
  *
- * @param[in] self pointer to editorcmd_t
+ * @param[in] self pointer to CapEditorCmd
  */
 static void
-editorcmd_show_usage(editorcmd_t *self) {
+usage(CapEditorCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Usage:\n"
@@ -38,18 +38,19 @@ editorcmd_show_usage(editorcmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
 /**
  * parse options
  *
- * @param[in] self pointer to editorcmd_t 
+ * @param[in] self pointer to CapEditorCmd 
  *
  * @return success to true
  * @return failed to false
  */
 static bool
-editorcmd_parse_opts(editorcmd_t *self) {
+parse_opts(CapEditorCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -91,35 +92,37 @@ editorcmd_parse_opts(editorcmd_t *self) {
 }
 
 void
-editorcmd_del(editorcmd_t *self) {
+CapEditorCmd_Del(CapEditorCmd *self) {
     if (!self) {
         return;
     }
-
     free(self);
 }
 
-editorcmd_t *
-editorcmd_new(const CapConfig *config, int argc, char **argv) {
-    editorcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapEditorCmd *
+CapEditorCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapEditorCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
 
-    if (!editorcmd_parse_opts(self)) {
-        editorcmd_del(self);
+    if (!parse_opts(self)) {
+        CapEditorCmd_Del(self);
         return NULL;
     }
 
     return self;
 }
 
-int
-editorcmd_show_editor(editorcmd_t *self) {
+static int
+show_editor(CapEditorCmd *self) {
     self->editor[0] = '\0';
     if (!PadFile_ReadLine(self->editor, sizeof self->editor, self->config->var_editor_path)) {
-        PadErr_Error("failed to read editor from editor of variable");
+        PadErr_Err("failed to read editor from editor of variable");
         return 1;
     }
     if (strlen(self->editor)) {
@@ -128,27 +131,25 @@ editorcmd_show_editor(editorcmd_t *self) {
     return 0;
 }
 
-int
-editorcmd_set_editor(editorcmd_t *self) {
+static int
+set_editor(CapEditorCmd *self) {
     const char *editor = self->argv[self->optind];
-    if (!file_writeline(editor, self->config->var_editor_path)) {
-        PadErr_Error("failed to write editor into editor of variable");
+    if (!PadFile_WriteLine(editor, self->config->var_editor_path)) {
+        PadErr_Err("failed to write editor into editor of variable");
         return 1;
     }
     return 0;
 }
 
 int
-editorcmd_run(editorcmd_t *self) {
+CapEditorCmd_Run(CapEditorCmd *self) {
     if (self->opts.is_help) {
-        editorcmd_show_usage(self);
-        return 0;
+        usage(self);
     }
 
     if (self->argc < self->optind+1) {
-        editorcmd_show_editor(self);
-        return 0;
+        return show_editor(self);
     }
 
-    return editorcmd_set_editor(self);
+    return set_editor(self);
 }

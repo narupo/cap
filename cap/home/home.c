@@ -32,7 +32,7 @@ homecmd_run(homecmd_t *self) {
     if (argc < 2) {
         char line[FILE_NPATH];
         if (!PadFile_ReadLine(line, sizeof line, self->config->var_home_path)) {
-            PadErr_Error("failed to read line from home of variable");
+            PadErr_Err("failed to read line from home of variable");
             return 1;
         }
         printf("%s\n", line);
@@ -41,21 +41,21 @@ homecmd_run(homecmd_t *self) {
 
     char newhome[FILE_NPATH];
     if (!PadFile_Solve(newhome, sizeof newhome, argv[1])) {
-        PadErr_Error("failed to solve path from \"%s\"", argv[1]);
+        PadErr_Err("failed to solve path from \"%s\"", argv[1]);
         return 2;
     }
     if (!PadFile_IsDir(newhome)) {
-        PadErr_Error("%s is not a directory", newhome);
+        PadErr_Err("%s is not a directory", newhome);
         return 3;
     }
 
-    if (!file_writeline(newhome, self->config->var_home_path)) {
-        PadErr_Error("failed to write line to home variable");
+    if (!PadFile_WriteLine(newhome, self->config->var_home_path)) {
+        PadErr_Err("failed to write line to home variable");
         return 4;
     }
 
-    if (!file_writeline(newhome, self->config->var_cd_path)) {
-        PadErr_Error("failed to write line to cd variable");
+    if (!PadFile_WriteLine(newhome, self->config->var_cd_path)) {
+        PadErr_Err("failed to write line to cd variable");
         return 5;
     }
 

@@ -94,29 +94,29 @@ mvcmd_mv_file_to_dir(mvcmd_t *self, const char *cap_path, const char *dirname) {
     char tmppath[FILE_NPATH*3];
 
     if (!Cap_SolveCmdlineArgPath(self->config, srcpath, sizeof srcpath, cap_path)) {
-        PadErr_Error("failed to solve path for source file name");
+        PadErr_Err("failed to solve path for source file name");
         return false;
     }
 
     if (!PadFile_IsExists(srcpath)) {
-        PadErr_Error("\"%s\" is not exists", cap_path);
+        PadErr_Err("\"%s\" is not exists", cap_path);
         return false;
     }
 
     char basename[FILE_NPATH];
     if (!file_basename(basename, sizeof basename, cap_path)) {
-        PadErr_Error("failed to get basename from file name");
+        PadErr_Err("failed to get basename from file name");
         return false;
     }
 
     snprintf(tmppath, sizeof tmppath, "%s/%s", dirname, basename);
     if (!Cap_SolveCmdlineArgPath(self->config, dstpath, sizeof dstpath, tmppath)) {
-        PadErr_Error("failed to solve path for destination file name");
+        PadErr_Err("failed to solve path for destination file name");
         return false;
     }
 
     if (file_rename(srcpath, dstpath) != 0) {
-        PadErr_Error("failed to rename file \"%s\" to \"%s\" directory", srcpath, dstpath);
+        PadErr_Err("failed to rename file \"%s\" to \"%s\" directory", srcpath, dstpath);
         return false;
     }
 
@@ -130,7 +130,7 @@ mvcmd_mv_files_to_dir(mvcmd_t *self) {
     for (int i = self->optind; i < self->argc-1; ++i) {
         const char *fname = self->argv[i];
         if (!mvcmd_mv_file_to_dir(self, fname, lastfname)) {
-            PadErr_Error("failed to move file %s to %s", fname, lastfname);
+            PadErr_Err("failed to move file %s to %s", fname, lastfname);
             return 1;
         }
     }
@@ -146,19 +146,19 @@ mvcmd_mv_file_to_other(mvcmd_t *self) {
     char srcpath[FILE_NPATH];
 
     if (!Cap_SolveCmdlineArgPath(self->config, srcpath, sizeof srcpath, src_cap_path)) {
-        PadErr_Error("failed to follow path for source file name");
+        PadErr_Err("failed to follow path for source file name");
         return 1;
     }
 
     if (!PadFile_IsExists(srcpath)) {
-        PadErr_Error("\"%s\" is not exists. can not move to other", src_cap_path);
+        PadErr_Err("\"%s\" is not exists. can not move to other", src_cap_path);
         return 1;
     }
 
     char dstpath[FILE_NPATH * 2];
 
     if (!Cap_SolveCmdlineArgPath(self->config, dstpath, sizeof dstpath, dst_cap_path)) {
-        PadErr_Error("failed to solve path for destination file name");
+        PadErr_Err("failed to solve path for destination file name");
         return 1;
     }
 
@@ -176,7 +176,7 @@ mvcmd_mv_file_to_other(mvcmd_t *self) {
             src_cap_path += 1;
         }
         if (!file_basename(basename, sizeof basename, src_cap_path)) {
-            PadErr_Error("failed to get basename in file to other");
+            PadErr_Err("failed to get basename in file to other");
             return 1;
         }
 
@@ -184,17 +184,17 @@ mvcmd_mv_file_to_other(mvcmd_t *self) {
         char tmppath[FILE_NPATH * 3];
         snprintf(tmppath, sizeof tmppath, "%s/%s", dstpath, basename);
         if (!PadFile_Solve(dstpath2, sizeof dstpath2, tmppath)) {
-            PadErr_Error("failed to follow path for second destination path in file to other");
+            PadErr_Err("failed to follow path for second destination path in file to other");
             return 1;
         }
 
         if (file_rename(srcpath, dstpath2) != 0) {
-            PadErr_Error("failed to rename \"%s\" to \"%s\"", srcpath, dstpath2);
+            PadErr_Err("failed to rename \"%s\" to \"%s\"", srcpath, dstpath2);
             return 1;
         }
     } else {
         if (file_rename(srcpath, dstpath) != 0) {
-            PadErr_Error("failed to rename \"%s\" to \"%s\" (2)", srcpath, dstpath);
+            PadErr_Err("failed to rename \"%s\" to \"%s\" (2)", srcpath, dstpath);
             return 1;
         }
     }
@@ -210,7 +210,7 @@ mvcmd_mv(mvcmd_t *self) {
     } else if (nargs == 2) {
         return mvcmd_mv_file_to_other(self);
     } else {
-        PadErr_Error("not found destination");
+        PadErr_Err("not found destination");
         return 1;
     }
 }
