@@ -5,14 +5,14 @@
  *  Author: narupo
  *   Since: 2016
  */
-#include <pwd/pwd.h>
+#include <cap/pwd/pwd.h>
 
 struct Opts {
     bool ishelp;
     bool isnorm;
 };
 
-struct pwdcmd {
+struct CapPwdCmd {
     const CapConfig *config;
     int argc;
     char **argv;
@@ -20,7 +20,7 @@ struct pwdcmd {
 };
 
 static bool
-pwdcmd_parse_opts(pwdcmd_t *self) {
+parse_opts(CapPwdCmd *self) {
     // Parse options
     struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -47,12 +47,12 @@ pwdcmd_parse_opts(pwdcmd_t *self) {
         case 'h': self->opts.ishelp = true; break;
         case 'n': self->opts.isnorm = true; break;
         case '?':
-        default: perror("Unknown option"); break;
+        default: PadErr_Err("Unknown option"); break;
         }
     }
 
     if (self->argc < optind) {
-        perror("Failed to parse option");
+        PadErr_Err("Failed to parse option");
         return false;
     }
 
@@ -60,20 +60,24 @@ pwdcmd_parse_opts(pwdcmd_t *self) {
 }
 
 void
-pwdcmd_del(pwdcmd_t *self) {
+CapPwdCmd_Del(CapPwdCmd *self) {
 	if (!self) {
         return;
     }
-
-    free(self);
+    Pad_SafeFree(self);
 }
 
-pwdcmd_t *
-pwdcmd_new(const CapConfig *config, int argc, char **argv) {
-	pwdcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapPwdCmd *
+CapPwdCmd_New(const CapConfig *config, int argc, char **argv) {
+	CapPwdCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
+
 	self->config = config;
     self->argc = argc;
     self->argv = argv;
+
 	return self;
 }
 
@@ -93,8 +97,8 @@ replace_slashes(const char *s) {
 }
 
 int
-pwdcmd_run(pwdcmd_t *self) {
-    if (!pwdcmd_parse_opts(self)) {
+CapPwdCmd_Run(CapPwdCmd *self) {
+    if (!parse_opts(self)) {
         PadErr_Err("failed to parse option");
         return 1;
     }
@@ -107,17 +111,17 @@ pwdcmd_run(pwdcmd_t *self) {
     } else {
         int32_t homelen = strlen(home);
         int32_t cdlen = strlen(cd);
-        if (cdlen-homelen < 0) {
+        if (cdlen - homelen < 0) {
             PadErr_Err("invalid cd \"%s\" or home \"%s\"", cd, home);
             return 4;
         }
-        if (cdlen-homelen == 0) {
+        if (cdlen - homelen == 0) {
             printf("/\n");
         } else {
             const char *p = cd + homelen;
             char *s = replace_slashes(p);
             printf("%s\n", s);
-            free(s);
+            Pad_SafeFree(s);
         }
     }
 

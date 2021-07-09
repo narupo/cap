@@ -13,21 +13,22 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <lib/memory.h>
-#include <lib/error.h>
-#include <lib/file.h>
-#include <lib/string.h>
-#include <core/util.h>
-#include <core/config.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/error.h>
+#include <pad/lib/file.h>
+#include <pad/lib/string.h>
 
-struct pwdcmd;
-typedef struct pwdcmd pwdcmd_t;
+#include <cap/core/util.h>
+#include <cap/core/config.h>
+
+struct CapPwdCmd;
+typedef struct CapPwdCmd CapPwdCmd;
 
 void
-pwdcmd_del(pwdcmd_t *self);
+CapPwdCmd_Del(CapPwdCmd *self);
 
-pwdcmd_t *
-pwdcmd_new(const CapConfig *config, int argc, char **argv);
+CapPwdCmd *
+CapPwdCmd_New(const CapConfig *config, int argc, char **argv);
 
 int
-pwdcmd_run(pwdcmd_t *self);
+CapPwdCmd_Run(CapPwdCmd *self);

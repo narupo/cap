@@ -25,7 +25,7 @@ ls *
 make *
 mkdir *
 mv *
-pwd
+pwd *
 replace
 rm
 run
