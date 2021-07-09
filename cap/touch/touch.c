@@ -1,4 +1,4 @@
-#include <touch/touch.h>
+#include <cap/touch/touch.h>
 
 /**
  * Structure of options
@@ -10,7 +10,7 @@ struct Opts {
 /**
  * Structure of command
  */
-struct touchcmd {
+struct CapTouchCmd {
     const CapConfig *config;
     int argc;
     int optind;
@@ -21,10 +21,10 @@ struct touchcmd {
 /**
  * Show usage of command
  *
- * @param[in] self pointer to touchcmd_t
+ * @param[in] self pointer to CapTouchCmd
  */
 static void
-touchcmd_show_usage(touchcmd_t *self) {
+usage(CapTouchCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Usage:\n"
@@ -37,18 +37,19 @@ touchcmd_show_usage(touchcmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
 /**
  * Parse options
  *
- * @param[in] self pointer to touchcmd_t
+ * @param[in] self pointer to CapTouchCmd
  *
  * @return success to true
  * @return failed to false
  */
 static bool
-touchcmd_parse_opts(touchcmd_t *self) {
+parse_opts(CapTouchCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -90,7 +91,7 @@ touchcmd_parse_opts(touchcmd_t *self) {
 }
 
 void
-touchcmd_del(touchcmd_t *self) {
+CapTouchCmd_Del(CapTouchCmd *self) {
     if (!self) {
         return;
     }
@@ -98,24 +99,29 @@ touchcmd_del(touchcmd_t *self) {
     free(self);
 }
 
-touchcmd_t *
-touchcmd_new(const CapConfig *config, int argc, char **argv) {
-    touchcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapTouchCmd *
+CapTouchCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapTouchCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        goto error;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
 
-    if (!touchcmd_parse_opts(self)) {
-        touchcmd_del(self);
-        return NULL;
+    if (!parse_opts(self)) {
+        goto error;
     }
 
     return self;
+error:
+    CapTouchCmd_Del(self);
+    return NULL;
 }
 
 static int
-touchcmd_touch(touchcmd_t *self, const char *argpath) {
+_touch(CapTouchCmd *self, const char *argpath) {
     char path[FILE_NPATH];
     char tmppath[FILE_NPATH];
     const char *org = Cap_GetOrigin(self->config, argpath);
@@ -126,7 +132,11 @@ touchcmd_touch(touchcmd_t *self, const char *argpath) {
         return 1;
     }
 
-    if (!file_trunc(path)) {
+    if (PadFile_IsExists(path)) {
+        return 0;  // do not truncate file
+    }
+
+    if (!PadFile_Trunc(path)) {
         PadErr_Err("failed to truncate file");
         return 1;
     }
@@ -135,26 +145,24 @@ touchcmd_touch(touchcmd_t *self, const char *argpath) {
 }
 
 static int
-touchcmd_touch_all(touchcmd_t *self) {
+_all_touch(CapTouchCmd *self) {
     for (int i = self->optind; i < self->argc; ++i) {
         const char *argpath = self->argv[i];
-        touchcmd_touch(self, argpath);
+        _touch(self, argpath);
     }
 
     return 0;
 }
 
 int
-touchcmd_run(touchcmd_t *self) {
+CapTouchCmd_Run(CapTouchCmd *self) {
     if (self->argc < self->optind+1) {
-        touchcmd_show_usage(self);
-        return 1;
+        usage(self);
     }
 
     if (self->opts.is_help) {
-        touchcmd_show_usage(self);
-        return 1;
+        usage(self);
     }
 
-    return touchcmd_touch_all(self);
+    return _all_touch(self);
 }
