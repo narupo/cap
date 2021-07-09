@@ -4,7 +4,7 @@ ifeq ($(OS), Windows_NT)
 	RM := del
 	RMDIR := rmdir /s /q
 	SEP := \\
-	CPR := xcopy /E /H /Y
+	CPR := echo D | xcopy /E /H /Y
 	CP := copy
 else
 	RM := rm
@@ -84,7 +84,7 @@ init:
 	build$(SEP)clone \
 	build$(SEP)replace \
 	build$(SEP)lang
-	$(CPR) tests_env build$(SEP)
+	$(CPR) tests_env build$(SEP)tests_env
 
 .PHONY: cc
 cc:
