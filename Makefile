@@ -143,7 +143,7 @@ cap: build/app.o build/$(LIBPAD) $(OBJS)
 tests: build/tests.o build/$(LIBPAD) $(OBJS)
 	$(CC) $(CFLAGS) -o build/tests build/tests.o $(OBJS) -lpad
 
-build/app.o: cap/app.c cap/app.h
+build/app.o: cap/app.c cap/app.h cap/core/constant.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/tests.o: cap/tests.c cap/tests.h
 	$(CC) $(CFLAGS) -c $< -o $@
