@@ -46,21 +46,21 @@ CapHomeCmd_Run(CapHomeCmd *self) {
     char newhome[FILE_NPATH];
     if (!PadFile_Solve(newhome, sizeof newhome, argv[1])) {
         PadErr_Err("failed to solve path from \"%s\"", argv[1]);
-        return 2;
+        return 1;
     }
     if (!PadFile_IsDir(newhome)) {
         PadErr_Err("%s is not a directory", newhome);
-        return 3;
+        return 1;
     }
 
     if (!PadFile_WriteLine(newhome, self->config->var_home_path)) {
         PadErr_Err("failed to write line to home variable");
-        return 4;
+        return 1;
     }
 
     if (!PadFile_WriteLine(newhome, self->config->var_cd_path)) {
         PadErr_Err("failed to write line to cd variable");
-        return 5;
+        return 1;
     }
 
     return 0;
