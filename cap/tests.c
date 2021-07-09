@@ -177,16 +177,16 @@ _countescarr(char **arr) {
 }
 
 void
-test_cstrarr_new(void) {
-    cstring_array_t *arr = cstrarr_new();
+test_PadCStrAry_New(void) {
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr != NULL);
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 void
 test_cstrarr_escdel(void) {
     // test
-    cstring_array_t *arr = cstrarr_new();
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr != NULL);
 
     assert(cstrarr_escdel(NULL) == NULL);
@@ -201,12 +201,12 @@ test_cstrarr_escdel(void) {
     _freeescarr(escarr);
 
     // test
-    arr = cstrarr_new();
+    arr = PadCStrAry_New();
     assert(arr != NULL);
 
-    assert(cstrarr_push(arr, "0") != NULL);
-    assert(cstrarr_push(arr, "1") != NULL);
-    assert(cstrarr_push(arr, "2") != NULL);
+    assert(PadCStrAry_PushBack(arr, "0") != NULL);
+    assert(PadCStrAry_PushBack(arr, "1") != NULL);
+    assert(PadCStrAry_PushBack(arr, "2") != NULL);
 
     escarr = cstrarr_escdel(arr);
     assert(_countescarr(escarr) == 3);
@@ -217,42 +217,42 @@ test_cstrarr_escdel(void) {
 }
 
 void
-test_cstrarr_push(void) {
-    cstring_array_t *arr = cstrarr_new();
+test_PadCStrAry_PushBack(void) {
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr != NULL);
 
-    assert(cstrarr_push(NULL, "1") == NULL);
-    assert(cstrarr_push(arr, NULL) == NULL);
-    assert(cstrarr_push(arr, "") != NULL);
-    assert(cstrarr_push(arr, "1") != NULL);
+    assert(PadCStrAry_PushBack(NULL, "1") == NULL);
+    assert(PadCStrAry_PushBack(arr, NULL) == NULL);
+    assert(PadCStrAry_PushBack(arr, "") != NULL);
+    assert(PadCStrAry_PushBack(arr, "1") != NULL);
 
-    assert(cstrarr_len(arr) == 2);
+    assert(PadCStrAry_Len(arr) == 2);
 
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 void
-test_cstrarr_pushb(void) {
-    cstring_array_t *arr = cstrarr_new();
+test_PadCStrAry_PushBackb(void) {
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr != NULL);
 
-    assert(cstrarr_pushb(NULL, "1") == NULL);
-    assert(cstrarr_pushb(arr, NULL) == NULL);
-    assert(cstrarr_pushb(arr, "") != NULL);
-    assert(cstrarr_pushb(arr, "1") != NULL);
+    assert(PadCStrAry_PushBackb(NULL, "1") == NULL);
+    assert(PadCStrAry_PushBackb(arr, NULL) == NULL);
+    assert(PadCStrAry_PushBackb(arr, "") != NULL);
+    assert(PadCStrAry_PushBackb(arr, "1") != NULL);
 
-    assert(cstrarr_len(arr) == 2);
+    assert(PadCStrAry_Len(arr) == 2);
 
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 void
 test_cstrarr_pop_move(void) {
-    cstring_array_t *arr = cstrarr_new();
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr);
 
-    assert(cstrarr_pushb(arr, "1"));
-    assert(cstrarr_pushb(arr, "2"));
+    assert(PadCStrAry_PushBackb(arr, "1"));
+    assert(PadCStrAry_PushBackb(arr, "2"));
     char *p = cstrarr_pop_move(arr);
     assert(p);
     assert(!strcmp(p, "2"));
@@ -266,128 +266,128 @@ test_cstrarr_pop_move(void) {
     p = cstrarr_pop_move(arr);
     assert(!p);
 
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 void
 test_cstrarr_move(void) {
-    cstring_array_t *arr = cstrarr_new();
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr != NULL);
 
     assert(cstrarr_move(arr, NULL) != NULL);
-    assert(cstrarr_getc(arr, 0) == NULL);
+    assert(PadCStrAry_Getc(arr, 0) == NULL);
 
     char *ptr = cstr_edup("string");
     assert(ptr != NULL);
 
     assert(cstrarr_move(arr, ptr) != NULL);
-    assert(strcmp(cstrarr_getc(arr, 1), "string") == 0);
+    assert(strcmp(PadCStrAry_Getc(arr, 1), "string") == 0);
 
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 void
-test_cstrarr_sort(void) {
-    cstring_array_t *arr = cstrarr_new();
+test_PadCStrAry_Sort(void) {
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr != NULL);
 
-    assert(cstrarr_sort(NULL) == NULL);
+    assert(PadCStrAry_Sort(NULL) == NULL);
 
-    assert(cstrarr_push(arr, "1") != NULL);
-    assert(cstrarr_push(arr, "2") != NULL);
-    assert(cstrarr_push(arr, "0") != NULL);
+    assert(PadCStrAry_PushBack(arr, "1") != NULL);
+    assert(PadCStrAry_PushBack(arr, "2") != NULL);
+    assert(PadCStrAry_PushBack(arr, "0") != NULL);
 
-    assert(cstrarr_sort(arr) != NULL);
-    assert(strcmp(cstrarr_getc(arr, 0), "0") == 0);
-    assert(strcmp(cstrarr_getc(arr, 1), "1") == 0);
-    assert(strcmp(cstrarr_getc(arr, 2), "2") == 0);
+    assert(PadCStrAry_Sort(arr) != NULL);
+    assert(strcmp(PadCStrAry_Getc(arr, 0), "0") == 0);
+    assert(strcmp(PadCStrAry_Getc(arr, 1), "1") == 0);
+    assert(strcmp(PadCStrAry_Getc(arr, 2), "2") == 0);
 
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 void
-test_cstrarr_getc(void) {
-    cstring_array_t *arr = cstrarr_new();
+test_PadCStrAry_Getc(void) {
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr != NULL);
 
-    assert(cstrarr_getc(NULL, 0) == NULL);
-    assert(cstrarr_getc(arr, 0) == NULL);
-    assert(cstrarr_getc(arr, -1) == NULL);
+    assert(PadCStrAry_Getc(NULL, 0) == NULL);
+    assert(PadCStrAry_Getc(arr, 0) == NULL);
+    assert(PadCStrAry_Getc(arr, -1) == NULL);
 
-    assert(cstrarr_push(arr, "0") != NULL);
-    assert(cstrarr_push(arr, "1") != NULL);
-    assert(cstrarr_push(arr, "2") != NULL);
+    assert(PadCStrAry_PushBack(arr, "0") != NULL);
+    assert(PadCStrAry_PushBack(arr, "1") != NULL);
+    assert(PadCStrAry_PushBack(arr, "2") != NULL);
 
-    assert(strcmp(cstrarr_getc(arr, 0), "0") == 0);
-    assert(strcmp(cstrarr_getc(arr, 1), "1") == 0);
-    assert(strcmp(cstrarr_getc(arr, 2), "2") == 0);
-    assert(cstrarr_getc(arr, 3) == NULL);
+    assert(strcmp(PadCStrAry_Getc(arr, 0), "0") == 0);
+    assert(strcmp(PadCStrAry_Getc(arr, 1), "1") == 0);
+    assert(strcmp(PadCStrAry_Getc(arr, 2), "2") == 0);
+    assert(PadCStrAry_Getc(arr, 3) == NULL);
 
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 void
-test_cstrarr_len(void) {
-    cstring_array_t *arr = cstrarr_new();
+test_PadCStrAry_Len(void) {
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr != NULL);
 
-    assert(cstrarr_len(NULL) == 0);
-    assert(cstrarr_len(arr) == 0);
+    assert(PadCStrAry_Len(NULL) == 0);
+    assert(PadCStrAry_Len(arr) == 0);
 
-    assert(cstrarr_push(arr, "0") != NULL);
-    assert(cstrarr_push(arr, "1") != NULL);
-    assert(cstrarr_push(arr, "2") != NULL);
-    assert(cstrarr_len(arr) == 3);
+    assert(PadCStrAry_PushBack(arr, "0") != NULL);
+    assert(PadCStrAry_PushBack(arr, "1") != NULL);
+    assert(PadCStrAry_PushBack(arr, "2") != NULL);
+    assert(PadCStrAry_Len(arr) == 3);
 
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 void
 test_cstrarr_show(void) {
-    cstring_array_t *arr = cstrarr_new();
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr != NULL);
 
     assert(cstrarr_show(NULL, stdout) == NULL);
     assert(cstrarr_show(arr, NULL) == NULL);
     assert(cstrarr_show(arr, stdout) != NULL);
 
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 void
 test_cstrarr_clear(void) {
-    cstring_array_t *arr = cstrarr_new();
+    PadCStrAry *arr = PadCStrAry_New();
     assert(arr);
 
-    assert(cstrarr_pushb(arr, "1"));
-    assert(cstrarr_pushb(arr, "2"));
-    assert(cstrarr_len(arr) == 2);
+    assert(PadCStrAry_PushBackb(arr, "1"));
+    assert(PadCStrAry_PushBackb(arr, "2"));
+    assert(PadCStrAry_Len(arr) == 2);
     cstrarr_clear(arr);
-    assert(cstrarr_len(arr) == 0);
+    assert(PadCStrAry_Len(arr) == 0);
 
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 void
 test_cstrarr_resize(void) {
-    cstring_array_t *arr = cstrarr_new();
+    PadCStrAry *arr = PadCStrAry_New();
     assert(cstrarr_resize(arr, 32));
     assert(cstrarr_resize(arr, 8));
     assert(cstrarr_resize(arr, 16));
-    cstrarr_del(arr);
+    PadCStrAry_Del(arr);
 }
 
 static const struct testcase
 cstrarr_tests[] = {
-    {"cstrarr_new", test_cstrarr_new},
+    {"PadCStrAry_New", test_PadCStrAry_New},
     {"cstrarr_escdel", test_cstrarr_escdel},
-    {"cstrarr_push", test_cstrarr_push},
-    {"cstrarr_pushb", test_cstrarr_pushb},
+    {"PadCStrAry_PushBack", test_PadCStrAry_PushBack},
+    {"PadCStrAry_PushBackb", test_PadCStrAry_PushBackb},
     {"cstrarr_pop_move", test_cstrarr_pop_move},
     {"cstrarr_move", test_cstrarr_move},
-    {"cstrarr_sort", test_cstrarr_sort},
-    {"cstrarr_getc", test_cstrarr_getc},
-    {"cstrarr_len", test_cstrarr_len},
+    {"PadCStrAry_Sort", test_PadCStrAry_Sort},
+    {"PadCStrAry_Getc", test_PadCStrAry_Getc},
+    {"PadCStrAry_Len", test_PadCStrAry_Len},
     {"cstrarr_show", test_cstrarr_show},
     {"cstrarr_clear", test_cstrarr_clear},
     {"cstrarr_resize", test_cstrarr_resize},
@@ -2505,7 +2505,7 @@ static void
 remove_test_file(void) {
     const char *path = get_test_finpath();
     if (PadFile_IsExists(path)) {
-        assert(file_remove(path) == 0);
+        assert(PadFile_Remove(path) == 0);
     }
 }
 
@@ -2610,7 +2610,7 @@ test_file_trunc(void) {
     assert(!file_trunc(NULL));
     assert(file_trunc(path));
     assert(PadFile_IsExists(path));
-    assert(file_remove(path) == 0);
+    assert(PadFile_Remove(path) == 0);
 }
 
 static void
@@ -2848,13 +2848,13 @@ test_file_get_user_home(void) {
 }
 
 static void
-test_file_remove(void) {
+test_PadFile_Remove(void) {
     if (!PadFile_IsExists("tests/file/")) {
         PadFile_MkdirQ("tests/file/");
     }
     file_trunc("tests/file/remove.txt");
     assert(PadFile_IsExists("tests/file/remove.txt"));
-    file_remove("tests/file/remove.txt");
+    PadFile_Remove("tests/file/remove.txt");
     assert(!PadFile_IsExists("tests/file/remove.txt"));
 }
 
@@ -2867,7 +2867,7 @@ test_file_rename(void) {
     assert(PadFile_IsExists("tests/file/rename.txt"));
     file_rename("tests/file/rename.txt", "tests/file/renamed.txt");
     assert(PadFile_IsExists("tests/file/renamed.txt"));
-    file_remove("tests/file/renamed.txt");
+    PadFile_Remove("tests/file/renamed.txt");
 }
 
 static void
@@ -2889,7 +2889,7 @@ test_file_read_lines(void) {
     assert(!strcmp(lines[2], "323"));
     assert(lines[3] == NULL);
 
-    file_remove("tests/file/lines.txt");
+    PadFile_Remove("tests/file/lines.txt");
 }
 
 /**
@@ -2927,7 +2927,7 @@ file_tests[] = {
     {"PadDir_Read", test_PadDir_Read},
     {"PadFile_ConvLineEnc", test_PadFile_ConvLineEnc},
     {"file_get_user_home", test_file_get_user_home},
-    {"file_remove", test_file_remove},
+    {"PadFile_Remove", test_PadFile_Remove},
     {"file_rename", test_file_rename},
     {"file_read_lines", test_file_read_lines},
     {0},
@@ -3439,12 +3439,12 @@ test_util_argsbyoptind(void) {
         }
     }
 
-    cstring_array_t *args = argsbyoptind(argc, argv, optind);
+    PadCStrAry *args = argsbyoptind(argc, argv, optind);
     // cstrarr_show(args, stdout);
-    assert(strcmp(cstrarr_getc(args, 0), "program") == 0);
-    assert(strcmp(cstrarr_getc(args, 1), "arg1") == 0);
-    assert(strcmp(cstrarr_getc(args, 2), "arg2") == 0);
-    cstrarr_del(args);
+    assert(strcmp(PadCStrAry_Getc(args, 0), "program") == 0);
+    assert(strcmp(PadCStrAry_Getc(args, 1), "arg1") == 0);
+    assert(strcmp(PadCStrAry_Getc(args, 2), "arg2") == 0);
+    PadCStrAry_Del(args);
 }
 
 static void
@@ -3651,28 +3651,28 @@ test_util_execute_snippet(void) {
     assert(execute_snippet(config, &found, argc, argv, "snippet.txt") == 1);
 
     config_del(config);
-    file_remove("./tests/util/snippet.txt");
+    PadFile_Remove("./tests/util/snippet.txt");
 }
 
 static void
 test_util_split_to_array(void) {
     assert(split_to_array(NULL, 0) == NULL);
 
-    cstring_array_t *arr = split_to_array("abc:def:ghi", ':');
+    PadCStrAry *arr = split_to_array("abc:def:ghi", ':');
     assert(arr);
-    assert(cstrarr_len(arr) == 3);
-    assert(!strcmp(cstrarr_getc(arr, 0), "abc"));
-    assert(!strcmp(cstrarr_getc(arr, 1), "def"));
-    assert(!strcmp(cstrarr_getc(arr, 2), "ghi"));
-    cstrarr_del(arr);
+    assert(PadCStrAry_Len(arr) == 3);
+    assert(!strcmp(PadCStrAry_Getc(arr, 0), "abc"));
+    assert(!strcmp(PadCStrAry_Getc(arr, 1), "def"));
+    assert(!strcmp(PadCStrAry_Getc(arr, 2), "ghi"));
+    PadCStrAry_Del(arr);
 
     arr = split_to_array("abc:def:ghi:", ':');
     assert(arr);
-    assert(cstrarr_len(arr) == 3);
-    assert(!strcmp(cstrarr_getc(arr, 0), "abc"));
-    assert(!strcmp(cstrarr_getc(arr, 1), "def"));
-    assert(!strcmp(cstrarr_getc(arr, 2), "ghi"));
-    cstrarr_del(arr);
+    assert(PadCStrAry_Len(arr) == 3);
+    assert(!strcmp(PadCStrAry_Getc(arr, 0), "abc"));
+    assert(!strcmp(PadCStrAry_Getc(arr, 1), "def"));
+    assert(!strcmp(PadCStrAry_Getc(arr, 2), "ghi"));
+    PadCStrAry_Del(arr);
 }
 
 static void
@@ -3705,18 +3705,18 @@ test_util_execute_program(void) {
     assert(execute_program(config, &found, argc, argv, "nothing") == 1);
 
     config_del(config);
-    file_remove("tests/util/.caprc");
+    PadFile_Remove("tests/util/.caprc");
 }
 
 static void
 test_util_pushf_argv(void) {
     int argc = 2;
     char *argv[] = {"aaa", "bbb", NULL};
-    cstring_array_t *arr = pushf_argv(argc, argv, "ccc");
-    assert(cstrarr_len(arr) == 3);
-    assert(!strcmp(cstrarr_getc(arr, 0), "ccc"));
-    assert(!strcmp(cstrarr_getc(arr, 1), "aaa"));
-    assert(!strcmp(cstrarr_getc(arr, 2), "bbb"));
+    PadCStrAry *arr = pushf_argv(argc, argv, "ccc");
+    assert(PadCStrAry_Len(arr) == 3);
+    assert(!strcmp(PadCStrAry_Getc(arr, 0), "ccc"));
+    assert(!strcmp(PadCStrAry_Getc(arr, 1), "aaa"));
+    assert(!strcmp(PadCStrAry_Getc(arr, 2), "bbb"));
 }
 
 static void
@@ -28753,9 +28753,9 @@ test_lscmd_default(void) {
     char buf[1024] = {0};
     setvbuf(stdout, buf, _IOFBF, sizeof buf);
 
-    lscmd_t *lscmd = lscmd_new(config, argc, argv);
-    lscmd_run(lscmd);
-    lscmd_del(lscmd);
+    CapLsCmd *lscmd = CapLsCmd_New(config, argc, argv);
+    CapLsCmd_Run(lscmd);
+    CapLsCmd_Del(lscmd);
 
     fflush(stdout);
     setvbuf(stdout, NULL, _IOLBF, BUFSIZ);
@@ -28767,7 +28767,7 @@ test_lscmd_default(void) {
 }
 
 static const struct testcase
-lscmd_tests[] = {
+CapLsCmdests[] = {
     {"default", test_lscmd_default},
     {0},
 };
@@ -29148,7 +29148,7 @@ test_editorcmd_default(void) {
     assert(PadFile_ReadLine(line, sizeof line, "./tests/editor/editor"));
     assert(!strcmp(line, "/path/to/editor"));
 
-    file_remove("./tests/editor/editor");
+    PadFile_Remove("./tests/editor/editor");
 
     config_del(config);
 }
@@ -29178,7 +29178,7 @@ test_mkdircmd_default(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mkdir"));
 
-    file_remove("./tests/mkdir/dir");
+    PadFile_Remove("./tests/mkdir/dir");
     assert(!PadFile_IsExists("./tests/mkdir/dir"));
 
     mkdircmd_t *mkdircmd = mkdircmd_new(config, argc, argv);
@@ -29187,7 +29187,7 @@ test_mkdircmd_default(void) {
 
     assert(PadFile_IsExists("./tests/mkdir/dir"));
 
-    file_remove("./tests/mkdir/dir");
+    PadFile_Remove("./tests/mkdir/dir");
 
     config_del(config);
 }
@@ -29476,7 +29476,7 @@ test_mvcmd_default(void) {
     assert(!PadFile_IsExists("./tests/mv/file1"));
     assert(PadFile_IsExists("./tests/mv/file2")); 
 
-    file_remove("./tests/mv/file2");
+    PadFile_Remove("./tests/mv/file2");
 
     config_del(config);
 }
@@ -29510,7 +29510,7 @@ test_mvcmd_dir(void) {
     assert(!PadFile_IsExists("./tests/mv/dir1"));
     assert(PadFile_IsExists("./tests/mv/dir2"));
 
-    file_remove("./tests/mv/dir2");
+    PadFile_Remove("./tests/mv/dir2");
 
     config_del(config);
 }
@@ -29547,8 +29547,8 @@ test_mvcmd_file_to_dir(void) {
     assert(PadFile_IsExists("./tests/mv/dir1"));
     assert(PadFile_IsExists("./tests/mv/dir1/file1"));
 
-    file_remove("./tests/mv/dir1/file1");
-    file_remove("./tests/mv/dir1");
+    PadFile_Remove("./tests/mv/dir1/file1");
+    PadFile_Remove("./tests/mv/dir1");
 
     config_del(config);
 }
@@ -29590,9 +29590,9 @@ test_mvcmd_files_to_dir(void) {
     assert(PadFile_IsExists("./tests/mv/dir1/file1"));
     assert(PadFile_IsExists("./tests/mv/dir1/file2"));
 
-    file_remove("./tests/mv/dir1/file1");
-    file_remove("./tests/mv/dir1/file2");
-    file_remove("./tests/mv/dir1");
+    PadFile_Remove("./tests/mv/dir1/file1");
+    PadFile_Remove("./tests/mv/dir1/file2");
+    PadFile_Remove("./tests/mv/dir1");
 
     config_del(config);
 }
@@ -29631,8 +29631,8 @@ test_mvcmd_err_1(void) {
     setbuf(stderr, NULL);
     assert(strstr(buf, "Failed to rename"));
 
-    file_remove("./tests/mv/dir1");
-    file_remove("./tests/mv/file1");
+    PadFile_Remove("./tests/mv/dir1");
+    PadFile_Remove("./tests/mv/file1");
 
     config_del(config);
 }
@@ -29677,8 +29677,8 @@ test_cpcmd_default(void) {
     assert(PadFile_IsExists("./tests/cp/file1"));
     assert(PadFile_IsExists("./tests/cp/file2"));
 
-    file_remove("./tests/cp/file1");
-    file_remove("./tests/cp/file2");
+    PadFile_Remove("./tests/cp/file1");
+    PadFile_Remove("./tests/cp/file2");
 
     config_del(config);
 }
@@ -29711,9 +29711,9 @@ test_cpcmd_dir(void) {
     assert(PadFile_IsExists("./tests/cp/file1"));
     assert(PadFile_IsExists("./tests/cp/dir1/file1"));
 
-    file_remove("./tests/cp/file1");
-    file_remove("./tests/cp/dir1/file1");
-    file_remove("./tests/cp/dir1");
+    PadFile_Remove("./tests/cp/file1");
+    PadFile_Remove("./tests/cp/dir1/file1");
+    PadFile_Remove("./tests/cp/dir1");
 
     config_del(config);
 }
@@ -29751,11 +29751,11 @@ test_cpcmd_files_to_dir(void) {
     assert(PadFile_IsExists("./tests/cp/dir1/file1"));
     assert(PadFile_IsExists("./tests/cp/dir1/file2"));
 
-    file_remove("./tests/cp/file1");
-    file_remove("./tests/cp/file2");
-    file_remove("./tests/cp/dir1/file1");
-    file_remove("./tests/cp/dir1/file2");
-    file_remove("./tests/cp/dir1");
+    PadFile_Remove("./tests/cp/file1");
+    PadFile_Remove("./tests/cp/file2");
+    PadFile_Remove("./tests/cp/dir1/file1");
+    PadFile_Remove("./tests/cp/dir1/file2");
+    PadFile_Remove("./tests/cp/dir1");
 
     config_del(config);
 }
@@ -29788,10 +29788,10 @@ test_cpcmd_dir_r(void) {
     assert(PadFile_IsExists("./tests/cp/dir1/file1"));
     assert(PadFile_IsExists("./tests/cp/dir2/file1"));
 
-    file_remove("./tests/cp/dir1/file1");
-    file_remove("./tests/cp/dir1");
-    file_remove("./tests/cp/dir2/file1");
-    file_remove("./tests/cp/dir2");
+    PadFile_Remove("./tests/cp/dir1/file1");
+    PadFile_Remove("./tests/cp/dir1");
+    PadFile_Remove("./tests/cp/dir2/file1");
+    PadFile_Remove("./tests/cp/dir2");
 
     config_del(config);
 }
@@ -29830,14 +29830,14 @@ test_cpcmd_dirs_r(void) {
     assert(PadFile_IsExists("./tests/cp/dir3/file1"));
     assert(PadFile_IsExists("./tests/cp/dir3/dir2/file1"));
 
-    file_remove("./tests/cp/dir1/file1");
-    file_remove("./tests/cp/dir1");
-    file_remove("./tests/cp/dir2/file1");
-    file_remove("./tests/cp/dir2");
-    file_remove("./tests/cp/dir3/file1");
-    file_remove("./tests/cp/dir3/dir2/file1");
-    file_remove("./tests/cp/dir3/dir2");
-    file_remove("./tests/cp/dir3");
+    PadFile_Remove("./tests/cp/dir1/file1");
+    PadFile_Remove("./tests/cp/dir1");
+    PadFile_Remove("./tests/cp/dir2/file1");
+    PadFile_Remove("./tests/cp/dir2");
+    PadFile_Remove("./tests/cp/dir3/file1");
+    PadFile_Remove("./tests/cp/dir3/dir2/file1");
+    PadFile_Remove("./tests/cp/dir3/dir2");
+    PadFile_Remove("./tests/cp/dir3");
 
     config_del(config);
 }
@@ -29879,7 +29879,7 @@ test_touchcmd_default(void) {
 
     assert(PadFile_IsExists("./tests/touch/file1"));
 
-    file_remove("./tests/touch/file1");
+    PadFile_Remove("./tests/touch/file1");
 
     config_del(config);
 }
@@ -29910,8 +29910,8 @@ test_touchcmd_multi(void) {
     assert(PadFile_IsExists("./tests/touch/file1"));
     assert(PadFile_IsExists("./tests/touch/file2"));
 
-    file_remove("./tests/touch/file1");
-    file_remove("./tests/touch/file2");
+    PadFile_Remove("./tests/touch/file1");
+    PadFile_Remove("./tests/touch/file2");
 
     config_del(config);
 }
@@ -30009,13 +30009,13 @@ test_linkcmd_default(void) {
 
     assert(!PadFile_IsExists("./tests/link/link-to-a"));
 
-    linkcmd_t *linkcmd = linkcmd_new(config, argc, argv);
-    int result = linkcmd_run(linkcmd);
-    linkcmd_del(linkcmd);
+    CapLinkCmd *linkcmd = CapLinkCmd_New(config, argc, argv);
+    int result = CapLinkCmd_Run(linkcmd);
+    CapLinkCmd_Del(linkcmd);
     assert(result == 0);
 
     assert(PadFile_IsExists("./tests/link/link-to-a"));
-    file_remove("./tests/link/link-to-a");
+    PadFile_Remove("./tests/link/link-to-a");
 
     config_del(config);
 }
@@ -30038,9 +30038,9 @@ test_linkcmd_unlink(void) {
 
     assert(!PadFile_IsExists("./tests/link/link-to-a"));
 
-    linkcmd_t *linkcmd = linkcmd_new(config, argc, argv);
-    int result = linkcmd_run(linkcmd);
-    linkcmd_del(linkcmd);
+    CapLinkCmd *linkcmd = CapLinkCmd_New(config, argc, argv);
+    int result = CapLinkCmd_Run(linkcmd);
+    CapLinkCmd_Del(linkcmd);
     assert(result == 0);
 
     assert(PadFile_IsExists("./tests/link/link-to-a"));
@@ -30054,9 +30054,9 @@ test_linkcmd_unlink(void) {
         NULL,
     };
 
-    linkcmd = linkcmd_new(config, argc2, argv2);
-    result = linkcmd_run(linkcmd);
-    linkcmd_del(linkcmd);
+    linkcmd = CapLinkCmd_New(config, argc2, argv2);
+    result = CapLinkCmd_Run(linkcmd);
+    CapLinkCmd_Del(linkcmd);
     assert(result == 0);
 
     assert(!PadFile_IsExists("./tests/link/link-to-a"));
@@ -30065,7 +30065,7 @@ test_linkcmd_unlink(void) {
 }
 
 static const struct testcase
-linkcmd_tests[] = {
+CapLinkCmdests[] = {
     {"default", test_linkcmd_default},
     {"unlink", test_linkcmd_unlink},
     {0},
@@ -30099,7 +30099,7 @@ test_bakecmd_1(void) {
     assert(strcmp(s, "1\n") == 0);
     free(s);
 
-    file_remove(bakefname);
+    PadFile_Remove(bakefname);
     config_del(config);
 }
 
@@ -30130,7 +30130,7 @@ test_bakecmd_2(void) {
     assert(strcmp(s, "abc,ghi") == 0);
     free(s);
 
-    file_remove(bakefname);
+    PadFile_Remove(bakefname);
     config_del(config);
 }
 
@@ -30162,7 +30162,7 @@ test_replacecmd_1(void) {
     assert(strcmp(s, "abc ABABABA def\n") == 0);
     free(s);
 
-    file_remove("tests/replace/file1.txt");
+    PadFile_Remove("tests/replace/file1.txt");
 }
 
 static void
@@ -30186,7 +30186,7 @@ test_replacecmd_2(void) {
     assert(strcmp(s, "ABCDABCD\n") == 0);
     free(s);
 
-    file_remove("tests/replace/file2.txt");
+    PadFile_Remove("tests/replace/file2.txt");
 }
 
 static void
@@ -30210,7 +30210,7 @@ test_replacecmd_3(void) {
     assert(strcmp(s, "hige\nABABA\nhige\n") == 0);
     free(s);
 
-    file_remove("tests/replace/file3.txt");
+    PadFile_Remove("tests/replace/file3.txt");
 }
 
 static const struct testcase
@@ -30231,7 +30231,7 @@ testmodules[] = {
     {"home", CapHomeCmdests},
     {"cd", cdcmd_tests},
     {"pwd", pwdcmd_tests},
-    {"ls", lscmd_tests},
+    {"ls", CapLsCmdests},
     {"cat", catcmd_tests},
     {"make", makecmd_tests},
     {"run", runcmd_tests},
@@ -30245,7 +30245,7 @@ testmodules[] = {
     {"cp", CapCpCmdests},
     {"touch", touchcmd_tests},
     {"snippet", snippetcmd_tests},
-    {"link", linkcmd_tests},
+    {"link", CapLinkCmdests},
     {"bake", bakecmd_tests},
     {"replace", replacecmd_tests},
 

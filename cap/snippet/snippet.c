@@ -185,7 +185,7 @@ snptcmd_clear(snptcmd_t *self) {
             goto fail;
         }
 
-        if (file_remove(path) != 0) {
+        if (PadFile_Remove(path) != 0) {
             PadErr_Err("failed to remove file \"%s\"", path);
             goto fail;
         }

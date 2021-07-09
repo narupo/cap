@@ -2,22 +2,23 @@
 
 #include <getopt.h>
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <lib/cstring_array.h>
-#include <lib/term.h>
-#include <core/util.h>
-#include <core/config.h>
-#include <core/symlink.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <pad/lib/cstring_array.h>
+#include <pad/lib/term.h>
 
-struct lscmd;
-typedef struct lscmd lscmd_t;
+#include <cap/core/util.h>
+#include <cap/core/config.h>
+#include <cap/core/symlink.h>
+
+struct CapLsCmd;
+typedef struct CapLsCmd CapLsCmd;
 
 void
-lscmd_del(lscmd_t *self);
+CapLsCmd_Del(CapLsCmd *self);
 
-lscmd_t *
-lscmd_new(const CapConfig *config, int argc, char **argv);
+CapLsCmd *
+CapLsCmd_New(const CapConfig *config, int argc, char **argv);
 
 int
-lscmd_run(lscmd_t *self);
+CapLsCmd_Run(CapLsCmd *self);

@@ -156,13 +156,13 @@ rmcmd_remove_r(rmcmd_t *self, const char *dirpath) {
                 return false;
             }
             // directory is empty, remove directory
-            if (file_remove(path) != 0) {
+            if (PadFile_Remove(path) != 0) {
                 PadCStr_App_fmt(self->what, sizeof self->what, "failed to remove directory \"%s\".", path);
                 self->errno_ = RMCMD_ERR_REMOVE_FILE;
                 return false;
             }
         } else {
-            if (file_remove(path) != 0) {
+            if (PadFile_Remove(path) != 0) {
                 PadCStr_App_fmt(self->what, sizeof self->what, "failed to remove file \"%s\".", path);
                 self->errno_ = RMCMD_ERR_REMOVE_FILE;
                 return false;
@@ -212,7 +212,7 @@ rmcmd_rmr(rmcmd_t *self) {
             return 1;
         }
 
-        if (file_remove(path) != 0) {
+        if (PadFile_Remove(path) != 0) {
             PadCStr_App_fmt(self->what, sizeof self->what, "failed to remove directory \"%s\".", path);
             self->errno_ = RMCMD_ERR_REMOVE_FILE;
             return false;
@@ -242,7 +242,7 @@ rmcmd_rm(rmcmd_t *self, const char *argpath) {
         return 1;
     }
 
-    if (file_remove(path) != 0) {
+    if (PadFile_Remove(path) != 0) {
         PadCStr_App_fmt(self->what, sizeof self->what, "failed to remove \"%s\".", path);
         self->errno_ = RMCMD_ERR_REMOVE_FILE;
         return 1;

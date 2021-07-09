@@ -188,14 +188,14 @@ CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, const 
     return dst;
 }
 
-static cstring_array_t *
+static PadCStrAry *
 split_ignore_empty(const char *p, char sep) {
     char **toks = cstr_split_ignore_empty(p, FILE_SEP);
     if (!toks) {
         return NULL;
     }
 
-    cstring_array_t *arr = cstrarr_new();
+    PadCStrAry *arr = PadCStrAry_New();
 
     for (char **toksp = toks; *toksp; ++toksp) {
         cstrarr_move(arr, *toksp);
@@ -223,16 +223,16 @@ symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char
 #endif
 
     // save tokens from srctoks to dsttoks by ".." token
-    cstring_array_t *srctoks = split_ignore_empty(pathhead, FILE_SEP);
-    cstring_array_t *dsttoks = cstrarr_new();
+    PadCStrAry *srctoks = split_ignore_empty(pathhead, FILE_SEP);
+    PadCStrAry *dsttoks = PadCStrAry_New();
 
-    for (int32_t i = 0; i < cstrarr_len(srctoks); ++i) {
-        const char *tok = cstrarr_getc(srctoks, i);
+    for (int32_t i = 0; i < PadCStrAry_Len(srctoks); ++i) {
+        const char *tok = PadCStrAry_Getc(srctoks, i);
         if (PadCStr_Eq(tok, "..")) {
             char *el = cstrarr_pop_move(dsttoks);
             free(el);
         } else {
-            cstrarr_push(dsttoks, tok);
+            PadCStrAry_PushBack(dsttoks, tok);
         }
     }
 
@@ -250,18 +250,18 @@ symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char
         PadCStr_App_fmt(dst, dstsz, "%c", FILE_SEP);
     }
 
-    for (int32_t i = 0; i < cstrarr_len(dsttoks)-1; ++i) {
-        const char *tok = cstrarr_getc(dsttoks, i);
+    for (int32_t i = 0; i < PadCStrAry_Len(dsttoks)-1; ++i) {
+        const char *tok = PadCStrAry_Getc(dsttoks, i);
         PadCStr_App(dst, dstsz, tok);
         PadCStr_App_fmt(dst, dstsz, "%c", FILE_SEP);
     }
-    if (cstrarr_len(dsttoks)) {
-        const char *tok = cstrarr_getc(dsttoks, cstrarr_len(dsttoks)-1);
+    if (PadCStrAry_Len(dsttoks)) {
+        const char *tok = PadCStrAry_Getc(dsttoks, PadCStrAry_Len(dsttoks)-1);
         PadCStr_App(dst, dstsz, tok);
     }
 
-    cstrarr_del(srctoks);
-    cstrarr_del(dsttoks);
+    PadCStrAry_Del(srctoks);
+    PadCStrAry_Del(dsttoks);
 
     return dst;
 }

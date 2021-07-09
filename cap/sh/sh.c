@@ -170,9 +170,9 @@ shcmd_input(shcmd_t *self) {
     char prompt[FILE_NPATH];
     shcmd_create_prompt(self, prompt, sizeof prompt);
 
-    term_cfprintf(stderr, TERM_CYAN, TERM_DEFAULT, TERM_BRIGHT, "(cap) ");
-    term_cfprintf(stderr, TERM_GREEN, TERM_DEFAULT, TERM_BRIGHT, "%s", prompt);
-    term_cfprintf(stderr, TERM_BLUE, TERM_DEFAULT, TERM_BRIGHT, "$ ");
+    PadTerm_CFPrintf(stderr, TERM_CYAN, TERM_DEFAULT, TERM_BRIGHT, "(cap) ");
+    PadTerm_CFPrintf(stderr, TERM_GREEN, TERM_DEFAULT, TERM_BRIGHT, "%s", prompt);
+    PadTerm_CFPrintf(stderr, TERM_BLUE, TERM_DEFAULT, TERM_BRIGHT, "$ ");
     fflush(stderr);
 
     self->line_buf[0] = '\0';
@@ -251,8 +251,8 @@ execute_all(shcmd_t *self, int argc, char *argv[]) {
         return result;
     }
 
-    cstring_array_t *args = pushf_argv(argc, argv, "run");
-    int run_argc = cstrarr_len(args);
+    PadCStrAry *args = pushf_argv(argc, argv, "run");
+    int run_argc = PadCStrAry_Len(args);
     char **run_argv = cstrarr_escdel(args);
     return execute_run(self->config, run_argc, run_argv);
 }
