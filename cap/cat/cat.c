@@ -15,7 +15,7 @@ struct Opts {
  * Structure of command
  */
 struct CapCatCmd {
-    const CapCofnig *config;
+    const CapConfig *config;
     PadErrStack *errstack;
     int argc;
     char **argv;
@@ -110,7 +110,7 @@ CapCatCmd_Del(CapCatCmd *self) {
  * @return pointer to allocate memory of command
  */
 CapCatCmd *
-CapCatCmd_New(const CapCofnig *config, int argc, char **argv) {
+CapCatCmd_New(const CapConfig *config, int argc, char **argv) {
     CapCatCmd *self = PadMem_Calloc(1, sizeof(*self));
     if (self == NULL) {
         goto error;
@@ -120,7 +120,7 @@ CapCatCmd_New(const CapCofnig *config, int argc, char **argv) {
     self->argc = argc;
     self->argv = argv;
     self->errstack = PadErrStack_New();
-    if (Self->errstack == NULL) {
+    if (self->errstack == NULL) {
         goto error;
     }
 
