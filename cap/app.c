@@ -410,7 +410,7 @@ _exec_cmd_by_name(App *self, const char *name) {
 
     int result = 0;
 
-    if (PadCStr_Eq(name, "Home")) {
+    if (PadCStr_Eq(name, "home")) {
         routine(CapHomeCmd);
     } else if (PadCStr_Eq(name, "cd")) {
         routine(CapCdCmd);
