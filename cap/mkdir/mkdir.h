@@ -3,22 +3,23 @@
 #include <getopt.h>
 #include <string.h>
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <lib/string.h>
-#include <core/constant.h>
-#include <core/config.h>
-#include <core/util.h>
-#include <core/symlink.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <pad/lib/string.h>
 
-struct mkdircmd;
-typedef struct mkdircmd mkdircmd_t;
+#include <cap/core/constant.h>
+#include <cap/core/config.h>
+#include <cap/core/util.h>
+#include <cap/core/symlink.h>
+
+struct CapMkdirCmd;
+typedef struct CapMkdirCmd CapMkdirCmd;
 
 void
-mkdircmd_del(mkdircmd_t *self);
+CapMkdirCmd_Del(CapMkdirCmd *self);
 
-mkdircmd_t *
-mkdircmd_new(const CapConfig *config, int argc, char **argv);
+CapMkdirCmd *
+CapMkdirCmd_New(const CapConfig *config, int argc, char **argv);
 
 int
-mkdircmd_run(mkdircmd_t *self);
+CapMkdirCmd_Run(CapMkdirCmd *self);

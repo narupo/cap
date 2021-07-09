@@ -22,9 +22,9 @@ lang -
 lib -
 link *
 ls *
-make
-mkdir
-mv
+make *
+mkdir *
+mv *
 pwd
 replace
 rm

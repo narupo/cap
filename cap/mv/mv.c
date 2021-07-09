@@ -4,7 +4,7 @@ struct Opts {
     bool is_help;
 };
 
-struct mvcmd {
+struct CapMvCmd {
     const CapConfig *config;
     int argc;
     char **argv;
@@ -13,7 +13,7 @@ struct mvcmd {
 };
 
 static void
-mvcmd_parse_opts(mvcmd_t *self) {
+parse_opts(CapMvCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -48,29 +48,31 @@ mvcmd_parse_opts(mvcmd_t *self) {
 }
 
 void
-mvcmd_del(mvcmd_t *self) {
+CapMvCmd_Del(CapMvCmd *self) {
     if (!self) {
         return;
     }
-
-    free(self);
+    Pad_SafeFree(self);
 }
 
-mvcmd_t *
-mvcmd_new(CapConfig *config, int argc, char **argv) {
-    mvcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapMvCmd *
+CapMvCmd_New(CapConfig *config, int argc, char **argv) {
+    CapMvCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
 
-    mvcmd_parse_opts(self);
+    parse_opts(self);
 
     return self;
 }
 
 static void
-mvcmd_show_usage(mvcmd_t *self) {
+usage(CapMvCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Usage:\n"
@@ -85,10 +87,11 @@ mvcmd_show_usage(mvcmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
 static bool
-mvcmd_mv_file_to_dir(mvcmd_t *self, const char *cap_path, const char *dirname) {
+mv_file_to_dir(CapMvCmd *self, const char *cap_path, const char *dirname) {
     char srcpath[FILE_NPATH];
     char dstpath[FILE_NPATH];
     char tmppath[FILE_NPATH*3];
@@ -104,7 +107,7 @@ mvcmd_mv_file_to_dir(mvcmd_t *self, const char *cap_path, const char *dirname) {
     }
 
     char basename[FILE_NPATH];
-    if (!file_basename(basename, sizeof basename, cap_path)) {
+    if (!PadFile_BaseName(basename, sizeof basename, cap_path)) {
         PadErr_Err("failed to get basename from file name");
         return false;
     }
@@ -115,7 +118,7 @@ mvcmd_mv_file_to_dir(mvcmd_t *self, const char *cap_path, const char *dirname) {
         return false;
     }
 
-    if (file_rename(srcpath, dstpath) != 0) {
+    if (PadFile_Rename(srcpath, dstpath) != 0) {
         PadErr_Err("failed to rename file \"%s\" to \"%s\" directory", srcpath, dstpath);
         return false;
     }
@@ -124,12 +127,12 @@ mvcmd_mv_file_to_dir(mvcmd_t *self, const char *cap_path, const char *dirname) {
 }
 
 static int
-mvcmd_mv_files_to_dir(mvcmd_t *self) {
+mv_files_to_dir(CapMvCmd *self) {
     const char *lastfname = self->argv[self->argc-1];
 
     for (int i = self->optind; i < self->argc-1; ++i) {
         const char *fname = self->argv[i];
-        if (!mvcmd_mv_file_to_dir(self, fname, lastfname)) {
+        if (!mv_file_to_dir(self, fname, lastfname)) {
             PadErr_Err("failed to move file %s to %s", fname, lastfname);
             return 1;
         }
@@ -139,7 +142,7 @@ mvcmd_mv_files_to_dir(mvcmd_t *self) {
 }
 
 static int
-mvcmd_mv_file_to_other(mvcmd_t *self) {
+mv_file_to_other(CapMvCmd *self) {
     const char *src_cap_path = self->argv[self->optind];
     const char *dst_cap_path = self->argv[self->optind + 1];
 
@@ -175,7 +178,7 @@ mvcmd_mv_file_to_other(mvcmd_t *self) {
         if (src_cap_path[0] == ':') {
             src_cap_path += 1;
         }
-        if (!file_basename(basename, sizeof basename, src_cap_path)) {
+        if (!PadFile_BaseName(basename, sizeof basename, src_cap_path)) {
             PadErr_Err("failed to get basename in file to other");
             return 1;
         }
@@ -188,12 +191,12 @@ mvcmd_mv_file_to_other(mvcmd_t *self) {
             return 1;
         }
 
-        if (file_rename(srcpath, dstpath2) != 0) {
+        if (PadFile_Rename(srcpath, dstpath2) != 0) {
             PadErr_Err("failed to rename \"%s\" to \"%s\"", srcpath, dstpath2);
             return 1;
         }
     } else {
-        if (file_rename(srcpath, dstpath) != 0) {
+        if (PadFile_Rename(srcpath, dstpath) != 0) {
             PadErr_Err("failed to rename \"%s\" to \"%s\" (2)", srcpath, dstpath);
             return 1;
         }
@@ -203,12 +206,12 @@ mvcmd_mv_file_to_other(mvcmd_t *self) {
 }
 
 static int
-mvcmd_mv(mvcmd_t *self) {
+_mv(CapMvCmd *self) {
     const int nargs = self->argc-self->optind;
     if (nargs >= 3) {
-        return mvcmd_mv_files_to_dir(self);
+        return mv_files_to_dir(self);
     } else if (nargs == 2) {
-        return mvcmd_mv_file_to_other(self);
+        return mv_file_to_other(self);
     } else {
         PadErr_Err("not found destination");
         return 1;
@@ -216,16 +219,14 @@ mvcmd_mv(mvcmd_t *self) {
 }
 
 int
-mvcmd_run(mvcmd_t *self) {
+CapMvCmd_Run(CapMvCmd *self) {
     if (self->argc < self->optind+2) {
-        mvcmd_show_usage(self);
-        return 0;
+        usage(self);
     }
 
     if (self->opts.is_help) {
-        mvcmd_show_usage(self);
-        return 0;
+        usage(self);
     }
 
-    return mvcmd_mv(self);
+    return _mv(self);
 }

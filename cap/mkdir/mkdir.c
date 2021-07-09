@@ -8,7 +8,7 @@ struct Opts {
     bool is_parents;
 };
 
-struct mkdircmd {
+struct CapMkdirCmd {
     const CapConfig *config;
     int argc;
     char **argv;
@@ -17,7 +17,7 @@ struct mkdircmd {
 };
 
 void
-mkdircmd_parse_opts(mkdircmd_t *self) {
+parse_opts(CapMkdirCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -55,29 +55,31 @@ mkdircmd_parse_opts(mkdircmd_t *self) {
 }
 
 void
-mkdircmd_del(mkdircmd_t *self) {
+CapMkdirCmd_Del(CapMkdirCmd *self) {
     if (!self) {
         return;
     }
-
-    free(self);
+    Pad_SafeFree(self);
 }
 
-mkdircmd_t *
-mkdircmd_new(const CapConfig *config, int argc, char **argv) {
-    mkdircmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapMkdirCmd *
+CapMkdirCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapMkdirCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
 
-    mkdircmd_parse_opts(self);
+    parse_opts(self);
 
     return self;
 }
 
 void
-mkdircmd_show_usage(mkdircmd_t *self) {
+usage(CapMkdirCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Usage:\n"
@@ -91,10 +93,11 @@ mkdircmd_show_usage(mkdircmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
-int
-mkdircmd_mkdirp(mkdircmd_t *self) {
+static int
+_mkdirp(CapMkdirCmd *self) {
     const char *argpath = self->argv[self->optind];
     char path[FILE_NPATH];
 
@@ -115,7 +118,7 @@ mkdircmd_mkdirp(mkdircmd_t *self) {
         }
     }
 
-    if (file_mkdirsq(path) != 0) {
+    if (PadFile_MkdirsQ(path) != 0) {
         PadErr_Err("failed to create directory \"%s\"", path);
         return 1;
     }
@@ -123,8 +126,8 @@ mkdircmd_mkdirp(mkdircmd_t *self) {
     return 0;
 }
 
-int
-mkdircmd_mkdir(mkdircmd_t *self) {
+static int
+_mkdir(CapMkdirCmd *self) {
     const char *argpath = self->argv[self->optind];
     char path[FILE_NPATH];
 
@@ -159,22 +162,20 @@ mkdircmd_mkdir(mkdircmd_t *self) {
 }
 
 int
-mkdircmd_run(mkdircmd_t *self) {
+CapMkdirCmd_Run(CapMkdirCmd *self) {
     if (self->opts.is_help) {
-        mkdircmd_show_usage(self);
-        return 0;        
+        usage(self);
     }
 
     if (self->argc < self->optind+1) {
-        mkdircmd_show_usage(self);
-        return 0;
+        usage(self);
     }
 
     if (self->opts.is_parents) {
-        return mkdircmd_mkdirp(self);
+        return _mkdirp(self);
     } else {
-        return mkdircmd_mkdir(self);
+        return _mkdir(self);
     }
 
-    return 0; // impossible
+    return 0;  // impossible
 }
