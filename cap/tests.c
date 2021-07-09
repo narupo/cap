@@ -28684,9 +28684,9 @@ test_pwdcmd_default(void) {
     char stdout_buf[1024];
     setbuf(stdout, stdout_buf);
 
-    pwdcmd_t *pwdcmd = pwdcmd_new(config, argc, argv);
-    pwdcmd_run(pwdcmd);
-    pwdcmd_del(pwdcmd);
+    CapPwdCmd *pwdcmd = CapPwdCmd_New(config, argc, argv);
+    CapPwdCmd_Run(pwdcmd);
+    CapPwdCmd_Del(pwdcmd);
 
     setbuf(stdout, NULL);
 
@@ -28710,9 +28710,9 @@ test_pwdcmd_nomalize_opt(void) {
     char stdout_buf[1024];
     setbuf(stdout, stdout_buf);
 
-    pwdcmd_t *pwdcmd = pwdcmd_new(config, argc, argv);
-    pwdcmd_run(pwdcmd);
-    pwdcmd_del(pwdcmd);
+    CapPwdCmd *pwdcmd = CapPwdCmd_New(config, argc, argv);
+    CapPwdCmd_Run(pwdcmd);
+    CapPwdCmd_Del(pwdcmd);
 
     setbuf(stdout, NULL);
 
@@ -28726,7 +28726,7 @@ test_pwdcmd_nomalize_opt(void) {
 }
 
 static const struct testcase
-pwdcmd_tests[] = {
+CapPwdCmdests[] = {
     {"default", test_pwdcmd_default},
     {"normalize", test_pwdcmd_nomalize_opt},
     {0},
@@ -30230,7 +30230,7 @@ testmodules[] = {
     // commands
     {"home", CapHomeCmdests},
     {"cd", cdcmd_tests},
-    {"pwd", pwdcmd_tests},
+    {"pwd", CapPwdCmdests},
     {"ls", CapLsCmdests},
     {"cat", catcmd_tests},
     {"make", CapMakeCmdests},
