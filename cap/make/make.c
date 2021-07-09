@@ -82,7 +82,7 @@ CapMakeCmd_MakeFromArgs(
             PadCStr_Copy(path, sizeof path, cap_path);
         }
 
-        src = PadFile_ReadCopy_from_path(path);
+        src = PadFile_ReadCopyFromPath(path);
         if (!src) {
             PadErrStack_Add(errstack, "failed to read from \"%s\"", path);
             return 1;

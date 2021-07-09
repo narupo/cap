@@ -30095,7 +30095,7 @@ test_bakecmd_1(void) {
     bakecmd_run(cmd);
     bakecmd_del(cmd);
 
-    char *s = PadFile_ReadCopy_from_path(bakefname);
+    char *s = PadFile_ReadCopyFromPath(bakefname);
     assert(strcmp(s, "1\n") == 0);
     free(s);
 
@@ -30126,7 +30126,7 @@ test_bakecmd_2(void) {
     bakecmd_run(cmd);
     bakecmd_del(cmd);
 
-    char *s = PadFile_ReadCopy_from_path(bakefname);
+    char *s = PadFile_ReadCopyFromPath(bakefname);
     assert(strcmp(s, "abc,ghi") == 0);
     free(s);
 
@@ -30153,12 +30153,12 @@ test_replacecmd_1(void) {
         "ababa",
         "ABABABA",
     };
-    replacecmd_t *cmd = replacecmd_new(config, argc, argv);
-    replacecmd_run(cmd);
-    replacecmd_del(cmd);
+    CapReplaceCmd *cmd = CapReplaceCmd_New(config, argc, argv);
+    CapReplaceCmd_Run(cmd);
+    CapReplaceCmd_Del(cmd);
     config_del(config);
 
-    char *s = PadFile_ReadCopy_from_path("tests/replace/file1.txt");
+    char *s = PadFile_ReadCopyFromPath("tests/replace/file1.txt");
     assert(strcmp(s, "abc ABABABA def\n") == 0);
     free(s);
 
@@ -30177,12 +30177,12 @@ test_replacecmd_2(void) {
         "abcd",
         "ABCD",
     };
-    replacecmd_t *cmd = replacecmd_new(config, argc, argv);
-    replacecmd_run(cmd);
-    replacecmd_del(cmd);
+    CapReplaceCmd *cmd = CapReplaceCmd_New(config, argc, argv);
+    CapReplaceCmd_Run(cmd);
+    CapReplaceCmd_Del(cmd);
     config_del(config);
 
-    char *s = PadFile_ReadCopy_from_path("tests/replace/file2.txt");
+    char *s = PadFile_ReadCopyFromPath("tests/replace/file2.txt");
     assert(strcmp(s, "ABCDABCD\n") == 0);
     free(s);
 
@@ -30201,12 +30201,12 @@ test_replacecmd_3(void) {
         "abcd\nefgh",
         "ABABA",
     };
-    replacecmd_t *cmd = replacecmd_new(config, argc, argv);
-    replacecmd_run(cmd);
-    replacecmd_del(cmd);
+    CapReplaceCmd *cmd = CapReplaceCmd_New(config, argc, argv);
+    CapReplaceCmd_Run(cmd);
+    CapReplaceCmd_Del(cmd);
     config_del(config);
 
-    char *s = PadFile_ReadCopy_from_path("tests/replace/file3.txt");
+    char *s = PadFile_ReadCopyFromPath("tests/replace/file3.txt");
     assert(strcmp(s, "hige\nABABA\nhige\n") == 0);
     free(s);
 
@@ -30214,7 +30214,7 @@ test_replacecmd_3(void) {
 }
 
 static const struct testcase
-replacecmd_tests[] = {
+CapReplaceCmdests[] = {
     {"1", test_replacecmd_1},
     {"2", test_replacecmd_2},
     {"3", test_replacecmd_3},
@@ -30247,7 +30247,7 @@ testmodules[] = {
     {"snippet", snippetcmd_tests},
     {"link", CapLinkCmdests},
     {"bake", bakecmd_tests},
-    {"replace", replacecmd_tests},
+    {"replace", CapReplaceCmdests},
 
     // lib
     {"cstring_array", cstrarr_tests},

@@ -10,7 +10,7 @@ struct Opts {
 /**
  * structure of command
  */
-struct replace {
+struct CapReplaceCmd {
     const CapConfig *config;
     int argc;
     int optind;
@@ -22,10 +22,10 @@ struct replace {
 /**
  * show usage of command
  *
- * @param[in] self pointer to replacecmd_t
+ * @param[in] self pointer to CapReplaceCmd
  */
 static void
-replacecmd_show_usage(replacecmd_t *self) {
+usage(CapReplaceCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Replace text of file\n"
@@ -40,18 +40,19 @@ replacecmd_show_usage(replacecmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
 /**
  * parse options
  *
- * @param[in] self pointer to replacecmd_t 
+ * @param[in] self pointer to CapReplaceCmd 
  *
  * @return success to true
  * @return failed to false
  */
 static bool
-replacecmd_parse_opts(replacecmd_t *self) {
+parse_opts(CapReplaceCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -93,30 +94,37 @@ replacecmd_parse_opts(replacecmd_t *self) {
 }
 
 void
-replacecmd_del(replacecmd_t *self) {
+CapReplaceCmd_Del(CapReplaceCmd *self) {
     if (!self) {
         return;
     }
-
     PadErrStack_Del(self->errstack);
-    free(self);
+    Pad_SafeFree(self);
 }
 
-replacecmd_t *
-replacecmd_new(const CapConfig *config, int argc, char **argv) {
-    replacecmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapReplaceCmd *
+CapReplaceCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapReplaceCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        goto error;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
     self->errstack = PadErrStack_New();
+    if (self->errstack == NULL) {
+        goto error;
+    }
 
-    if (!replacecmd_parse_opts(self)) {
-        replacecmd_del(self);
-        return NULL;
+    if (!parse_opts(self)) {
+        goto error;
     }
 
     return self;
+error:
+    CapReplaceCmd_Del(self);
+    return NULL;
 }
 
 static void
@@ -143,10 +151,9 @@ sreplace(FILE *fout, const char *text, const char *target, const char *replaced)
 }
 
 static int
-replace(replacecmd_t *self) {
+replace(CapReplaceCmd *self) {
     if (self->argc < 4) {
-        replacecmd_show_usage(self);
-        return 0;
+        usage(self);
     }
 
     const char *cap_fname = self->argv[optind];
@@ -164,7 +171,7 @@ replace(replacecmd_t *self) {
         goto error;
     }
 
-    content = PadFile_ReadCopy_from_path(path);
+    content = PadFile_ReadCopyFromPath(path);
     if (content == NULL) {
         blush("failed to read content from %s", path);
         goto error;
@@ -176,16 +183,16 @@ replace(replacecmd_t *self) {
         goto error;
     }
 
-    Pad_Unescape_text(target, target_, NULL);
+    Pad_UnescapeText(target, target_, NULL);
     int result = sreplace(fout, content, PadStr_Getc(target), replaced);
 
     fclose(fout);
-    free(content);
+    Pad_SafeFree(content);
     PadStr_Del(target);
     return result;
 error:
     PadStr_Del(target);
-    free(content);
+    Pad_SafeFree(content);
     if (fout) {
         fclose(fout);
     }
@@ -193,10 +200,10 @@ error:
 }
 
 int
-replacecmd_run(replacecmd_t *self) {
+CapReplaceCmd_Run(CapReplaceCmd *self) {
     int result = replace(self);
     if (result != 0) {
-        PadErrStack_Trace_simple(self->errstack, stderr);
+        PadErrStack_TraceSimple(self->errstack, stderr);
     }
     return result;
 }
