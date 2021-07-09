@@ -28987,9 +28987,9 @@ test_makecmd_default(void) {
     char buf[1024] = {0};
     setvbuf(stdout, buf, _IOFBF, sizeof buf);
 
-    makecmd_t *makecmd = makecmd_new(config, argc, argv);
-    makecmd_run(makecmd);
-    makecmd_del(makecmd);
+    CapMakeCmd *makecmd = CapMakeCmd_New(config, argc, argv);
+    CapMakeCmd_Run(makecmd);
+    CapMakeCmd_Del(makecmd);
 
     fflush(stdout);
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
@@ -29019,9 +29019,9 @@ test_makecmd_options(void) {
     char buf[1024] = {0};
     setvbuf(stdout, buf, _IOFBF, sizeof buf);
 
-    makecmd_t *makecmd = makecmd_new(config, argc, argv);
-    makecmd_run(makecmd);
-    makecmd_del(makecmd);
+    CapMakeCmd *makecmd = CapMakeCmd_New(config, argc, argv);
+    CapMakeCmd_Run(makecmd);
+    CapMakeCmd_Del(makecmd);
 
     fflush(stdout);
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
@@ -29032,7 +29032,7 @@ test_makecmd_options(void) {
 }
 
 static const struct testcase
-makecmd_tests[] = {
+CapMakeCmdests[] = {
     {"default", test_makecmd_default},
     {"options", test_makecmd_options},
     {0},
@@ -30233,7 +30233,7 @@ testmodules[] = {
     {"pwd", pwdcmd_tests},
     {"ls", CapLsCmdests},
     {"cat", catcmd_tests},
-    {"make", makecmd_tests},
+    {"make", CapMakeCmdests},
     {"run", runcmd_tests},
     {"exec", CapExecCmdests},
     {"alias", alcmd_tests},

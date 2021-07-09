@@ -1,29 +1,30 @@
 #pragma once
 
-#include <lib/error.h>
-#include <lib/string.h>
-#include <lib/file.h>
-#include <core/config.h>
-#include <core/util.h>
-#include <core/symlink.h>
-#include <core/error_stack.h>
-#include <lang/tokenizer.h>
-#include <lang/ast.h>
-#include <lang/compiler.h>
-#include <lang/traverser.h>
-#include <lang/context.h>
-#include <lang/opts.h>
+#include <pad/lib/error.h>
+#include <pad/lib/string.h>
+#include <pad/lib/file.h>
+#include <pad/lang/tokenizer.h>
+#include <pad/lang/ast.h>
+#include <pad/lang/compiler.h>
+#include <pad/lang/traverser.h>
+#include <pad/lang/context.h>
+#include <pad/lang/opts.h>
 
-struct makecmd;
-typedef struct makecmd makecmd_t;
+#include <cap/core/config.h>
+#include <cap/core/util.h>
+#include <cap/core/symlink.h>
+#include <cap/core/error_stack.h>
+
+struct CapMakeCmd;
+typedef struct CapMakeCmd CapMakeCmd;
 
 /**
  * destruct command
  * 
- * @param[in] *self pointer to makecmd_t (dynamic allocate memory) 
+ * @param[in] *self pointer to CapMakeCmd (dynamic allocate memory) 
  */
 void
-makecmd_del(makecmd_t *self);
+CapMakeCmd_Del(CapMakeCmd *self);
 
 /**
  * construct command
@@ -32,11 +33,11 @@ makecmd_del(makecmd_t *self);
  * @param[in] argc    number of arguments
  * @param[in] **argv  arguments
  * 
- * @return success to pointer to makecmd_t (dynamic allocate memory)
+ * @return success to pointer to CapMakeCmd (dynamic allocate memory)
  * @return failed to NULL
  */
-makecmd_t *
-makecmd_new(const CapConfig *config, int argc, char **argv);
+CapMakeCmd *
+CapMakeCmd_New(const CapConfig *config, int argc, char **argv);
 
 /**
  * run command
@@ -46,7 +47,7 @@ makecmd_new(const CapConfig *config, int argc, char **argv);
  * @return success to 0, else other
  */
 int
-makecmd_run(makecmd_t *self);
+CapMakeCmd_Run(CapMakeCmd *self);
 
 /**
  * make script or stdin from program arguments
@@ -60,7 +61,7 @@ makecmd_run(makecmd_t *self);
  * @return success to 0, else other
  */
 int
-make_from_args(
+CapMakeCmd_MakeFromArgs(
     const CapConfig *config,
     PadErrStack *errstack,
     int argc,
