@@ -1,4 +1,4 @@
-#include <core/config.h>
+#include <cap/core/config.h>
 
 void
 CapConfig_Del(CapConfig *self) {

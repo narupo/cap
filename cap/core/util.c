@@ -5,7 +5,7 @@
  *  Author: narupo
  *   Since: 2016
  */
-#include <core/util.h>
+#include <cap/core/util.h>
 
 static char *
 read_path_var_from_resource(const CapConfig *config, const char *rcpath) {
@@ -251,7 +251,7 @@ exec_prog_by_dirname(const CapConfig *config, bool *found, int cmd_argc, char *c
         PadErr_Err("failed to solve in execute program in directory");
         return 1;
     }
-    if (!PadFIle_IsExists(real_path)) {
+    if (!PadFile_IsExists(real_path)) {
         return 1;
     }
     *found = true;
@@ -277,7 +277,7 @@ Cap_ExecProg_by_caprc(const CapConfig *config, bool *found, int cmd_argc, char *
         return 1;
     }
 
-    if (!PadFIle_IsExists(rcpath)) {
+    if (!PadFile_IsExists(rcpath)) {
         return 1;
     }
 

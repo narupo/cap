@@ -84,7 +84,7 @@ init:
 cc:
 	$(CC) -v
 
-SRCS := build/lib/error.c \
+SRCS := \
 	build/core/config.c \
 	build/core/util.c \
 	build/core/alias_manager.c \

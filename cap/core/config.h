@@ -5,6 +5,7 @@
 #include <pad/lib/path.h>
 #include <pad/core/config.h>
 #include <pad/core/error_stack.h>
+#include <pad/core/util.h>
 
 #include <cap/core/constant.h>
 
