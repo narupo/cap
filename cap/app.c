@@ -591,8 +591,8 @@ _run_cmd_name(App *self) {
 static bool
 _init(App *self, int argc, char *argv[]) {
     if (!CapConfig_Init(self->config)) {
-        PadErrStack *es = PadConfig_GetErrStack(self->config);
-        errstack_extendb_other(self->errstack, es);
+        PadErrStack *es = CapConfig_GetErrStack(self->config);
+        PadErrStack_ExtendBackOther(self->errstack, es);
         Pad_PushErr("failed to configuration");
         return false;
     }

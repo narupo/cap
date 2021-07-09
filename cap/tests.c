@@ -28348,7 +28348,7 @@ test_errstack_extendf_other_2(void) {
 }
 
 static void
-test_errstack_extendb_other_0(void) {
+test_PadErrStack_ExtendBackOther_0(void) {
     PadErrStack *stack = PadErrStack_New();
     PadErrStack *other = PadErrStack_New();
 
@@ -28361,7 +28361,7 @@ test_errstack_extendb_other_0(void) {
     assert(errstack_len(stack) == 2);
     assert(errstack_len(other) == 2);
 
-    assert(errstack_extendb_other(stack, other));
+    assert(PadErrStack_ExtendBackOther(stack, other));
     assert(errstack_len(stack) == 4);
     assert(errstack_len(other) == 2);
 
@@ -28370,7 +28370,7 @@ test_errstack_extendb_other_0(void) {
 }
 
 static void
-test_errstack_extendb_other_1(void) {
+test_PadErrStack_ExtendBackOther_1(void) {
     PadErrStack *stack = PadErrStack_New();
     PadErrStack *other = PadErrStack_New();
 
@@ -28385,7 +28385,7 @@ test_errstack_extendb_other_1(void) {
     assert(errstack_len(stack) == 2);
     assert(errstack_len(other) == 4);
 
-    assert(errstack_extendb_other(stack, other));
+    assert(PadErrStack_ExtendBackOther(stack, other));
     assert(errstack_len(stack) == 6);
     assert(errstack_len(other) == 4);
 
@@ -28394,7 +28394,7 @@ test_errstack_extendb_other_1(void) {
 }
 
 static void
-test_errstack_extendb_other_2(void) {
+test_PadErrStack_ExtendBackOther_2(void) {
     PadErrStack *stack = PadErrStack_New();
 
     assert(_errstack_pushb(stack, NULL, 0, NULL, 0, "file1", 1, "func1", "this is %s", "message1"));
@@ -28404,7 +28404,7 @@ test_errstack_extendb_other_2(void) {
 
     assert(errstack_len(stack) == 4);
 
-    assert(errstack_extendb_other(stack, stack));
+    assert(PadErrStack_ExtendBackOther(stack, stack));
     assert(errstack_len(stack) == 8);
 
     PadErrStack_Del(stack);
@@ -28419,9 +28419,9 @@ PadErrStackests[] = {
     {"errstack_extendf_other_0", test_errstack_extendf_other_0},
     {"errstack_extendf_other_1", test_errstack_extendf_other_1},
     {"errstack_extendf_other_2", test_errstack_extendf_other_2},
-    {"errstack_extendb_other_0", test_errstack_extendb_other_0},
-    {"errstack_extendb_other_1", test_errstack_extendb_other_1},
-    {"errstack_extendb_other_2", test_errstack_extendb_other_2},
+    {"PadErrStack_ExtendBackOther_0", test_PadErrStack_ExtendBackOther_0},
+    {"PadErrStack_ExtendBackOther_1", test_PadErrStack_ExtendBackOther_1},
+    {"PadErrStack_ExtendBackOther_2", test_PadErrStack_ExtendBackOther_2},
     {"errelem_show", test_errelem_show},
     {0},
 };
