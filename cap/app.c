@@ -92,7 +92,7 @@ _parse_opts(App *self) {
 static void
 _del(App *self) {
     if (self) {
-        PadConfig_del(self->config);
+        CapConfig_Del(self->config);
         Pad_FreeArgv(self->argc, self->argv);
         Pad_FreeArgv(self->cmd_argc, self->cmd_argv);
         PadErrStack_Del(self->errstack);
@@ -243,7 +243,7 @@ _new(void) {
     }
 
     self->errstack = PadErrStack_New();
-    self->config = PadConfig_New();
+    self->config = CapConfig_New();
 
     return self;
 }
@@ -380,7 +380,7 @@ _is_cap_cmdname(const App *self, const char *cmdname) {
     };
 
     for (const char **p = capcmdnames; *p; ++p) {
-        if (Pad_CStrEq(cmdname, *p)) {
+        if (PadCStr_Eq(cmdname, *p)) {
             return true;
         }
     }
