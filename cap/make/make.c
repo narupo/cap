@@ -62,6 +62,9 @@ CapMakeCmd_MakeFromArgs(
     }
 
     char *src = NULL;
+    char path[PAD_FILE__NPATH];
+    char *make_path = NULL;
+    const char *cap_path = NULL;
 
     if (use_stdin) {
         src = PadFile_ReadCopy(stdin);
@@ -70,8 +73,7 @@ CapMakeCmd_MakeFromArgs(
             return 1;
         }
     } else {
-        char path[PAD_FILE__NPATH];
-        const char *cap_path = argv[1];
+        cap_path = argv[1];
 
         if (solve_path) {
             if (!Cap_SolveCmdlineArgPath(config, path, sizeof path, cap_path)) {
@@ -82,6 +84,8 @@ CapMakeCmd_MakeFromArgs(
             PadCStr_Copy(path, sizeof path, cap_path);
         }
 
+        make_path = path;
+
         src = PadFile_ReadCopyFromPath(path);
         if (!src) {
             PadErrStack_Add(errstack, "failed to read from \"%s\"", path);
@@ -89,12 +93,13 @@ CapMakeCmd_MakeFromArgs(
         }
     }
 
-    char *compiled = Pad_CompileArgv(
-        config->pad_config,
+    char *compiled = Cap_MakeArgv(
+        config,
         errstack,
+        make_path,
+        src,
         argc - 1,
-        argv + 1,
-        src
+        argv + 1
     );
     if (!compiled) {
         PadErrStack_Add(

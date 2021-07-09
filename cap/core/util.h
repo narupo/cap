@@ -126,3 +126,11 @@ Cap_ExecRun(const CapConfig *config, int argc, char *argv[]);
 bool
 Cap_IsOutOfHome(const char *homepath, const char *argpath);
 
+char *
+Cap_CompileArgv(
+    CapConfig *config,
+    PadErrStack *errstack,
+    int argc,
+    char *argv[],
+    const char *src
+);
