@@ -123,7 +123,7 @@ usage(const CapLinkCmd *self) {
 }
 
 static int
-_unlink(CapLinkCmd *self) {
+cmd_unlink(CapLinkCmd *self) {
     if (self->argc-self->optind < 1) {
         return usage(self);
     }
@@ -156,7 +156,7 @@ _unlink(CapLinkCmd *self) {
 }
 
 static int
-_link(CapLinkCmd *self) {
+cmd_link(CapLinkCmd *self) {
     if (self->argc-self->optind < 2) {
         return usage(self);
     }
@@ -198,8 +198,8 @@ CapLinkCmd_Run(CapLinkCmd *self) {
     }
 
     if (self->opts.is_unlink) {
-        return _unlink(self);
+        return cmd_unlink(self);
     }
 
-    return _link(self);
+    return cmd_link(self);
 }

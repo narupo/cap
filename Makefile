@@ -1,14 +1,17 @@
-# get rm and rmdir and sep
+GIT := git
+CD := cd
 ifeq ($(OS), Windows_NT)
 	RM := del
 	RMDIR := rmdir /s /q
 	SEP := \\
-	CPR := copy
+	CPR := xcopy /E /H /Y
+	CP := copy
 else
 	RM := rm
 	RMDIR := rm -rf
 	SEP := /
 	CPR := cp -r
+	CP := cp
 endif
 
 # windows's mkdir not has -p option :/
@@ -81,7 +84,7 @@ init:
 	build$(SEP)clone \
 	build$(SEP)replace \
 	build$(SEP)lang
-	$(CPR) tests_env build/tests_env
+	$(CPR) tests_env build$(SEP)
 
 .PHONY: cc
 cc:
@@ -126,13 +129,13 @@ OBJS := $(SRCS:.c=.o)
 pad: build/$(LIBPAD)
 
 build/$(LIBPAD):
-	cd build && \
-		git clone https://github.com/narupo/pad && \
-		cd pad && \
+	$(CD) build && \
+		$(GIT) clone https://github.com/narupo/pad && \
+		$(CD) pad && \
 		make init && \
 		make && \
-	  cd ../.. && \
-	  cp build/pad/build/$(LIBPAD) ./build
+		$(CD) ..$(SEP).. && \
+		$(CP) build$(SEP)pad$(SEP)build$(SEP)$(LIBPAD) build$(SEP)
 
 cap: build/app.o build/$(LIBPAD) $(OBJS)
 	$(CC) $(CFLAGS) -o build/cap build/app.o $(OBJS) -lpad
