@@ -1,4 +1,4 @@
-#include <run/run.h>
+#include <cap/run/run.h>
 
 enum {
     NSCRIPTNAME = 100,
@@ -127,10 +127,10 @@ CapRunCmd_Run(CapRunCmd *self) {
     PadStr_PopBack(cmdline);
 
     // Start process communication
-    int option = SAFESYSTEM_DEFAULT;
+    int option = PAD_SAFESYSTEM__DEFAULT;
     const char *detach = getenv("CAP_RUN_DETACH");
     if (detach && detach[0] == '1') {
-        option |= SAFESYSTEM_DETACH;
+        option |= PAD_SAFESYSTEM__DETACH;
     }
 
     const char *scmdline = PadStr_Getc(cmdline);
