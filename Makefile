@@ -40,7 +40,7 @@ else
 endif
 
 # this is benri tool
-# $(warning $(wildcard src/*.c))
+# $(warning $(wildcard cap/*.c))
 
 all: pad cap tests 
 
@@ -140,77 +140,77 @@ cap: build/app.o build/$(LIBPAD) $(OBJS)
 tests: build/tests.o build/$(LIBPAD) $(OBJS)
 	$(CC) $(CFLAGS) -o build/tests build/tests.o $(OBJS) -lpad
 
-build/app.o: src/app.c src/app.h
+build/app.o: cap/app.c cap/app.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/tests.o: src/tests.c src/tests.h
+build/tests.o: cap/tests.c cap/tests.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/core/config.o: src/core/config.c src/core/config.h
+build/core/config.o: cap/core/config.c cap/core/config.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/core/util.o: src/core/util.c src/core/util.h
+build/core/util.o: cap/core/util.c cap/core/util.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/core/alias_manager.o: src/core/alias_manager.c src/core/alias_manager.h
+build/core/alias_manager.o: cap/core/alias_manager.c cap/core/alias_manager.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/core/alias_info.o: src/core/alias_info.c src/core/alias_info.h
+build/core/alias_info.o: cap/core/alias_info.c cap/core/alias_info.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/core/symlink.o: src/core/symlink.c src/core/symlink.h
+build/core/symlink.o: cap/core/symlink.c cap/core/symlink.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/core/error_stack.o: src/core/error_stack.c src/core/error_stack.h
+build/core/error_stack.o: cap/core/error_stack.c cap/core/error_stack.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/core/args.o: src/core/args.c src/core/args.h
+build/core/args.o: cap/core/args.c cap/core/args.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/home/home.o: src/home/home.c src/home/home.h
+build/home/home.o: cap/home/home.c cap/home/home.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/cd/cd.o: src/cd/cd.c src/cd/cd.h
+build/cd/cd.o: cap/cd/cd.c cap/cd/cd.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/pwd/pwd.o: src/pwd/pwd.c src/pwd/pwd.h
+build/pwd/pwd.o: cap/pwd/pwd.c cap/pwd/pwd.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/ls/ls.o: src/ls/ls.c src/ls/ls.h
+build/ls/ls.o: cap/ls/ls.c cap/ls/ls.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/cat/cat.o: src/cat/cat.c src/cat/cat.h
+build/cat/cat.o: cap/cat/cat.c cap/cat/cat.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/run/run.o: src/run/run.c src/run/run.h
+build/run/run.o: cap/run/run.c cap/run/run.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/exec/exec.o: src/exec/exec.c src/exec/exec.h
+build/exec/exec.o: cap/exec/exec.c cap/exec/exec.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/alias/alias.o: src/alias/alias.c src/alias/alias.h
+build/alias/alias.o: cap/alias/alias.c cap/alias/alias.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/edit/edit.o: src/edit/edit.c src/edit/edit.h
+build/edit/edit.o: cap/edit/edit.c cap/edit/edit.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/editor/editor.o: src/editor/editor.c src/editor/editor.h
+build/editor/editor.o: cap/editor/editor.c cap/editor/editor.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/mkdir/mkdir.o: src/mkdir/mkdir.c src/mkdir/mkdir.h
+build/mkdir/mkdir.o: cap/mkdir/mkdir.c cap/mkdir/mkdir.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/rm/rm.o: src/rm/rm.c src/rm/rm.h
+build/rm/rm.o: cap/rm/rm.c cap/rm/rm.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/mv/mv.o: src/mv/mv.c src/mv/mv.h
+build/mv/mv.o: cap/mv/mv.c cap/mv/mv.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/cp/cp.o: src/cp/cp.c src/cp/cp.h
+build/cp/cp.o: cap/cp/cp.c cap/cp/cp.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/touch/touch.o: src/touch/touch.c src/touch/touch.h
+build/touch/touch.o: cap/touch/touch.c cap/touch/touch.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/snippet/snippet.o: src/snippet/snippet.c src/snippet/snippet.h
+build/snippet/snippet.o: cap/snippet/snippet.c cap/snippet/snippet.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/link/link.o: src/link/link.c src/link/link.h
+build/link/link.o: cap/link/link.c cap/link/link.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/hub/hub.o: src/hub/hub.c src/hub/hub.h
+build/hub/hub.o: cap/hub/hub.c cap/hub/hub.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/make/make.o: src/make/make.c src/make/make.h
+build/make/make.o: cap/make/make.c cap/make/make.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/cook/cook.o: src/cook/cook.c src/cook/cook.h
+build/cook/cook.o: cap/cook/cook.c cap/cook/cook.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/sh/sh.o: src/sh/sh.c src/sh/sh.h
+build/sh/sh.o: cap/sh/sh.c cap/sh/sh.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/find/find.o: src/find/find.c src/find/find.h
+build/find/find.o: cap/find/find.c cap/find/find.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/bake/bake.o: src/bake/bake.c src/bake/bake.h
+build/bake/bake.o: cap/bake/bake.c cap/bake/bake.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/insert/insert.o: src/insert/insert.c src/insert/insert.h
+build/insert/insert.o: cap/insert/insert.c cap/insert/insert.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/clone/clone.o: src/clone/clone.c src/clone/clone.h
+build/clone/clone.o: cap/clone/clone.c cap/clone/clone.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/replace/replace.o: src/replace/replace.c src/replace/replace.h
+build/replace/replace.o: cap/replace/replace.c cap/replace/replace.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/find/arguments_manager.o: src/find/arguments_manager.c src/find/arguments_manager.h
+build/find/arguments_manager.o: cap/find/arguments_manager.c cap/find/arguments_manager.h
 	$(CC) $(CFLAGS) -c $< -o $@
-build/lang/importer.o: src/lang/importer.c src/lang/importer.h
+build/lang/importer.o: cap/lang/importer.c cap/lang/importer.h
 	$(CC) $(CFLAGS) -c $< -o $@
