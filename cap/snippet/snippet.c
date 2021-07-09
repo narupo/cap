@@ -3,7 +3,7 @@
 /**
  * Structure of command
  */
-struct snptcmd {
+struct CapSnptCmd {
     const CapConfig *config;
     int argc;
     int optind;
@@ -13,10 +13,10 @@ struct snptcmd {
 /**
  * Show usage of command
  *
- * @param[in] self pointer to snptcmd_t
+ * @param[in] self pointer to CapSnptCmd
  */
 static void
-snptcmd_show_usage(snptcmd_t *self) {
+usage(CapSnptCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Save or show snippet codes.\n"
@@ -33,20 +33,23 @@ snptcmd_show_usage(snptcmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
 void
-snptcmd_del(snptcmd_t *self) {
+CapSnptCmd_Del(CapSnptCmd *self) {
     if (!self) {
         return;
     }
-
-    free(self);
+    Pad_SafeFree(self);
 }
 
-snptcmd_t *
-snptcmd_new(const CapConfig *config, int argc, char **argv) {
-    snptcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapSnptCmd *
+CapSnptCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapSnptCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
@@ -56,8 +59,8 @@ snptcmd_new(const CapConfig *config, int argc, char **argv) {
 }
 
 static int
-snptcmd_show_files(snptcmd_t *self) {
-    file_dir_t *dir = PadDir_Open(self->config->codes_dir_path);
+_show_files(CapSnptCmd *self) {
+    PadDir *dir = PadDir_Open(self->config->codes_dir_path);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", self->config->codes_dir_path);
         return 1;
@@ -77,7 +80,7 @@ snptcmd_show_files(snptcmd_t *self) {
 }
 
 static int
-snptcmd_add(snptcmd_t *self) {
+_add(CapSnptCmd *self) {
     if (self->argc < 3) {
         PadErr_Err("failed to add snippet. need file name");
         return 1;
@@ -113,7 +116,7 @@ snptcmd_add(snptcmd_t *self) {
 }
 
 static int
-snptcmd_show(snptcmd_t *self) {
+snptcmd_show(CapSnptCmd *self) {
     if (self->argc < 2) {
         PadErr_Err("failed to show snippet. need file name");
         return 1;
@@ -152,7 +155,7 @@ snptcmd_show(snptcmd_t *self) {
     if (!compiled) {
         PadErrStack_Trace(errstack, stderr);
         fflush(stderr);
-        free(content);
+        Pad_SafeFree(content);
         PadErrStack_Del(errstack);
         return 1;
     }
@@ -160,15 +163,15 @@ snptcmd_show(snptcmd_t *self) {
     printf("%s", compiled);
     fflush(stdout);
 
-    free(compiled);
-    free(content);
+    Pad_SafeFree(compiled);
+    Pad_SafeFree(content);
     PadErrStack_Del(errstack);
     return 0;
 }
 
 static int
-snptcmd_clear(snptcmd_t *self) {
-    file_dir_t *dir = PadDir_Open(self->config->codes_dir_path);
+_clear(CapSnptCmd *self) {
+    PadDir *dir = PadDir_Open(self->config->codes_dir_path);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", self->config->codes_dir_path);
         return 1;
@@ -199,16 +202,15 @@ fail:
 }
 
 int
-snptcmd_run(snptcmd_t *self) {
+CapSnptCmd_Run(CapSnptCmd *self) {
     if (self->argc < 2) {
-        snptcmd_show_usage(self);
-        return 0;
+        usage(self);
     } else if (PadCStr_Eq(self->argv[1], "clear")) {
-        return snptcmd_clear(self);
+        return _clear(self);
     } else if (PadCStr_Eq(self->argv[1], "ls")) {
-        return snptcmd_show_files(self);
+        return _show_files(self);
     } else if (PadCStr_Eq(self->argv[1], "add")) {
-        return snptcmd_add(self);
+        return _add(self);
     }
     return snptcmd_show(self);
 }
