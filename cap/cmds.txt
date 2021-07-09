@@ -17,10 +17,10 @@ find *
 home *
 hub *
 insert *
-labo
-lang
-lib
-link
+labo -
+lang -
+lib -
+link *
 ls
 make
 mkdir

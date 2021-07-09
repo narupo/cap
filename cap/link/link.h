@@ -11,14 +11,14 @@
 #include <core/config.h>
 #include <core/symlink.h>
 
-struct linkcmd;
-typedef struct linkcmd linkcmd_t;
+struct CapLinkCmd;
+typedef struct CapLinkCmd CapLinkCmd;
 
 void
-linkcmd_del(linkcmd_t *self);
+CapLinkCmd_Del(CapLinkCmd *self);
 
-linkcmd_t *
-linkcmd_new(const CapConfig *config, int argc, char **argv);
+CapLinkCmd *
+CapLinkCmd_New(const CapConfig *config, int argc, char **argv);
 
 int
-linkcmd_run(linkcmd_t *self);
+CapLinkCmd_Run(CapLinkCmd *self);

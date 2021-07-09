@@ -11,7 +11,7 @@ struct Opts {
 /**
  * Structure of command
  */
-struct linkcmd {
+struct CapLinkCmd {
     const CapConfig *config;
     int argc;
     char **argv;
@@ -29,8 +29,8 @@ struct linkcmd {
  * @return success to pointer to self
  * @return failed to NULL
  */
-linkcmd_t *
-linkcmd_parse_opts(linkcmd_t *self) {
+static CapLinkCmd *
+parse_opts(CapLinkCmd *self) {
     // Parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -74,32 +74,34 @@ linkcmd_parse_opts(linkcmd_t *self) {
 }
 
 void
-linkcmd_del(linkcmd_t *self) {
+CapLinkCmd_Del(CapLinkCmd *self) {
     if (!self) {
         return;
     }
-
     free(self);
 }
 
-linkcmd_t *
-linkcmd_new(const CapConfig *config, int argc, char **argv) {
-    linkcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapLinkCmd *
+CapLinkCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapLinkCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
 
-    if (!linkcmd_parse_opts(self)) {
-        linkcmd_del(self);
+    if (!parse_opts(self)) {
+        CapLinkCmd_Del(self);
         return NULL;
     }
 
     return self;
 }
 
-void
-linkcmd_usage(const linkcmd_t *self) {
+static void
+usage(const CapLinkCmd *self) {
     fprintf(stderr,
         "Usage:\n"
         "\n"
@@ -117,13 +119,13 @@ linkcmd_usage(const linkcmd_t *self) {
         "    $ cap link -u mylink\n"
         "\n"
     );
+    exit(0);
 }
 
-int
-linkcmd_unlink(linkcmd_t *self) {
+static int
+_unlink(CapLinkCmd *self) {
     if (self->argc-self->optind < 1) {
-        linkcmd_usage(self);
-        return 1;
+        usage(self);
     }
 
     const char *linkname = self->argv[self->optind];
@@ -145,7 +147,7 @@ linkcmd_unlink(linkcmd_t *self) {
         return 1;
     }
 
-    if (file_remove(path) != 0) {
+    if (PadFile_Remove(path) != 0) {
         PadErr_Err("failed to unlink");
         return 1;
     }
@@ -153,10 +155,10 @@ linkcmd_unlink(linkcmd_t *self) {
     return 0;
 }
 
-int
-linkcmd_link(linkcmd_t *self) {
+static int
+_link(CapLinkCmd *self) {
     if (self->argc-self->optind < 2) {
-        linkcmd_usage(self);
+        usage(self);
         return 1;
     }
 
@@ -191,15 +193,15 @@ linkcmd_link(linkcmd_t *self) {
 }
 
 int
-linkcmd_run(linkcmd_t *self) {
+CapLinkCmd_Run(CapLinkCmd *self) {
     if (self->opts.is_help) {
-        linkcmd_usage(self);
+        usage(self);
         return 0;
     }
 
     if (self->opts.is_unlink) {
-        return linkcmd_unlink(self);
+        return _unlink(self);
     }
 
-    return linkcmd_link(self);
+    return _link(self);
 }
