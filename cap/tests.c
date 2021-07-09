@@ -16376,7 +16376,7 @@ test_trv_builtin_functions(void) {
         (PadTrv_Trav(ast, ctx));
         assert(!PadAST_HasErrs(ast));
         const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
-        const char *value = alinfo_getc_value(alinfo, "abc");
+        const char *value = CapAliasInfo_GetcValue(alinfo, "abc");
         assert(value);
         assert(!strcmp(value, "def"));
     }
@@ -16389,10 +16389,10 @@ test_trv_builtin_functions(void) {
         PadTrv_Trav(ast, ctx);
         assert(!PadAST_HasErrs(ast));
         const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
-        const char *value = alinfo_getc_value(alinfo, "abc");
+        const char *value = CapAliasInfo_GetcValue(alinfo, "abc");
         assert(value);
         assert(!strcmp(value, "def"));
-        const char *desc = alinfo_getc_desc(alinfo, "abc");
+        const char *desc = CapAliasInfo_GetcDesc(alinfo, "abc");
         assert(desc);
         assert(!strcmp(desc, "ghi"));
     }
@@ -28482,7 +28482,7 @@ lang_gc_tests[] = {
 static void
 test_lang_objdict_move(void) {
     gc_t *gc = PadGC_New();
-    object_PadDict *d = objdict_new(gc);
+    object_PadDict *d = objPadDict_New(gc);
 
     object_t *obj1 = obj_new_int(gc, 1);
     obj_inc_ref(obj1);
@@ -28494,10 +28494,10 @@ test_lang_objdict_move(void) {
     objdict_move(d, "def", obj2);
     assert(objPadDict_Len(d) == 2);
 
-    object_dict_item_t *item1 = objdict_get(d, "abc");
+    object_PadDictItem *item1 = objdict_get(d, "abc");
     assert(obj1 == item1->value);
 
-    object_dict_item_t *item2 = objdict_get(d, "def");
+    object_PadDictItem *item2 = objdict_get(d, "def");
     assert(obj2 == item2->value);
 
     objdict_del(d);
@@ -28505,9 +28505,9 @@ test_lang_objdict_move(void) {
 }
 
 static void
-test_lang_objdict_set(void) {
+test_lang_objPadDict_Set(void) {
     gc_t *gc = PadGC_New();
-    object_PadDict *d = objdict_new(gc);
+    object_PadDict *d = objPadDict_New(gc);
 
     object_t *obj1 = obj_new_int(gc, 1);
     obj_inc_ref(obj1);
@@ -28519,10 +28519,10 @@ test_lang_objdict_set(void) {
     objdict_move(d, "def", obj2);
     assert(objPadDict_Len(d) == 2);
 
-    object_dict_item_t *item1 = objdict_get(d, "abc");
+    object_PadDictItem *item1 = objdict_get(d, "abc");
     assert(obj1 == item1->value);
 
-    object_dict_item_t *item2 = objdict_get(d, "def");
+    object_PadDictItem *item2 = objdict_get(d, "def");
     assert(obj2 == item2->value);
 
     objdict_del(d);
@@ -28536,7 +28536,7 @@ test_lang_objdict_pop(void) {
     **********/
 
     gc_t *gc = PadGC_New();
-    object_PadDict *d = objdict_new(gc);
+    object_PadDict *d = objPadDict_New(gc);
     object_t *obj = obj_new_int(gc, 0);
 
     obj_inc_ref(obj);
@@ -28555,7 +28555,7 @@ test_lang_objdict_pop(void) {
     ***********/
 
     gc = PadGC_New();
-    d = objdict_new(gc);
+    d = objPadDict_New(gc);
 
     for (int32_t i = 0; i < 10; ++i) {
         object_t *obj = obj_new_int(gc, i);
@@ -28581,7 +28581,7 @@ test_lang_objdict_pop(void) {
 static const struct testcase
 lang_object_PadDictests[] = {
     {"move", test_lang_objdict_move},
-    {"set", test_lang_objdict_set},
+    {"set", test_lang_objPadDict_Set},
     {"pop", test_lang_objdict_pop},
     {0},
 };

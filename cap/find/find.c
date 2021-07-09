@@ -230,7 +230,7 @@ static bool
 has_contents(const CapFindCmd *self, const PadDict *alias_kvmap, int32_t *maxkeylen, int32_t *maxvallen) {
     bool has = false;
     for (int32_t i = 0; i < PadDict_Len(alias_kvmap); ++i) {
-        const dict_item_t *item = PadDict_GetcIndex(alias_kvmap, i);
+        const PadDictItem *item = PadDict_GetcIndex(alias_kvmap, i);
         if (CapArgsMgr_ContainsAll(self->argsmgr, item->key)) {
             int32_t keylen = strlen(item->key);
             int32_t vallen = strlen(item->value);
@@ -276,7 +276,7 @@ find_aliases_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirp
     }
 
     for (int32_t i = 0; i < PadDict_Len(alias_kvmap); ++i) {
-        const dict_item_t *item = PadDict_GetcIndex(alias_kvmap, i);
+        const PadDictItem *item = PadDict_GetcIndex(alias_kvmap, i);
         if (CapArgsMgr_ContainsAll(self->argsmgr, item->key)) {
             printf("    %-*s    %-*s\n", maxkeylen, item->key, maxvallen, item->value);
         }

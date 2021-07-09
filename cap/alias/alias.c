@@ -230,7 +230,7 @@ show_list(CapAlCmd *self) {
 #define max(a, b) (a > b ? a : b);
 
     for (int i = 0; i < PadDict_Len(key_val_map); ++i) {
-        const dict_item_t *item = PadDict_GetcIndex(key_val_map, i);
+        const PadDictItem *item = PadDict_GetcIndex(key_val_map, i);
         if (!item) {
             continue;
         }
@@ -242,7 +242,7 @@ show_list(CapAlCmd *self) {
     bool print_color = isatty(PadFile_GetNum(fout));
 
     for (int i = 0; i < PadDict_Len(key_val_map); ++i) {
-        const dict_item_t *kv_item = PadDict_GetcIndex(key_val_map, i);
+        const PadDictItem *kv_item = PadDict_GetcIndex(key_val_map, i);
         if (!kv_item) {
             continue;
         }

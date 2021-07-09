@@ -1,12 +1,12 @@
 #include <core/alias_info.h>
 
-struct alias_info {
+struct CapAliasInfo {
     PadDict *key_val_map;
     PadDict *key_desc_map;
 };
 
 void
-alinfo_del(PadAliasInfo *self) {
+CapAliasInfo_Del(PadAliasInfo *self) {
     if (!self) {
         return;
     }
@@ -17,21 +17,21 @@ alinfo_del(PadAliasInfo *self) {
 }
 
 PadAliasInfo *
-alinfo_new(void) {
-    PadAliasInfo *self = mem_calloc(1, sizeof(*self));
+CapAliasInfo_New(void) {
+    PadAliasInfo *self = PadMem_Calloc(1, sizeof(*self));
     if (!self) {
         return NULL;
     }
 
-    self->key_val_map = dict_new(128);
+    self->key_val_map = PadDict_New(128);
     if (!self->key_val_map) {
-        alinfo_del(self);
+        CapAliasInfo_Del(self);
         return NULL;
     }
 
-    self->key_desc_map = dict_new(128);
+    self->key_desc_map = PadDict_New(128);
     if (!self->key_desc_map) {
-        alinfo_del(self);
+        CapAliasInfo_Del(self);
         return NULL;
     }
 
@@ -39,25 +39,25 @@ alinfo_new(void) {
 }
 
 PadAliasInfo *
-alinfo_deep_copy(const PadAliasInfo *other) {
+CapAliasInfo_DeepCopy(const PadAliasInfo *other) {
     if (!other) {
         return NULL;
     }
 
-    PadAliasInfo *self = mem_calloc(1, sizeof(*self));
+    PadAliasInfo *self = PadMem_Calloc(1, sizeof(*self));
     if (!self) {
         return NULL;
     }
 
-    self->key_val_map = dict_deep_copy(other->key_val_map);
+    self->key_val_map = PadDict_DeepCopy(other->key_val_map);
     if (!self->key_val_map) {
-        alinfo_del(self);
+        CapAliasInfo_Del(self);
         return NULL;
     }
 
-    self->key_desc_map = dict_deep_copy(other->key_desc_map);
+    self->key_desc_map = PadDict_DeepCopy(other->key_desc_map);
     if (!self->key_desc_map) {
-        alinfo_del(self);
+        CapAliasInfo_Del(self);
         return NULL;
     }
 
@@ -65,25 +65,25 @@ alinfo_deep_copy(const PadAliasInfo *other) {
 }
 
 PadAliasInfo *
-alinfo_shallow_copy(const PadAliasInfo *other) {
+CapAliasInfo_ShallowCopy(const PadAliasInfo *other) {
     if (!other) {
         return NULL;
     }
 
-    PadAliasInfo *self = mem_calloc(1, sizeof(*self));
+    PadAliasInfo *self = PadMem_Calloc(1, sizeof(*self));
     if (!self) {
         return NULL;
     }
 
-    self->key_val_map = dict_shallow_copy(other->key_val_map);
+    self->key_val_map = PadDict_ShallowCopy(other->key_val_map);
     if (!self->key_val_map) {
-        alinfo_del(self);
+        CapAliasInfo_Del(self);
         return NULL;
     }
 
-    self->key_desc_map = dict_shallow_copy(other->key_desc_map);
+    self->key_desc_map = PadDict_ShallowCopy(other->key_desc_map);
     if (!self->key_desc_map) {
-        alinfo_del(self);
+        CapAliasInfo_Del(self);
         return NULL;
     }
 
@@ -91,8 +91,8 @@ alinfo_shallow_copy(const PadAliasInfo *other) {
 }
 
 const char *
-alinfo_getc_value(const PadAliasInfo *self, const char *key) {
-   const dict_item_t *item = dict_getc(self->key_val_map, key);
+CapAliasInfo_GetcValue(const PadAliasInfo *self, const char *key) {
+   const PadDictItem *item = PadDict_Getc(self->key_val_map, key);
    if (!item) {
        return NULL;
    }
@@ -101,8 +101,8 @@ alinfo_getc_value(const PadAliasInfo *self, const char *key) {
 }
 
 const char *
-alinfo_getc_desc(const PadAliasInfo *self, const char *key) {
-   const dict_item_t *item = dict_getc(self->key_desc_map, key);
+CapAliasInfo_GetcDesc(const PadAliasInfo *self, const char *key) {
+   const PadDictItem *item = PadDict_Getc(self->key_desc_map, key);
    if (!item) {
        return NULL;
    }
@@ -111,8 +111,8 @@ alinfo_getc_desc(const PadAliasInfo *self, const char *key) {
 }
 
 PadAliasInfo *
-alinfo_set_value(PadAliasInfo *self, const char *key, const char *value) {
-    PadDict *result = dict_set(self->key_val_map, key, value);
+CapAliasInfo_SetValue(PadAliasInfo *self, const char *key, const char *value) {
+    PadDict *result = PadDict_Set(self->key_val_map, key, value);
     if (!result) {
         return NULL;
     }
@@ -121,8 +121,8 @@ alinfo_set_value(PadAliasInfo *self, const char *key, const char *value) {
 }
 
 PadAliasInfo *
-alinfo_set_desc(PadAliasInfo *self, const char *key, const char *desc) {
-    PadDict *result = dict_set(self->key_desc_map, key, desc);
+CapAliasInfo_SetDesc(PadAliasInfo *self, const char *key, const char *desc) {
+    PadDict *result = PadDict_Set(self->key_desc_map, key, desc);
     if (!result) {
         return NULL;
     }
@@ -131,9 +131,9 @@ alinfo_set_desc(PadAliasInfo *self, const char *key, const char *desc) {
 }
 
 void
-alinfo_clear(PadAliasInfo *self) {
-    dict_clear(self->key_val_map);
-    dict_clear(self->key_desc_map);
+CapAliasInfo_Clear(PadAliasInfo *self) {
+    PadDict_Clear(self->key_val_map);
+    PadDict_Clear(self->key_desc_map);
 }
 
 const PadDict *
@@ -142,6 +142,6 @@ PadAliasInfo_GetcKeyValueMap(const PadAliasInfo *self) {
 }
 
 const PadDict *
-alinfo_getc_key_desc_map(const PadAliasInfo *self) {
+CapAliasInfo_GetcKeyDescMap(const PadAliasInfo *self) {
     return self->key_desc_map;
 }
