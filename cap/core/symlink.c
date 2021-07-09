@@ -12,9 +12,9 @@ skip_drive_letter(const char *path) {
 static bool
 is_contain_header(char *data, uint32_t datasz) {
     size_t len1 = strlen(data);
-    size_t len2 = strlen(SYMLINK_HEADER);
+    size_t len2 = strlen(CAP_SYMLINK__HEADER);
     size_t size = len1 < len2 ? len1 : len2;
-    return memcmp(data, SYMLINK_HEADER, size) == 0;
+    return memcmp(data, CAP_SYMLINK__HEADER, size) == 0;
 }
 
 static const char *
@@ -24,7 +24,7 @@ read_sympath(const CapConfig *config, char *sympath, uint32_t sympathsz, const c
         return NULL;
     }
 
-    uint32_t symheaderlen = strlen(SYMLINK_HEADER);
+    uint32_t symheaderlen = strlen(CAP_SYMLINK__HEADER);
     char line[FILE_NPATH + symheaderlen + 1];
     int32_t linelen = PadFile_GetLine(line, sizeof line, fin);
     if (linelen == EOF) {
@@ -95,7 +95,7 @@ find_path_head(const char *path) {
 }
 
 static char *
-__CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, const char *abspath, int dep) {
+follow_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *abspath, int dep) {
     if (dep >= 8) {
         return NULL;
     }
@@ -154,7 +154,7 @@ __CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, cons
         PadStr_App(path, *toksp);
     }
 
-    if (!__CapSymlink_FollowPath(config, dst, dstsz, PadStr_Getc(path), dep+1)) {
+    if (!follow_path(config, dst, dstsz, PadStr_Getc(path), dep+1)) {
         goto fail;
     }
 
@@ -181,7 +181,7 @@ CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, const 
     }
 
     dst[0] = '\0';
-    if (!__CapSymlink_FollowPath(config, dst, dstsz, abspath, 0)) {
+    if (!follow_path(config, dst, dstsz, abspath, 0)) {
         return NULL;
     }
 
@@ -206,7 +206,7 @@ split_ignore_empty(const char *p, char sep) {
 }
 
 char *
-symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *drtpath) {
+CapSymlink_NormPath(const CapConfig *config, char *dst, uint32_t dstsz, const char *drtpath) {
     if (!config || !dst || !dstsz || !drtpath) {
         return NULL;
     }

@@ -20,14 +20,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <lib/file.h>
-#include <lib/cstring.h>
-#include <lib/cstring_array.h>
-#include <lib/string.h>
-#include <core/constant.h>
-#include <core/config.h>
+#include <pad/lib/file.h>
+#include <pad/lib/cstring.h>
+#include <pad/lib/cstring_array.h>
+#include <pad/lib/string.h>
 
-#define SYMLINK_HEADER "cap symlink:"
+#include <cap/core/constant.h>
+#include <cap/core/config.h>
+
+#define CAP_SYMLINK__HEADER "cap symlink:"
 
 /**
  * Follow path for symbolic links and save real path at destination
@@ -59,7 +60,7 @@ CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, const 
  * @return success to pointer to path, failed to NULL
  */
 char *
-symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *drtpath);
+CapSymlink_NormPath(const CapConfig *config, char *dst, uint32_t dstsz, const char *drtpath);
 
 /**
  * Check file is Cap's symbolic link

@@ -28076,69 +28076,69 @@ traverser_tests[] = {
 **********/
 
 static void
-test_symlink_norm_path(void) {
+test_CapSymlink_NormPath(void) {
     CapConfig * config = config_new();
 
     char path[FILE_NPATH];
-    assert(symlink_norm_path(NULL, NULL, 0, NULL) == NULL);
-    assert(symlink_norm_path(config, NULL, 0, NULL) == NULL);
-    assert(symlink_norm_path(config, path, 0, NULL) == NULL);
-    assert(symlink_norm_path(config, path, sizeof path, NULL) == NULL);
+    assert(CapSymlink_NormPath(NULL, NULL, 0, NULL) == NULL);
+    assert(CapSymlink_NormPath(config, NULL, 0, NULL) == NULL);
+    assert(CapSymlink_NormPath(config, path, 0, NULL) == NULL);
+    assert(CapSymlink_NormPath(config, path, sizeof path, NULL) == NULL);
 
 #ifdef CAP__WINDOWS
-    assert(symlink_norm_path(config, path, sizeof path, "C:\\path\\to\\dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "C:\\path\\to\\dir") == path);
     assert(strcmp(path, "C:\\path\\to\\dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "\\path\\to\\dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "\\path\\to\\dir") == path);
     assert(strcmp(path, "\\path\\to\\dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "\\path\\..\\to\\dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "\\path\\..\\to\\dir") == path);
     assert(strcmp(path, "\\to\\dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "\\path\\..\\to\\..\\dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "\\path\\..\\to\\..\\dir") == path);
     assert(strcmp(path, "\\dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "\\path\\to\\..\\..\\dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "\\path\\to\\..\\..\\dir") == path);
     assert(strcmp(path, "\\dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "C:\\path\\to\\dir\\") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "C:\\path\\to\\dir\\") == path);
     assert(strcmp(path, "C:\\path\\to\\dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "C:\\path\\..\\to\\dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "C:\\path\\..\\to\\dir") == path);
     assert(strcmp(path, "C:\\to\\dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "C:\\path\\..\\to\\..\\dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "C:\\path\\..\\to\\..\\dir") == path);
     assert(strcmp(path, "C:\\dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "C:\\path\\to\\..\\..\\dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "C:\\path\\to\\..\\..\\dir") == path);
     assert(strcmp(path, "C:\\dir") == 0);
 
 #else
-    assert(symlink_norm_path(config, path, sizeof path, "/path/to/dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "/path/to/dir") == path);
     assert(strcmp(path, "/path/to/dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "/path/to/dir/") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "/path/to/dir/") == path);
     assert(strcmp(path, "/path/to/dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "path/to/dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "path/to/dir") == path);
     assert(strcmp(path, "path/to/dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "path/../to/dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "path/../to/dir") == path);
     assert(strcmp(path, "to/dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "path/../to/../dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "path/../to/../dir") == path);
     assert(strcmp(path, "dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "path/to/../../dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "path/to/../../dir") == path);
     assert(strcmp(path, "dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "/path/../to/dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "/path/../to/dir") == path);
     assert(strcmp(path, "/to/dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "/path/../to/../dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "/path/../to/../dir") == path);
     assert(strcmp(path, "/dir") == 0);
 
-    assert(symlink_norm_path(config, path, sizeof path, "/path/to/../../dir") == path);
+    assert(CapSymlink_NormPath(config, path, sizeof path, "/path/to/../../dir") == path);
     assert(strcmp(path, "/dir") == 0);
 #endif
 
@@ -28147,7 +28147,7 @@ test_symlink_norm_path(void) {
 
 static const struct testcase
 symlink_tests[] = {
-    {"symlink_norm_path", test_symlink_norm_path},
+    {"CapSymlink_NormPath", test_CapSymlink_NormPath},
     {0},
 };
 

@@ -183,7 +183,7 @@ _link(CapLinkCmd *self) {
     }
 
     char line[FILE_NPATH + 100];
-    snprintf(line, sizeof line, "%s %s", SYMLINK_HEADER, cappath);
+    snprintf(line, sizeof line, "%s %s", CAP_SYMLINK__HEADER, cappath);
     if (!PadFile_WriteLine(line, dstpath)) {
         PadErr_Err("failed to create link");
         return 1;        
