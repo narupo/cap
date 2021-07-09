@@ -54,7 +54,7 @@ read_sympath(const CapConfig *config, char *sympath, uint32_t sympathsz, const c
 
     // origin is home path (symlink path is always absolute path)
     const char *org = config->home_path;
-    if (!PadFile_Solvefmt(sympath, sympathsz, "%s/%s", org, cappath)) {
+    if (!PadFile_SolveFmt(sympath, sympathsz, "%s/%s", org, cappath)) {
         return NULL;
     }
 
@@ -108,7 +108,7 @@ follow_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *absp
         return NULL;
     }
 
-    char **toks = cstr_split_ignore_empty(p, PAD_FILE__SEP);
+    char **toks = PadCStr_SplitIgnoreEmpty(p, PAD_FILE__SEP);
     if (!toks) {
         return NULL;
     }
@@ -116,7 +116,7 @@ follow_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *absp
     char **save_toks = NULL;
     char sympath[PAD_FILE__NPATH];
 
-    string_t *path = PadStr_New();
+    PadStr *path = PadStr_New();
 #ifdef CAP__WINDOWS
     // append drive letter
     PadStr_PushBack(path, normpath[0]);
@@ -148,7 +148,7 @@ follow_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *absp
         goto done;
     }
 
-    str_set(path, sympath);
+    PadStr_Set(path, sympath);
     for (char **toksp = save_toks; *toksp; ++toksp) {
         PadStr_PushBack(path, PAD_FILE__SEP);
         PadStr_App(path, *toksp);
@@ -160,9 +160,9 @@ follow_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *absp
 
 #define cleanup() { \
         for (char **toksp = toks; *toksp; ++toksp) { \
-            free(*toksp); \
+            Pad_SafeFree(*toksp); \
         } \
-        free(toks); \
+        Pad_SafeFree(toks); \
         PadStr_Del(path); \
     }
 
@@ -190,7 +190,7 @@ CapSymlink_FollowPath(const CapConfig *config, char *dst, uint32_t dstsz, const 
 
 static PadCStrAry *
 split_ignore_empty(const char *p, char sep) {
-    char **toks = cstr_split_ignore_empty(p, PAD_FILE__SEP);
+    char **toks = PadCStr_SplitIgnoreEmpty(p, PAD_FILE__SEP);
     if (!toks) {
         return NULL;
     }
@@ -198,10 +198,10 @@ split_ignore_empty(const char *p, char sep) {
     PadCStrAry *arr = PadCStrAry_New();
 
     for (char **toksp = toks; *toksp; ++toksp) {
-        cstrarr_move(arr, *toksp);
+        PadCStrAry_Move(arr, *toksp);
     }
 
-    free(toks);
+    Pad_SafeFree(toks);
     return arr;
 }
 
@@ -229,8 +229,8 @@ CapSymlink_NormPath(const CapConfig *config, char *dst, uint32_t dstsz, const ch
     for (int32_t i = 0; i < PadCStrAry_Len(srctoks); ++i) {
         const char *tok = PadCStrAry_Getc(srctoks, i);
         if (PadCStr_Eq(tok, "..")) {
-            char *el = cstrarr_pop_move(dsttoks);
-            free(el);
+            char *el = PadCStrAry_PopMove(dsttoks);
+            Pad_SafeFree(el);
         } else {
             PadCStrAry_PushBack(dsttoks, tok);
         }

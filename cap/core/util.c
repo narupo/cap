@@ -194,7 +194,7 @@ show_snippet(const CapConfig *config, const char *fname, int argc, char **argv) 
 int
 Cap_ExecSnippet(const CapConfig *config, bool *found, int argc, char **argv, const char *name) {
     if (!config || !found || !argv || !name) {
-        err_warn("util:Cap_ExecSnippet: invalid arguments");
+        PadErr_Warn("util:Cap_ExecSnippet: invalid arguments");
         return 1;
     }
 

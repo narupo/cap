@@ -132,7 +132,7 @@ _unlink(CapLinkCmd *self) {
     const char *org = Cap_GetOrigin(self->config, linkname);
 
     char path[PAD_FILE__NPATH];
-    if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", org, linkname)) {
+    if (!PadFile_SolveFmt(path, sizeof path, "%s/%s", org, linkname)) {
         PadErr_Err("failed to solve path");
         return 1;
     }
@@ -172,7 +172,7 @@ _link(CapLinkCmd *self) {
     const char *org = Cap_GetOrigin(self->config, linkname);
 
     char dstpath[PAD_FILE__NPATH];
-    if (!PadFile_Solvefmt(dstpath, sizeof dstpath, "%s/%s", org, linkname)) {
+    if (!PadFile_SolveFmt(dstpath, sizeof dstpath, "%s/%s", org, linkname)) {
         PadErr_Err("failed to solve path");
         return 1;
     }

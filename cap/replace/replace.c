@@ -161,7 +161,7 @@ replace(CapReplaceCmd *self) {
     const char *replaced = self->argv[optind + 2];
     assert(cap_fname && target_ && replaced);
 
-    string_t *target = PadStr_New();
+    PadStr *target = PadStr_New();
     char *content = NULL;
     FILE *fout = NULL;
 

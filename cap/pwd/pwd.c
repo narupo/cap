@@ -83,7 +83,7 @@ CapPwdCmd_New(const CapConfig *config, int argc, char **argv) {
 
 char *
 replace_slashes(const char *s) {
-    string_t *dst = PadStr_New();
+    PadStr *dst = PadStr_New();
 
     for (const char *p = s; *p; ++p) {
         if (*p == '\\') {

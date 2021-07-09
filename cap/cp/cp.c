@@ -292,7 +292,7 @@ cp_src2dst_r(CapCpCmd *self, const char *dst_path, const char *src_path) {
             char basename[PAD_FILE__NPATH];
             file_basename(basename, sizeof basename, src_path);
             char dstdirpath[PAD_FILE__NPATH];
-            PadFile_Solvefmt(dstdirpath, sizeof dstdirpath, "%s/%s", dst_path, basename);
+            PadFile_SolveFmt(dstdirpath, sizeof dstdirpath, "%s/%s", dst_path, basename);
             if (!PadFile_IsExists(dstdirpath) && PadFile_MkdirQ(dstdirpath) != 0) {
                 set_err(self, CPCMD_ERR__MKDIR, "failed to make directory \"%s\"", dstdirpath);
                 return false;

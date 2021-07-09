@@ -250,7 +250,7 @@ find_aliases_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirp
         return 1;
     }
 
-    if (!PadFile_Solvefmt(alpath, sizeof alpath, "%s/.caprc", dirpath)) {
+    if (!PadFile_SolveFmt(alpath, sizeof alpath, "%s/.caprc", dirpath)) {
         // not error
     }
 

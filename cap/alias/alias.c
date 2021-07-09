@@ -101,15 +101,15 @@ CapAlCmd_New(const CapConfig *config, int argc, char **argv) {
     self->argc = argc;
     self->argv = argv;
     self->almgr = CapAliasMgr_New(self->config);
-    self->key_colors[0] = TERM_GREEN;
-    self->key_colors[1] = TERM_BLACK;
-    self->key_colors[2] = TERM_BRIGHT;
-    self->value_colors[0] = TERM_CYAN;
-    self->value_colors[1] = TERM_BLACK;
-    self->value_colors[2] = TERM_BRIGHT;
+    self->key_colors[0] = PAD_TERM__GREEN;
+    self->key_colors[1] = PAD_TERM__BLACK;
+    self->key_colors[2] = PAD_TERM__BRIGHT;
+    self->value_colors[0] = PAD_TERM__CYAN;
+    self->value_colors[1] = PAD_TERM__BLACK;
+    self->value_colors[2] = PAD_TERM__BRIGHT;
     self->desc_colors[0] = TERM_RED;
-    self->desc_colors[1] = TERM_BLACK;
-    self->desc_colors[2] = TERM_BRIGHT;
+    self->desc_colors[1] = PAD_TERM__BLACK;
+    self->desc_colors[2] = PAD_TERM__BRIGHT;
 
     if (!parse_opts(self)) {
         PadErr_Die("failed to parse options");

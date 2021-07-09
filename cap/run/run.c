@@ -110,7 +110,7 @@ CapRunCmd_Run(CapRunCmd *self) {
     }
 
     // Create command line
-    string_t *cmdline = PadStr_New();
+    PadStr *cmdline = PadStr_New();
     if (strlen(script)) {
         PadStr_App(cmdline, script);
         PadStr_App(cmdline, " ");

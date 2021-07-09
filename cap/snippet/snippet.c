@@ -94,7 +94,7 @@ _add(CapSnptCmd *self) {
         return 1;
     }
 
-    if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
+    if (!PadFile_SolveFmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
         PadErr_Err("failed to solve path for \"%s\"", name);
         return 1;
     }
@@ -125,7 +125,7 @@ snptcmd_show(CapSnptCmd *self) {
     const char *name = self->argv[1];
     char path[PAD_FILE__NPATH];
 
-    if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
+    if (!PadFile_SolveFmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
         PadErr_Err("failed to solve path for \"%s\"", name);
         return 1;
     }
@@ -183,7 +183,7 @@ _clear(CapSnptCmd *self) {
             continue;
         }
         char path[PAD_FILE__NPATH];
-        if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
+        if (!PadFile_SolveFmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
             PadErr_Err("failed to solve path for \"%s\"", name);
             goto fail;
         }

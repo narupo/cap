@@ -1,4 +1,4 @@
-#include <ls/ls.h>
+#include <cap/ls/ls.h>
 
 struct Opts {
     bool is_help;
@@ -97,17 +97,17 @@ print_fname(const CapLsCmd *self, FILE *fout, bool print_color, const char *path
     }
 
     char fpath[PAD_FILE__NPATH];
-    if (!PadFile_Solvefmt(fpath, sizeof fpath, "%s/%s", path, name)) {
+    if (!PadFile_SolveFmt(fpath, sizeof fpath, "%s/%s", path, name)) {
         PadErr_Err("failed to solve path by name \"%s\"", name);
         return;
     }
 
     if (PadFile_IsDir(fpath)) {
-        PadTerm_CFPrintf(fout, TERM_WHITE, TERM_GREEN, TERM_BRIGHT, "%s", name);
+        PadTerm_CFPrintf(fout, PAD_TERM__WHITE, PAD_TERM__GREEN, PAD_TERM__BRIGHT, "%s", name);
     } else if (CapSymlink_IsLinkFile(fpath)) {
-        PadTerm_CFPrintf(fout, TERM_CYAN, TERM_BLACK, TERM_BRIGHT, "%s", name);
+        PadTerm_CFPrintf(fout, PAD_TERM__CYAN, PAD_TERM__BLACK, PAD_TERM__BRIGHT, "%s", name);
     } else {
-        PadTerm_CFPrintf(fout, TERM_GREEN, TERM_BLACK, TERM_BRIGHT, "%s", name);
+        PadTerm_CFPrintf(fout, PAD_TERM__GREEN, PAD_TERM__BLACK, PAD_TERM__BRIGHT, "%s", name);
     }
     fputc('\n', fout);
 }

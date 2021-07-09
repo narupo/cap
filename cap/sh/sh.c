@@ -183,9 +183,9 @@ shcmd_input(CapShCmd *self) {
     char prompt[PAD_FILE__NPATH];
     create_prompt(self, prompt, sizeof prompt);
 
-    PadTerm_CFPrintf(stderr, TERM_CYAN, TERM_DEFAULT, TERM_BRIGHT, "(cap) ");
-    PadTerm_CFPrintf(stderr, TERM_GREEN, TERM_DEFAULT, TERM_BRIGHT, "%s", prompt);
-    PadTerm_CFPrintf(stderr, TERM_BLUE, TERM_DEFAULT, TERM_BRIGHT, "$ ");
+    PadTerm_CFPrintf(stderr, PAD_TERM__CYAN, TERM_DEFAULT, PAD_TERM__BRIGHT, "(cap) ");
+    PadTerm_CFPrintf(stderr, PAD_TERM__GREEN, TERM_DEFAULT, PAD_TERM__BRIGHT, "%s", prompt);
+    PadTerm_CFPrintf(stderr, TERM_BLUE, TERM_DEFAULT, PAD_TERM__BRIGHT, "$ ");
     fflush(stderr);
 
     self->line_buf[0] = '\0';
@@ -217,7 +217,7 @@ exec_alias(CapShCmd *self, bool *found, int argc, char **argv) {
     *found = true;
 
     // create cap's command line with alias value
-    string_t *cmdline = PadStr_New();
+    PadStr *cmdline = PadStr_New();
 
     PadStr_App(cmdline, alias_val);
     PadStr_App(cmdline, " ");

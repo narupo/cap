@@ -90,8 +90,6 @@ SRCS := \
 	build/core/alias_manager.c \
 	build/core/alias_info.c \
 	build/core/symlink.c \
-	build/core/args.c \
-	build/core/error_stack.c \
 	build/home/home.c \
 	build/cd/cd.c \
 	build/pwd/pwd.c \

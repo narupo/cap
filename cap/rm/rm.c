@@ -146,7 +146,7 @@ remove_re(CapRmCmd *self, const char *dirpath) {
         }
 
         char path[PAD_FILE__NPATH];
-        if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", dirpath, dirname)) {
+        if (!PadFile_SolveFmt(path, sizeof path, "%s/%s", dirpath, dirname)) {
             PadCStr_AppFmt(self->what, sizeof self->what, "failed to solve path by \"%s\".", dirname);
             self->errno_ = CAP_RMCMD_ERR__SOLVEPATH;
         }

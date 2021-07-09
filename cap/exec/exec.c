@@ -23,7 +23,7 @@ struct CapExecCmd {
     int32_t cmdline_index;
     char what[1024];
 #ifdef CAP__WINDOWS
-    string_t *read_buffer;
+    PadStr *read_buffer;
 #endif
 };
 
@@ -711,7 +711,7 @@ cmd_exec(CapExecCmd *self, const char *cltxt) {
 
 static char *
 Pad_Unescape_cl(const char *escaped) {
-    string_t *s = PadStr_New();
+    PadStr *s = PadStr_New();
 
     for (const char *p = escaped; *p; p += 1) {
         if (*p == '\\') {

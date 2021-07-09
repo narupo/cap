@@ -114,3 +114,15 @@ Cap_ExecProg(const CapConfig *config, bool *found, int argc, char *argv[], const
  */
 int
 Cap_ExecRun(const CapConfig *config, int argc, char *argv[]);
+
+/**
+ * If argpath is out of home of Cap then return true else return false
+ * 
+ * @param[in] *homepath 
+ * @param[in] *argpath  
+ * 
+ * @return true|false
+ */
+bool
+Cap_IsOutOfHome(const char *homepath, const char *argpath);
+
