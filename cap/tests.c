@@ -762,17 +762,17 @@ PadCmdlineests[] = {
 **********/
 
 static void
-test_cstring_cstr_copy(void) {
+test_cstring_PadCStr_Copy(void) {
     const char *s = "test";
     char dst[5];
 
-    assert(cstr_copy(NULL, 0, NULL) == NULL);
-    assert(cstr_copy(dst, 0, NULL) == NULL);
+    assert(PadCStr_Copy(NULL, 0, NULL) == NULL);
+    assert(PadCStr_Copy(dst, 0, NULL) == NULL);
 
-    assert(cstr_copy(dst, 0, s));
+    assert(PadCStr_Copy(dst, 0, s));
     assert(!strcmp(dst, ""));
 
-    assert(cstr_copy(dst, sizeof dst, s));
+    assert(PadCStr_Copy(dst, sizeof dst, s));
     assert(!strcmp(dst, "test"));
 }
 
@@ -949,7 +949,7 @@ test_cstring_cstr_isdigit(void) {
 
 static const struct testcase
 cstring_tests[] = {
-    {"cstr_copy", test_cstring_cstr_copy},
+    {"PadCStr_Copy", test_cstring_PadCStr_Copy},
     {"cstr_pop_newline", test_cstring_cstr_pop_newline},
     {"cstr_cpywithout", test_cstring_cstr_cpywithout},
     {"PadCStr_App", test_cstring_PadCStr_App},
@@ -2648,11 +2648,11 @@ test_PadFile_IsDir(void) {
 }
 
 static void
-test_file_readcp(void) {
+test_PadFile_ReadCopy(void) {
     FILE *fin = PadFile_Open(get_test_finpath(), "rb");
     assert(fin != NULL);
-    assert(!file_readcp(NULL));
-    char *p = file_readcp(fin);
+    assert(!PadFile_ReadCopy(NULL));
+    char *p = PadFile_ReadCopy(fin);
     PadFile_Close(fin);
     assert(p != NULL);
     free(p);
@@ -2691,17 +2691,17 @@ test_file_dirname(void) {
 }
 
 static void
-test_file_basename(void) {
+test_PadFile_BaseName(void) {
     char name[FILE_NPATH];
     char userhome[FILE_NPATH];
     char path[FILE_NPATH];
     assert(file_get_user_home(userhome, sizeof userhome));
     assert(PadFile_Solvefmt(path, sizeof path, "%s/file.txt", userhome));
 
-    assert(file_basename(NULL, sizeof name, path) == NULL);
-    assert(file_basename(name, 0, path) == NULL);
-    assert(file_basename(name, sizeof name, NULL) == NULL);
-    assert(file_basename(name, sizeof name, path) != NULL);
+    assert(PadFile_BaseName(NULL, sizeof name, path) == NULL);
+    assert(PadFile_BaseName(name, 0, path) == NULL);
+    assert(PadFile_BaseName(name, sizeof name, NULL) == NULL);
+    assert(PadFile_BaseName(name, sizeof name, path) != NULL);
     assert(strcmp(name, "file.txt") == 0);
 }
 
@@ -2859,13 +2859,13 @@ test_PadFile_Remove(void) {
 }
 
 static void
-test_file_rename(void) {
+test_PadFile_Rename(void) {
     if (!PadFile_IsExists("tests/file/")) {
         PadFile_MkdirQ("tests/file/");
     }
     file_trunc("tests/file/rename.txt");
     assert(PadFile_IsExists("tests/file/rename.txt"));
-    file_rename("tests/file/rename.txt", "tests/file/renamed.txt");
+    PadFile_Rename("tests/file/rename.txt", "tests/file/renamed.txt");
     assert(PadFile_IsExists("tests/file/renamed.txt"));
     PadFile_Remove("tests/file/renamed.txt");
 }
@@ -2912,11 +2912,11 @@ file_tests[] = {
     {"PadFile_Solvecp", test_PadFile_Solvecp},
     {"PadFile_Solvefmt", test_PadFile_Solvefmt},
     {"PadFile_IsDir", test_PadFile_IsDir},
-    {"file_readcp", test_file_readcp},
+    {"PadFile_ReadCopy", test_PadFile_ReadCopy},
     {"file_size", test_file_size},
     {"file_suffix", test_file_suffix},
     {"file_dirname", test_file_dirname},
-    {"file_basename", test_file_basename},
+    {"PadFile_BaseName", test_PadFile_BaseName},
     {"file_getline", test_file_getline},
     {"PadFile_ReadLine", test_PadFile_ReadLine},
     {"PadFile_WriteLine", test_PadFile_WriteLine},
@@ -2928,7 +2928,7 @@ file_tests[] = {
     {"PadFile_ConvLineEnc", test_PadFile_ConvLineEnc},
     {"file_get_user_home", test_file_get_user_home},
     {"PadFile_Remove", test_PadFile_Remove},
-    {"file_rename", test_file_rename},
+    {"PadFile_Rename", test_PadFile_Rename},
     {"file_read_lines", test_file_read_lines},
     {0},
 };
@@ -3484,7 +3484,7 @@ test_util_escape(void) {
 }
 
 static void
-test_util_compile_argv(void) {
+test_util_Pad_CompileArgv(void) {
     CapConfig *config = config_new();
     int argc = 4;
     char *argv[] = {
@@ -3496,7 +3496,7 @@ test_util_compile_argv(void) {
     };
     const char *src = "{: opts.get(\"a\") :}";
 
-    char *compiled = compile_argv(config, NULL, argc-1, argv+1, src);
+    char *compiled = Pad_CompileArgv(config, NULL, argc-1, argv+1, src);
 
     assert(!strcmp(compiled, "bbb"));
 
@@ -3736,7 +3736,7 @@ utiltests[] = {
     {"argsbyoptind", test_util_argsbyoptind},
     {"Cap_SolveCmdlineArgPath", test_util_Cap_SolveCmdlineArgPath},
     {"escape", test_util_escape},
-    {"compile_argv", test_util_compile_argv},
+    {"Pad_CompileArgv", test_util_Pad_CompileArgv},
     {"pop_tail_slash", test_util_pop_tail_slash},
     {"Cap_GetOrigin", test_util_Cap_GetOrigin},
     {"trim_first_line", test_util_trim_first_line},
@@ -29181,9 +29181,9 @@ test_mkdircmd_default(void) {
     PadFile_Remove("./tests/mkdir/dir");
     assert(!PadFile_IsExists("./tests/mkdir/dir"));
 
-    mkdircmd_t *mkdircmd = mkdircmd_new(config, argc, argv);
-    mkdircmd_run(mkdircmd);
-    mkdircmd_del(mkdircmd);
+    CapMkdirCmd *mkdircmd = CapMkdirCmd_New(config, argc, argv);
+    CapMkdirCmd_Run(mkdircmd);
+    CapMkdirCmd_Del(mkdircmd);
 
     assert(PadFile_IsExists("./tests/mkdir/dir"));
 
@@ -29193,7 +29193,7 @@ test_mkdircmd_default(void) {
 }
 
 static const struct testcase
-mkdircmd_tests[] = {
+CapMkdirCmdests[] = {
     {"default", test_mkdircmd_default},
     {0},
 };
@@ -29464,9 +29464,9 @@ test_mvcmd_default(void) {
     assert(PadFile_IsExists("./tests/mv/file1"));
     assert(!PadFile_IsExists("./tests/mv/file2"));
 
-    mvcmd_t *mvcmd = mvcmd_new(config, argc, argv);
-    mvcmd_run(mvcmd);
-    mvcmd_del(mvcmd);
+    CapMvCmd *mvcmd = CapMvCmd_New(config, argc, argv);
+    CapMvCmd_Run(mvcmd);
+    CapMvCmd_Del(mvcmd);
 
     // rename("./tests/mv/file1", "./tests/mv/file2");  // ok
     // rename("/mnt/d/src/cap/tests/mv/file1", "/mnt/d/src/cap/tests/mv/file2");  // ok
@@ -29503,9 +29503,9 @@ test_mvcmd_dir(void) {
     PadFile_MkdirQ("./tests/mv/dir1");
     assert(PadFile_IsExists("./tests/mv/dir1"));
 
-    mvcmd_t *mvcmd = mvcmd_new(config, argc, argv);
-    mvcmd_run(mvcmd);
-    mvcmd_del(mvcmd);
+    CapMvCmd *mvcmd = CapMvCmd_New(config, argc, argv);
+    CapMvCmd_Run(mvcmd);
+    CapMvCmd_Del(mvcmd);
 
     assert(!PadFile_IsExists("./tests/mv/dir1"));
     assert(PadFile_IsExists("./tests/mv/dir2"));
@@ -29539,9 +29539,9 @@ test_mvcmd_file_to_dir(void) {
     assert(PadFile_IsExists("./tests/mv/file1"));
     assert(PadFile_IsExists("./tests/mv/dir1"));
 
-    mvcmd_t *mvcmd = mvcmd_new(config, argc, argv);
-    mvcmd_run(mvcmd);
-    mvcmd_del(mvcmd);
+    CapMvCmd *mvcmd = CapMvCmd_New(config, argc, argv);
+    CapMvCmd_Run(mvcmd);
+    CapMvCmd_Del(mvcmd);
 
     assert(!PadFile_IsExists("./tests/mv/file1"));
     assert(PadFile_IsExists("./tests/mv/dir1"));
@@ -29580,9 +29580,9 @@ test_mvcmd_files_to_dir(void) {
     assert(PadFile_IsExists("./tests/mv/file2"));
     assert(PadFile_IsExists("./tests/mv/dir1"));
 
-    mvcmd_t *mvcmd = mvcmd_new(config, argc, argv);
-    mvcmd_run(mvcmd);
-    mvcmd_del(mvcmd);
+    CapMvCmd *mvcmd = CapMvCmd_New(config, argc, argv);
+    CapMvCmd_Run(mvcmd);
+    CapMvCmd_Del(mvcmd);
 
     assert(!PadFile_IsExists("./tests/mv/file1"));
     assert(!PadFile_IsExists("./tests/mv/file2"));
@@ -29624,9 +29624,9 @@ test_mvcmd_err_1(void) {
     char buf[1024] = {0};
     setbuf(stderr, buf);
 
-    mvcmd_t *mvcmd = mvcmd_new(config, argc, argv);
-    mvcmd_run(mvcmd);
-    mvcmd_del(mvcmd);
+    CapMvCmd *mvcmd = CapMvCmd_New(config, argc, argv);
+    CapMvCmd_Run(mvcmd);
+    CapMvCmd_Del(mvcmd);
 
     setbuf(stderr, NULL);
     assert(strstr(buf, "Failed to rename"));
@@ -29638,7 +29638,7 @@ test_mvcmd_err_1(void) {
 }
 
 static const struct testcase
-mvcmd_tests[] = {
+CapMvCmdests[] = {
     {"default", test_mvcmd_default},
     {"dir", test_mvcmd_dir},
     {"file_to_dir", test_mvcmd_file_to_dir},
@@ -30095,7 +30095,7 @@ test_bakecmd_1(void) {
     bakecmd_run(cmd);
     bakecmd_del(cmd);
 
-    char *s = file_readcp_from_path(bakefname);
+    char *s = PadFile_ReadCopy_from_path(bakefname);
     assert(strcmp(s, "1\n") == 0);
     free(s);
 
@@ -30126,7 +30126,7 @@ test_bakecmd_2(void) {
     bakecmd_run(cmd);
     bakecmd_del(cmd);
 
-    char *s = file_readcp_from_path(bakefname);
+    char *s = PadFile_ReadCopy_from_path(bakefname);
     assert(strcmp(s, "abc,ghi") == 0);
     free(s);
 
@@ -30158,7 +30158,7 @@ test_replacecmd_1(void) {
     replacecmd_del(cmd);
     config_del(config);
 
-    char *s = file_readcp_from_path("tests/replace/file1.txt");
+    char *s = PadFile_ReadCopy_from_path("tests/replace/file1.txt");
     assert(strcmp(s, "abc ABABABA def\n") == 0);
     free(s);
 
@@ -30182,7 +30182,7 @@ test_replacecmd_2(void) {
     replacecmd_del(cmd);
     config_del(config);
 
-    char *s = file_readcp_from_path("tests/replace/file2.txt");
+    char *s = PadFile_ReadCopy_from_path("tests/replace/file2.txt");
     assert(strcmp(s, "ABCDABCD\n") == 0);
     free(s);
 
@@ -30206,7 +30206,7 @@ test_replacecmd_3(void) {
     replacecmd_del(cmd);
     config_del(config);
 
-    char *s = file_readcp_from_path("tests/replace/file3.txt");
+    char *s = PadFile_ReadCopy_from_path("tests/replace/file3.txt");
     assert(strcmp(s, "hige\nABABA\nhige\n") == 0);
     free(s);
 
@@ -30239,9 +30239,9 @@ testmodules[] = {
     {"alias", alcmd_tests},
     {"edit", CapEditCmdests},
     {"editor", CapEditorCmdests},
-    {"mkdir", mkdircmd_tests},
+    {"mkdir", CapMkdirCmdests},
     {"rm", rmcmd_tests},
-    {"mv", mvcmd_tests},
+    {"mv", CapMvCmdests},
     {"cp", CapCpCmdests},
     {"touch", touchcmd_tests},
     {"snippet", snippetcmd_tests},

@@ -81,7 +81,7 @@ almgr_create_resource_path(CapAliasMgr *self, char *dst, size_t dstsz, int scope
 
 CapAliasMgr *
 CapAliasMgr_LoadPath(CapAliasMgr *self, const char *path) {
-    char *src = file_readcp_from_path(path);
+    char *src = PadFile_ReadCopy_from_path(path);
     if (!src) {
         almgr_set_error_detail(self, "failed to read content from file \"%s\"", path);
         return NULL;

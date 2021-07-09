@@ -266,7 +266,7 @@ find_insert_pos(CapInsertCmd *self, const char *path) {
 
 static int32_t
 insert_tail(CapInsertCmd *self, const char *path, const char *elem) {
-    char *s = file_readcp_from_path(path);
+    char *s = PadFile_ReadCopy_from_path(path);
     if (s == NULL) {
         Pad_PushErr("failed to read");
         return 1;
@@ -298,7 +298,7 @@ insert_at(CapInsertCmd *self, const char *path, int32_t pos, const char *elem) {
         return 1;
     }
 
-    char *s = file_readcp(fin);
+    char *s = PadFile_ReadCopy(fin);
     if (s == NULL) {
         Pad_PushErr("failed to read");
         return 1;

@@ -164,7 +164,7 @@ replace(replacecmd_t *self) {
         goto error;
     }
 
-    content = file_readcp_from_path(path);
+    content = PadFile_ReadCopy_from_path(path);
     if (content == NULL) {
         blush("failed to read content from %s", path);
         goto error;

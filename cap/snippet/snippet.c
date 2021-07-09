@@ -133,7 +133,7 @@ snptcmd_show(snptcmd_t *self) {
         return 1;
     }
 
-    char *content = file_readcp(fin);
+    char *content = PadFile_ReadCopy(fin);
     if (!content) {
         PadErr_Err("failed to read snippet code from \"%s\"", path);
         return 1;
@@ -142,7 +142,7 @@ snptcmd_show(snptcmd_t *self) {
     fclose(fin);
 
     PadErrStack *errstack = PadErrStack_New();
-    char *compiled = compile_argv(
+    char *compiled = Pad_CompileArgv(
         self->config,
         errstack,
         self->argc-2,
