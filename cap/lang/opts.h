@@ -2,6 +2,7 @@
 
 #include <assert.h>
 
+#include <pad/core/util.h>
 #include <pad/lib/memory.h>
 #include <pad/lib/string.h>
 #include <pad/lib/cstring_array.h>

@@ -84,7 +84,8 @@ init:
 	build$(SEP)clone \
 	build$(SEP)replace \
 	build$(SEP)lang \
-	build$(SEP)lang$(SEP)builtin
+	build$(SEP)lang$(SEP)builtin \
+	build$(SEP)lang$(SEP)builtin$(SEP)modules
 	$(CPR) tests_env build$(SEP)tests_env
 
 .PHONY: cc

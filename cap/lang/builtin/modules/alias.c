@@ -1,4 +1,4 @@
-#include <pad/lang/builtin/modules/alias.h>
+#include <cap/lang/builtin/modules/alias.h>
 
 #define push_error(fmt, ...) \
     Pad_PushBackErrNode(ref_ast->error_stack, fargs->ref_node, fmt, ##__VA_ARGS__)

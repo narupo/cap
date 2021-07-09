@@ -337,7 +337,7 @@ Cap_ExecProg(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[
 
 char *
 Cap_MakeArgv(
-    CapConfig *config,
+    const CapConfig *config,
     PadErrStack *errstack,
     const char *program_filename,
     const char *src,

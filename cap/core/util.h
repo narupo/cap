@@ -133,7 +133,7 @@ Cap_IsOutOfHome(const char *homepath, const char *argpath);
 
 char *
 Cap_MakeArgv(
-    CapConfig *config,
+    const CapConfig *config,
     PadErrStack *errstack,
     const char *program_filename,
     const char *src,
