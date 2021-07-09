@@ -238,7 +238,7 @@ Cap_ExecRun(const CapConfig *config, int argc, char *argv[]) {
 }
 
 static int
-Cap_ExecProg_by_dirname(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[], const char *cap_dirname) {
+exec_prog_by_dirname(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[], const char *cap_dirname) {
     *found = false;
 
     const char *cmdname = cmd_argv[0];
@@ -296,7 +296,7 @@ Cap_ExecProg_by_caprc(const CapConfig *config, bool *found, int cmd_argc, char *
         const char *cap_dirname = PadCStrAry_Getc(dirs, i);
 
         *found = false;
-        int result = Cap_ExecProg_by_dirname(
+        int result = exec_prog_by_dirname(
             config,
             found,
             cmd_argc,

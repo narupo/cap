@@ -4,22 +4,23 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <lib/error.h>
-#include <lib/memory.h>
-#include <core/constant.h>
-#include <core/config.h>
-#include <core/util.h>
-#include <core/symlink.h>
-#include <core/alias_info.h>
-#include <lang/gc.h>
-#include <lang/tokenizer.h>
-#include <lang/ast.h>
-#include <lang/compiler.h>
-#include <lang/traverser.h>
-#include <lang/context.h>
+#include <pad/lib/error.h>
+#include <pad/lib/memory.h>
+#include <pad/lang/gc.h>
+#include <pad/lang/tokenizer.h>
+#include <pad/lang/ast.h>
+#include <pad/lang/compiler.h>
+#include <pad/lang/traverser.h>
+#include <pad/lang/context.h>
 
-struct alias_manager;
-typedef struct alias_manager CapAliasMgr;
+#include <cap/core/constant.h>
+#include <cap/core/config.h>
+#include <cap/core/util.h>
+#include <cap/core/symlink.h>
+#include <cap/core/alias_info.h>
+
+struct CapAliasMgr;
+typedef struct CapAliasMgr CapAliasMgr;
 
 /**
  * Destruct module
@@ -65,7 +66,7 @@ CapAliasMgr_FindAliasValue(CapAliasMgr *self, char *dst, uint32_t dstsz, const c
  * @return failed to NULL
  */
 CapAliasMgr *
-almgr_load_alias_list(CapAliasMgr *self, int scope);
+CapAliasMgr_LoadAliasList(CapAliasMgr *self, int scope);
 
 /**
  * Load alias list by path
@@ -88,7 +89,7 @@ CapAliasMgr_LoadPath(CapAliasMgr *self, const char *path);
  * @return if not has error to false
  */
 bool
-almgr_has_error(const CapAliasMgr *self);
+CapAliasMgr_HasErr(const CapAliasMgr *self);
 
 /**
  * Clear error 
@@ -114,7 +115,7 @@ CapAliasMgr_Clear(CapAliasMgr *self);
  * @return pointer to string of error detail
  */
 const char *
-almgr_get_error_detail(const CapAliasMgr *self);
+CapAliasMgr_GetErrDetail(const CapAliasMgr *self);
 
 /**
  * Get context
