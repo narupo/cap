@@ -12,7 +12,7 @@ struct CapAlCmd {
     int optind;
     char **argv;
     struct Opts opts;
-    CapAlMgr *almgr;
+    CapAliasMgr *almgr;
     int32_t key_colors[3];
     int32_t value_colors[3];
     int32_t desc_colors[3];
@@ -85,7 +85,7 @@ CapAlCmd_Del(CapAlCmd *self) {
         return;
     }
 
-    CapAlMgr_Del(self->almgr);
+    CapAliasMgr_Del(self->almgr);
     free(self);
 }
 
@@ -99,7 +99,7 @@ CapAlCmd_New(const CapConfig *config, int argc, char **argv) {
     self->config = config;
     self->argc = argc;
     self->argv = argv;
-    self->almgr = CapAlMgr_New(self->config);
+    self->almgr = CapAliasMgr_New(self->config);
     self->key_colors[0] = TERM_GREEN;
     self->key_colors[1] = TERM_BLACK;
     self->key_colors[2] = TERM_BRIGHT;
@@ -121,16 +121,16 @@ CapAlCmd_New(const CapConfig *config, int argc, char **argv) {
 static CapAlCmd *
 load_alias_list_by_opts(CapAlCmd* self) {
     if (self->opts.is_global) {
-        if (!CapAlMgr_LoadAliasList(self->almgr, CAP_SCOPE__GLOBAL)) {
-            if (CapAlMgr_HasErr(self->almgr)) {
-                PadErr_Err(CapAlMgr_GetErrDetail(self->almgr));
+        if (!CapAliasMgr_LoadAliasList(self->almgr, CAP_SCOPE__GLOBAL)) {
+            if (CapAliasMgr_HasErr(self->almgr)) {
+                PadErr_Err(CapAliasMgr_GetErrDetail(self->almgr));
             }
             return NULL;
         }
     } else {
-        if (!CapAlMgr_LoadAliasList(self->almgr, CAP_SCOPE__LOCAL)) {
-            if (CapAlMgr_HasErr(self->almgr)) {
-                PadErr_Err(CapAlMgr_GetErrDetail(self->almgr));
+        if (!CapAliasMgr_LoadAliasList(self->almgr, CAP_SCOPE__LOCAL)) {
+            if (CapAliasMgr_HasErr(self->almgr)) {
+                PadErr_Err(CapAliasMgr_GetErrDetail(self->almgr));
             }
             return NULL;
         }
@@ -140,7 +140,7 @@ load_alias_list_by_opts(CapAlCmd* self) {
 
 static const char *
 getc_value(CapAlCmd *self, const char *key) {
-    const PadCtx *ctx = CapAlMgr_GetcCtx(self->almgr);
+    const PadCtx *ctx = CapAliasMgr_GetcCtx(self->almgr);
     const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
     return PadAlInfo_GetcValue(alinfo, key);
 }
@@ -220,7 +220,7 @@ print_key_val(
 
 static int
 show_list(CapAlCmd *self) {
-    const PadCtx *ctx = CapAlMgr_GetcCtx(self->almgr);
+    const PadCtx *ctx = CapAliasMgr_GetcCtx(self->almgr);
     const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
     const PadDict *key_val_map = PadAliasInfo_GetcKeyValueMap(alinfo);
     int keymaxlen = 0;
@@ -295,7 +295,7 @@ show_alias_value(CapAlCmd *self) {
 
 int
 CapAlCmd_ShowDescOfAlias(CapAlCmd *self) {
-    const PadCtx *ctx = CapAlMgr_GetcCtx(self->almgr);
+    const PadCtx *ctx = CapAliasMgr_GetcCtx(self->almgr);
     const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
     const char *key = self->argv[self->optind];
     const char *desc = PadAliasInfo_GetcDesc(alinfo, key);
