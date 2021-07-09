@@ -3,6 +3,10 @@
 #define push_error(fmt, ...) \
     Pad_PushBackErrNode(ref_ast->error_stack, fargs->ref_node, fmt, ##__VA_ARGS__)
 
+/* ファイルを複数開いたときにこのグローバル変数の方式ではうまく機能しない
+   機能させるには複数のコンテキストに対応させる必要がある
+   つまりコンテキストのアドレスごとにoptsを用意する必要がある */
+
 static CapOpts *_opts;
 
 void
