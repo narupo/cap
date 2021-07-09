@@ -5,14 +5,14 @@
 #include <core/util.h>
 #include <core/config.h>
 
-struct homecmd;
-typedef struct homecmd homecmd_t;
+struct CapHomeCmd;
+typedef struct CapHomeCmd CapHomeCmd;
 
 void
-homecmd_del(homecmd_t *self);
+CapHomeCmd_Del(CapHomeCmd *self);
 
-homecmd_t *
-homecmd_new(const CapConfig *config, int argc, char **argv);
+CapHomeCmd *
+CapHomeCmd_New(const CapConfig *config, int argc, char **argv);
 
 int
-homecmd_run(homecmd_t *self);
+CapHomeCmd_Run(CapHomeCmd *self);

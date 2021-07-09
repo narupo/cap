@@ -14,7 +14,7 @@ edit *
 editor *
 exec *
 find *
-home
+home *
 hub
 insert
 labo

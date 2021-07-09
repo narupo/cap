@@ -1,31 +1,35 @@
 #include <home/home.h>
 
-struct homecmd {
+struct CapHomeCmd {
     const CapConfig *config;
     int argc;
     char **argv;
 };
 
 void
-homecmd_del(homecmd_t *self) {
+CapHomeCmd_Del(CapHomeCmd *self) {
     if (!self) {
         return;
     }
-
     free(self);
 }
 
-homecmd_t *
-homecmd_new(const CapConfig *config, int argc, char *argv[]) {
-    homecmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapHomeCmd *
+CapHomeCmd_New(const CapConfig *config, int argc, char *argv[]) {
+    CapHomeCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
+
     self->config = config;
     self->argc = argc;
     self->argv = argv;
+
     return self;
 }
 
 int
-homecmd_run(homecmd_t *self) {
+CapHomeCmd_Run(CapHomeCmd *self) {
     int argc = self->argc;
     char **argv = self->argv;
 
