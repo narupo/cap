@@ -109,14 +109,14 @@ _del(App *self) {
  */
 static bool
 _deploy_env(const App *self) {
-    char userhome[FILE_NPATH];
+    char userhome[PAD_FILE__NPATH];
     if (!PadFile_GetUserHome(userhome, sizeof userhome)) {
         Pad_PushErr("failed to get user's home directory. what is your file system?");
         return false;
     }
 
     // make application directory
-    char appdir[FILE_NPATH];
+    char appdir[PAD_FILE__NPATH];
     if (!PadFile_SolveFmt(appdir, sizeof appdir, "%s/.cap", userhome)) {
         Pad_PushErr("faield to create application directory path");
         return false;
@@ -130,7 +130,7 @@ _deploy_env(const App *self) {
     }
 
     // make variable directory
-    char vardir[FILE_NPATH];
+    char vardir[PAD_FILE__NPATH];
     if (!PadFile_SolveFmt(vardir, sizeof vardir, "%s/var", appdir)) {
         Pad_PushErr("failed to create path of variable");
         return false;
@@ -144,7 +144,7 @@ _deploy_env(const App *self) {
     }
 
     // make variable files
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     if (!PadFile_SolveFmt(path, sizeof path, "%s/cd", vardir)) {
         Pad_PushErr("failed to create path of cd variable");
         return false;
@@ -399,39 +399,39 @@ _is_cap_cmdname(const App *self, const char *cmdname) {
  */
 static int
 _exec_cmd_by_name(App *self, const char *name) {
-#define routine(cmd) { \
-        cmd##_t *cmd = cmd##_new(self->config, self->cmd_argc, self->cmd_argv); \
+#define routine(Cmd) { \
+        Cmd *cmd = Cmd##_New(self->config, self->cmd_argc, self->cmd_argv); \
         if (!cmd) { \
             return 1; \
         } \
-        result = cmd##_run(cmd); \
-        cmd##_del(cmd); \
+        result = Cmd##_Run(cmd); \
+        Cmd##_Del(cmd); \
     } \
 
     int result = 0;
 
-    if (PadCStr_Eq(name, "home")) {
-        routine(homecmd);
+    if (PadCStr_Eq(name, "Home")) {
+        routine(CapHomeCmd);
     } else if (PadCStr_Eq(name, "cd")) {
-        routine(cdcmd);
+        routine(CapCdCmd);
     } else if (PadCStr_Eq(name, "pwd")) {
-        routine(pwdcmd);
+        routine(CapPwdCmd);
     } else if (PadCStr_Eq(name, "ls")) {
-        routine(lscmd);
+        routine(CapLsCmd);
     } else if (PadCStr_Eq(name, "cat")) {
-        routine(catcmd);
+        routine(CapCatCmd);
     } else if (PadCStr_Eq(name, "run")) {
-        routine(runcmd);
+        routine(CapRunCmd);
     } else if (PadCStr_Eq(name, "exec")) {
-        routine(execcmd);
+        routine(CapExecCmd);
     } else if (PadCStr_Eq(name, "alias")) {
-        routine(alcmd);
+        routine(CapAlCmd);
     } else if (PadCStr_Eq(name, "edit")) {
-        routine(editcmd);
+        routine(CapEditCmd);
     } else if (PadCStr_Eq(name, "editor")) {
-        routine(editorcmd);
+        routine(CapEditorCmd);
     } else if (PadCStr_Eq(name, "mkdir")) {
-        routine(mkdircmd);
+        routine(CapMkdirCmd);
     } else if (PadCStr_Eq(name, "rm")) {
         CapRmCmd *cmd = CapRmCmd_New(self->config, self->cmd_argc, self->cmd_argv);
         result = CapRmCmd_Run(cmd);
@@ -441,31 +441,31 @@ _exec_cmd_by_name(App *self, const char *name) {
         }
         CapRmCmd_Del(cmd);
     } else if (PadCStr_Eq(name, "mv")) {
-        routine(mvcmd);
+        routine(CapMvCmd);
     } else if (PadCStr_Eq(name, "cp")) {
-        routine(cpcmd);
+        routine(CapCpCmd);
     } else if (PadCStr_Eq(name, "touch")) {
-        routine(touchcmd);
+        routine(CapTouchCmd);
     } else if (PadCStr_Eq(name, "snippet")) {
-        routine(snptcmd);
+        routine(CapSnptCmd);
     } else if (PadCStr_Eq(name, "link")) {
-        routine(linkcmd);
+        routine(CapLinkCmd);
     } else if (PadCStr_Eq(name, "make")) {
-        routine(makecmd);
+        routine(CapMakeCmd);
     } else if (PadCStr_Eq(name, "cook")) {
-        routine(cookcmd);
+        routine(CapCookCmd);
     } else if (PadCStr_Eq(name, "sh")) {
-        routine(shcmd);
+        routine(CapShCmd);
     } else if (PadCStr_Eq(name, "find")) {
-        routine(findcmd);
+        routine(CapFindCmd);
     } else if (PadCStr_Eq(name, "bake")) {
-        routine(bakecmd);
+        routine(CapBakeCmd);
     } else if (PadCStr_Eq(name, "insert")) {
-        routine(insertcmd);
+        routine(CapInsertCmd);
     } else if (PadCStr_Eq(name, "clone")) {
-        routine(clonecmd);
+        routine(CapCloneCmd);
     } else if (PadCStr_Eq(name, "replace")) {
-        routine(replacecmd);
+        routine(CapReplaceCmd);
     } else {
         Pad_PushErr("invalid command name \"%s\"", name);
         result = 1;
