@@ -475,7 +475,7 @@ execcmd_redirect(CapExecCmd *self, const cmdline_object_t *obj, const cmdline_ob
         close_hs();
         CloseHandle(child_process);
 
-        char fname[FILE_NPATH];
+        char fname[PAD_FILE__NPATH];
         if (!Cap_SolveCmdlineArgPath(self->config, fname, sizeof fname, PadStr_Getc(fileobj->command))) {
             set_err(self, "failed to solve path of command line argument");
             return NULL;
@@ -581,7 +581,7 @@ exec_all_unix(CapExecCmd *self) {
                 // fd[READ]から入力を読み込み、fnameのファイルに出力する
                 close(fd[WRITE]);
 
-                char fname[FILE_NPATH];
+                char fname[PAD_FILE__NPATH];
                 if (!Cap_SolveCmdlineArgPath(self->config, fname, sizeof fname, PadStr_Getc(fileobj->command))) {
                     set_err(self, "failed to solve path of command line argument");
                     return NULL;

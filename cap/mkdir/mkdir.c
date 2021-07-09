@@ -99,7 +99,7 @@ usage(CapMkdirCmd *self) {
 static int
 _mkdirp(CapMkdirCmd *self) {
     const char *argpath = self->argv[self->optind];
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
 
     if (argpath[0] == ':') {
         if (!PadFile_Solve(path, sizeof path, argpath+1)) {
@@ -108,7 +108,7 @@ _mkdirp(CapMkdirCmd *self) {
         }
     } else {
         const char* org = Cap_GetOrigin(self->config, argpath);
-        char tmppath[FILE_NPATH];
+        char tmppath[PAD_FILE__NPATH];
 
         snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
 
@@ -129,7 +129,7 @@ _mkdirp(CapMkdirCmd *self) {
 static int
 _mkdir(CapMkdirCmd *self) {
     const char *argpath = self->argv[self->optind];
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
 
     if (argpath[0] == ':') {
         if (!PadFile_Solve(path, sizeof path, argpath+1)) {
@@ -138,7 +138,7 @@ _mkdir(CapMkdirCmd *self) {
         }
     } else {
         const char *org = Cap_GetOrigin(self->config, argpath);
-        char tmppath[FILE_NPATH];
+        char tmppath[PAD_FILE__NPATH];
 
         snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
 

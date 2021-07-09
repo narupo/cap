@@ -571,7 +571,7 @@ _run_cmd_name(App *self) {
     }
 
     found = false;
-    result = execute_snippet(self->config, &found, self->cmd_argc, self->cmd_argv, cmdname);
+    result = Cap_ExecSnippet(self->config, &found, self->cmd_argc, self->cmd_argv, cmdname);
     if (found) {
         return result;
     }

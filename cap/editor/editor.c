@@ -16,7 +16,7 @@ struct CapEditorCmd {
     int optind;
     char **argv;
     struct Opts opts;
-    char editor[FILE_NPATH];
+    char editor[PAD_FILE__NPATH];
 };
 
 /**

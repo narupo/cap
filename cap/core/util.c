@@ -81,8 +81,8 @@ Cap_IsOutOfHome(const char *homepath, const char *argpath) {
         return false;
     }
 
-    char home[FILE_NPATH];
-    char path[FILE_NPATH];
+    char home[PAD_FILE__NPATH];
+    char path[PAD_FILE__NPATH];
 
     if (!PadFile_Solve(home, sizeof home, homepath) ||
         !PadFile_Solve(path, sizeof path, argpath)) {
@@ -107,7 +107,7 @@ Cap_SolveCmdlineArgPath(const CapConfig *config, char *dst, int32_t dstsz, const
             return NULL;
         }
     } else {
-        char tmp[FILE_NPATH*2];
+        char tmp[PAD_FILE__NPATH*2];
         const char *org = Pad_GetOrigin(config, caps_arg_path);
 
         const char *path = caps_arg_path;
@@ -159,7 +159,7 @@ show_snippet(const CapConfig *config, const char *fname, int argc, char **argv) 
         return false;
     }
 
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     if (!PadFile_SolveFmt(path, sizeof path, "%s/%s", config->codes_dir_path, fname)) {
         PadErr_Err("failed to solve path for snippet file");
         return false;
@@ -242,11 +242,11 @@ exec_prog_by_dirname(const CapConfig *config, bool *found, int cmd_argc, char *c
     *found = false;
 
     const char *cmdname = cmd_argv[0];
-    char cap_fpath[FILE_NPATH];
+    char cap_fpath[PAD_FILE__NPATH];
     snprintf(cap_fpath, sizeof cap_fpath, "%s/%s", cap_dirname, cmdname);
 
     const char *org = Cap_GetOrigin(config, cap_fpath);
-    char real_path[FILE_NPATH];
+    char real_path[PAD_FILE__NPATH];
     if (!PadFile_SolveFmt(real_path, sizeof real_path, "%s/%s", org, cap_fpath)) {
         PadErr_Err("failed to solve in execute program in directory");
         return 1;
@@ -271,7 +271,7 @@ exec_prog_by_dirname(const CapConfig *config, bool *found, int cmd_argc, char *c
 static int
 Cap_ExecProg_by_caprc(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[], const char *org) {
     *found = false;
-    char rcpath[FILE_NPATH];
+    char rcpath[PAD_FILE__NPATH];
 
     if (!PadFile_SolveFmt(rcpath, sizeof rcpath, "%s/.caprc", org)) {
         return 1;

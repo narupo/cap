@@ -96,7 +96,7 @@ print_fname(const CapLsCmd *self, FILE *fout, bool print_color, const char *path
         return;
     }
 
-    char fpath[FILE_NPATH];
+    char fpath[PAD_FILE__NPATH];
     if (!PadFile_Solvefmt(fpath, sizeof fpath, "%s/%s", path, name)) {
         PadErr_Err("failed to solve path by name \"%s\"", name);
         return;
@@ -191,7 +191,7 @@ CapLsCmd_Run(CapLsCmd *self) {
         return 0;
     }
 
-    char realpath[FILE_NPATH];
+    char realpath[PAD_FILE__NPATH];
 
     if (optind - self->argc == 0) {
         if (!CapSymlink_FollowPath(self->config, realpath, sizeof realpath, self->config->cd_path)) {
@@ -204,13 +204,13 @@ CapLsCmd_Run(CapLsCmd *self) {
             const char *arg = self->argv[i];
             const char *org = (arg[0] == '/' ? self->config->home_path : self->config->cd_path);
             if (!strcmp(arg, "/")) {
-                char tmppath[FILE_NPATH];
+                char tmppath[PAD_FILE__NPATH];
                 snprintf(tmppath, sizeof tmppath, "%s", org);
                 if (!CapSymlink_FollowPath(self->config, realpath, sizeof realpath, tmppath)) {
                     continue;
                 }
             } else {
-                char tmppath[FILE_NPATH*2];
+                char tmppath[PAD_FILE__NPATH*2];
                 snprintf(tmppath, sizeof tmppath, "%s/%s", org, arg);
                 if (!CapSymlink_FollowPath(self->config, realpath, sizeof realpath, tmppath)) {
                     continue;

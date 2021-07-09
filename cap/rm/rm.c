@@ -145,7 +145,7 @@ remove_re(CapRmCmd *self, const char *dirpath) {
             continue;
         }
 
-        char path[FILE_NPATH];
+        char path[PAD_FILE__NPATH];
         if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", dirpath, dirname)) {
             PadCStr_AppFmt(self->what, sizeof self->what, "failed to solve path by \"%s\".", dirname);
             self->errno_ = CAP_RMCMD_ERR__SOLVEPATH;
@@ -196,8 +196,8 @@ _rm_re(CapRmCmd *self) {
         }
 
         const char *org = Cap_GetOrigin(self->config, argpath);
-        char path[FILE_NPATH];
-        char drtpath[FILE_NPATH];
+        char path[PAD_FILE__NPATH];
+        char drtpath[PAD_FILE__NPATH];
 
         snprintf(drtpath, sizeof drtpath, "%s/%s", org, argpath);
 
@@ -230,10 +230,10 @@ _rm_re(CapRmCmd *self) {
 
 static int
 _rm(CapRmCmd *self, const char *argpath) {
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     const char *org = Cap_GetOrigin(self->config, argpath);
 
-    char drtpath[FILE_NPATH];
+    char drtpath[PAD_FILE__NPATH];
     snprintf(drtpath, sizeof drtpath, "%s/%s", org, argpath);
 
     if (!CapSymlink_FollowPath(self->config, path, sizeof path, drtpath)) {

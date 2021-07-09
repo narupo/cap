@@ -122,8 +122,8 @@ error:
 
 static int
 _touch(CapTouchCmd *self, const char *argpath) {
-    char path[FILE_NPATH];
-    char tmppath[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
+    char tmppath[PAD_FILE__NPATH];
     const char *org = Cap_GetOrigin(self->config, argpath);
 
     snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);

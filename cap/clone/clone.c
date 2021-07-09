@@ -148,11 +148,11 @@ clonecmd_run(CapCloneCmd *self) {
     }
 
     const char *src_path = self->argv[optind];
-    char repo_name[FILE_NPATH];
+    char repo_name[PAD_FILE__NPATH];
     get_repo_name(repo_name, sizeof repo_name, src_path);
 
     const char *dst_cap_path = self->argv[optind + 1];
-    char dst_path[FILE_NPATH];
+    char dst_path[PAD_FILE__NPATH];
     if (dst_cap_path == NULL) {
         dst_cap_path = repo_name;
     }

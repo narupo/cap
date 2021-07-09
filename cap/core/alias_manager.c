@@ -71,7 +71,7 @@ create_resource_path(CapAliasMgr *self, char *dst, size_t dstsz, int scope) {
         return NULL;
     }
 
-    char drtpath[FILE_NPATH*2];
+    char drtpath[PAD_FILE__NPATH*2];
     snprintf(drtpath, sizeof drtpath, "%s/.caprc", org);
 
     if (!CapSymlink_FollowPath(self->config, dst, dstsz, drtpath)) {
@@ -122,7 +122,7 @@ fail:
 
 CapAliasMgr *
 CapAliasMgr_LoadAliasList(CapAliasMgr *self, int scope) {
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     if (!create_resource_path(self, path, sizeof path, scope)) {
         set_err(self, "failed to create path by scope %d", scope);
         return NULL;

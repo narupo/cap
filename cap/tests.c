@@ -120,7 +120,7 @@ warn(const char *fmt, ...) {
  */
 static char *
 solve_path(char *dst, int32_t dstsz, const char *path) {
-    char tmp[FILE_NPATH] = {0};
+    char tmp[PAD_FILE__NPATH] = {0};
     assert(PadFile_Solve(tmp, sizeof tmp, path));
     snprintf(dst, dstsz, "%s", tmp);
     return dst;
@@ -2482,10 +2482,10 @@ get_test_fcontent_nonewline(void) {
 
 static const char *
 get_test_finpath(void) {
-    static char path[FILE_NPATH];
+    static char path[PAD_FILE__NPATH];
 
 #ifdef _TESTS_WINDOWS
-    char tmp[FILE_NPATH];
+    char tmp[PAD_FILE__NPATH];
     assert(file_get_user_home(tmp, sizeof tmp) != NULL);
     assert(PadFile_Solvefmt(path, sizeof path, "%s/cap.test.file", tmp) != NULL);
 #else
@@ -2523,7 +2523,7 @@ get_test_finsize(void) {
 
 static const char *
 get_test_dirpath(void) {
-    static char path[FILE_NPATH];
+    static char path[PAD_FILE__NPATH];
 #ifdef _TESTS_WINDOWS
     assert(file_get_user_home(path, sizeof path) != NULL);
 #else
@@ -2568,16 +2568,16 @@ test_PadFile_Opendir(void) {
 
 static void
 test_file_realpath(void) {
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
 
     assert(file_realpath(NULL, sizeof path, "/tmp/../tmp") == NULL);
     assert(file_realpath(path, 0, "/tmp/../tmp") == NULL);
     assert(file_realpath(path, sizeof path, NULL) == NULL);
 
-    char userhome[FILE_NPATH];
+    char userhome[PAD_FILE__NPATH];
     assert(file_get_user_home(userhome, sizeof userhome));
 
-    char src[FILE_NPATH + 5] = {0};
+    char src[PAD_FILE__NPATH + 5] = {0};
     snprintf(src, sizeof src, "%s%c..", userhome, FILE_SEP);
     assert(file_realpath(path, sizeof path, src) != NULL);
 }
@@ -2601,8 +2601,8 @@ test_PadFile_MkdirQ(void) {
 
 static void
 test_PadFile_Trunc(void) {
-    char path[FILE_NPATH];
-    char userhome[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
+    char userhome[PAD_FILE__NPATH];
     assert(file_get_user_home(userhome, sizeof userhome) != NULL);
     assert(PadFile_Solvefmt(path, sizeof path, "%s/cap.ftrunc", userhome) != NULL);
 
@@ -2615,7 +2615,7 @@ test_PadFile_Trunc(void) {
 
 static void
 test_PadFile_Solve(void) {
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     assert(PadFile_Solve(NULL, sizeof path, "/tmp/../tmp") == NULL);
     assert(PadFile_Solve(path, 0, "/tmp/../tmp") == NULL);
     assert(PadFile_Solve(path, sizeof path, NULL) == NULL);
@@ -2677,9 +2677,9 @@ test_file_suffix(void) {
 
 static void
 test_file_dirname(void) {
-    char name[FILE_NPATH];
-    char userhome[FILE_NPATH];
-    char path[FILE_NPATH];
+    char name[PAD_FILE__NPATH];
+    char userhome[PAD_FILE__NPATH];
+    char path[PAD_FILE__NPATH];
     assert(file_get_user_home(userhome, sizeof userhome));
     assert(PadFile_Solvefmt(path, sizeof path, "%s/file", userhome));
 
@@ -2692,9 +2692,9 @@ test_file_dirname(void) {
 
 static void
 test_PadFile_BaseName(void) {
-    char name[FILE_NPATH];
-    char userhome[FILE_NPATH];
-    char path[FILE_NPATH];
+    char name[PAD_FILE__NPATH];
+    char userhome[PAD_FILE__NPATH];
+    char path[PAD_FILE__NPATH];
     assert(file_get_user_home(userhome, sizeof userhome));
     assert(PadFile_Solvefmt(path, sizeof path, "%s/file.txt", userhome));
 
@@ -3364,13 +3364,13 @@ test_util_showargv(void) {
 
 static void
 test_util_Cap_IsOutOfHome(void) {
-    char userhome[FILE_NPATH];
+    char userhome[PAD_FILE__NPATH];
     assert(file_get_user_home(userhome, sizeof userhome) != NULL);
 
-    char varhome[FILE_NPATH];
+    char varhome[PAD_FILE__NPATH];
     assert(PadFile_Solvefmt(varhome, sizeof varhome, "%s/.cap/var/home", userhome) != NULL);
 
-    char caphome[FILE_NPATH];
+    char caphome[PAD_FILE__NPATH];
     assert(PadFile_ReadLine(caphome, sizeof caphome, varhome) != NULL);
 
     assert(Cap_IsOutOfHome(caphome, "/not/found/dir"));
@@ -3452,7 +3452,7 @@ test_util_Cap_SolveCmdlineArgPath(void) {
     CapConfig *config = config_new();
     config->scope = CAP_SCOPE__LOCAL;
 
-    char fname[FILE_NPATH];
+    char fname[PAD_FILE__NPATH];
 
 #ifdef CAP__WINDOWS
     snprintf(config->home_path, sizeof config->home_path, "C:\\path\\to\\home");
@@ -3585,7 +3585,7 @@ test_util_Pad_ClearScreen(void) {
 /*
 static void
 test_util_show_snippet(void) {
-    char root[FILE_NPATH];
+    char root[PAD_FILE__NPATH];
     PadFile_Solvefmt(root, sizeof root, "tests/util");
 
     if (PadFile_IsExists(root)) {
@@ -3617,10 +3617,10 @@ test_util_show_snippet(void) {
 */
 
 static void
-test_util_execute_snippet(void) {
-    char root[FILE_NPATH];
+test_util_Cap_ExecSnippet(void) {
+    char root[PAD_FILE__NPATH];
     PadFile_Solvefmt(root, sizeof root, "./tests/util");
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     PadFile_Solvefmt(path, sizeof path, "./tests/util/snippet.txt");
 
     FILE *fout = fopen(path, "wt");
@@ -3634,21 +3634,21 @@ test_util_execute_snippet(void) {
     char *argv[] = {
         NULL,
     };
-    assert(execute_snippet(NULL, NULL, 0, NULL, NULL) == 1);
-    assert(execute_snippet(config, NULL, 0, NULL, NULL) == 1);
-    assert(execute_snippet(config, &found, 0, NULL, NULL) == 1);
-    assert(execute_snippet(config, &found, argc, argv, NULL) == 1);
+    assert(Cap_ExecSnippet(NULL, NULL, 0, NULL, NULL) == 1);
+    assert(Cap_ExecSnippet(config, NULL, 0, NULL, NULL) == 1);
+    assert(Cap_ExecSnippet(config, &found, 0, NULL, NULL) == 1);
+    assert(Cap_ExecSnippet(config, &found, argc, argv, NULL) == 1);
 
-    assert(execute_snippet(config, &found, argc, argv, "nothing.txt") == -1);
+    assert(Cap_ExecSnippet(config, &found, argc, argv, "nothing.txt") == -1);
 
     char buf[1024] = {0};
     setbuf(stdout, buf);
-    assert(execute_snippet(config, &found, argc, argv, "snippet.txt") == 0);
+    assert(Cap_ExecSnippet(config, &found, argc, argv, "snippet.txt") == 0);
     setbuf(stdout, NULL);
     assert(!strcmp(buf, "abc"));
 
     strcpy(config->codes_dir_path, "nothing");
-    assert(execute_snippet(config, &found, argc, argv, "snippet.txt") == 1);
+    assert(Cap_ExecSnippet(config, &found, argc, argv, "snippet.txt") == 1);
 
     config_del(config);
     PadFile_Remove("./tests/util/snippet.txt");
@@ -3688,7 +3688,7 @@ test_util_Cap_ExecProg(void) {
     strcpy(config->cd_path, "tests/util");
     strcpy(config->home_path, "tests/util");
 
-    char rcpath[FILE_NPATH] = {0};
+    char rcpath[PAD_FILE__NPATH] = {0};
     PadFile_Solvefmt(rcpath, sizeof rcpath, "tests/util/.caprc");
 
     FILE *fout = fopen(rcpath, "wt");
@@ -3742,7 +3742,7 @@ utiltests[] = {
     {"trim_first_line", test_util_trim_first_line},
     {"Pad_ClearScreen", test_util_Pad_ClearScreen},
     // {"show_snippet", test_util_show_snippet},
-    {"execute_snippet", test_util_execute_snippet},
+    {"Cap_ExecSnippet", test_util_Cap_ExecSnippet},
     {"split_to_array", test_util_split_to_array},
     {"Cap_ExecRun", test_util_Cap_ExecRun},
     {"Cap_ExecProg", test_util_Cap_ExecProg},
@@ -28079,7 +28079,7 @@ static void
 test_CapSymlink_NormPath(void) {
     CapConfig * config = config_new();
 
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     assert(CapSymlink_NormPath(NULL, NULL, 0, NULL) == NULL);
     assert(CapSymlink_NormPath(config, NULL, 0, NULL) == NULL);
     assert(CapSymlink_NormPath(config, path, 0, NULL) == NULL);

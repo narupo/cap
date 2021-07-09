@@ -162,7 +162,7 @@ set_err(CapCpCmd *self, Errno errno_, const char *fmt, ...) {
 
 static char *
 solve_path(CapCpCmd *self, char *dst, size_t dstsz, const char *path) {
-    char tmppath[FILE_NPATH*2];
+    char tmppath[PAD_FILE__NPATH*2];
 
     if (path[0] == ':') {
         // the path on the user's file system
@@ -235,8 +235,8 @@ copy_re(CapCpCmd *self, const char *dst_path, const char *src_path) {
             continue;
         }
 
-        char norm_src_path[FILE_NPATH];
-        char tmppath[FILE_NPATH];
+        char norm_src_path[PAD_FILE__NPATH];
+        char tmppath[PAD_FILE__NPATH];
 
         snprintf(tmppath, sizeof tmppath, "%s/%s", src_path, fname);
         if (!CapSymlink_FollowPath(self->config, norm_src_path, sizeof norm_src_path, tmppath)) {
@@ -244,7 +244,7 @@ copy_re(CapCpCmd *self, const char *dst_path, const char *src_path) {
             goto fail;
         }
 
-        char norm_dst_path[FILE_NPATH];
+        char norm_dst_path[PAD_FILE__NPATH];
 
         snprintf(tmppath, sizeof tmppath, "%s/%s", dst_path, fname);
         if (!CapSymlink_FollowPath(self->config, norm_dst_path, sizeof norm_dst_path, tmppath)) {
@@ -289,9 +289,9 @@ cp_src2dst_r(CapCpCmd *self, const char *dst_path, const char *src_path) {
 
     if (PadFile_IsExists(dst_path)) {
         if (PadFile_IsDir(dst_path)) {
-            char basename[FILE_NPATH];
+            char basename[PAD_FILE__NPATH];
             file_basename(basename, sizeof basename, src_path);
-            char dstdirpath[FILE_NPATH];
+            char dstdirpath[PAD_FILE__NPATH];
             PadFile_Solvefmt(dstdirpath, sizeof dstdirpath, "%s/%s", dst_path, basename);
             if (!PadFile_IsExists(dstdirpath) && PadFile_MkdirQ(dstdirpath) != 0) {
                 set_err(self, CPCMD_ERR__MKDIR, "failed to make directory \"%s\"", dstdirpath);
@@ -323,14 +323,14 @@ cp_src2dst(CapCpCmd *self, const char *dst_path, const char *src_path) {
     }
 
     if (PadFile_IsDir(dst_path)) {
-        char basename[FILE_NPATH];
+        char basename[PAD_FILE__NPATH];
         if (!file_basename(basename, sizeof basename, src_path)) {
             set_err(self, CPCMD_ERR__BASENAME, "failed to get basename from \"%s\"", src_path);
             return false;
         }
 
-        char newdstpath[FILE_NPATH];
-        char tmppath[FILE_NPATH*2];
+        char newdstpath[PAD_FILE__NPATH];
+        char tmppath[PAD_FILE__NPATH*2];
 
         snprintf(tmppath, sizeof tmppath, "%s/%s", dst_path, basename);
         if (!CapSymlink_FollowPath(self->config, newdstpath, sizeof newdstpath, tmppath)) {
@@ -352,7 +352,7 @@ cp_src2dst(CapCpCmd *self, const char *dst_path, const char *src_path) {
 
 static bool
 cp_to(CapCpCmd *self, const char *to, const char *from) {
-    char src_path[FILE_NPATH];
+    char src_path[PAD_FILE__NPATH];
     if (!solve_path(self, src_path, sizeof src_path, from)) {
         return false;
     }
@@ -361,7 +361,7 @@ cp_to(CapCpCmd *self, const char *to, const char *from) {
         return false;
     }
 
-    char dst_path[FILE_NPATH];
+    char dst_path[PAD_FILE__NPATH];
     if (!solve_path(self, dst_path, sizeof dst_path, to)) {
         return false;
     }

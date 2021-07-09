@@ -92,9 +92,9 @@ usage(CapMvCmd *self) {
 
 static bool
 mv_file_to_dir(CapMvCmd *self, const char *cap_path, const char *dirname) {
-    char srcpath[FILE_NPATH];
-    char dstpath[FILE_NPATH];
-    char tmppath[FILE_NPATH*3];
+    char srcpath[PAD_FILE__NPATH];
+    char dstpath[PAD_FILE__NPATH];
+    char tmppath[PAD_FILE__NPATH*3];
 
     if (!Cap_SolveCmdlineArgPath(self->config, srcpath, sizeof srcpath, cap_path)) {
         PadErr_Err("failed to solve path for source file name");
@@ -106,7 +106,7 @@ mv_file_to_dir(CapMvCmd *self, const char *cap_path, const char *dirname) {
         return false;
     }
 
-    char basename[FILE_NPATH];
+    char basename[PAD_FILE__NPATH];
     if (!PadFile_BaseName(basename, sizeof basename, cap_path)) {
         PadErr_Err("failed to get basename from file name");
         return false;
@@ -146,7 +146,7 @@ mv_file_to_other(CapMvCmd *self) {
     const char *src_cap_path = self->argv[self->optind];
     const char *dst_cap_path = self->argv[self->optind + 1];
 
-    char srcpath[FILE_NPATH];
+    char srcpath[PAD_FILE__NPATH];
 
     if (!Cap_SolveCmdlineArgPath(self->config, srcpath, sizeof srcpath, src_cap_path)) {
         PadErr_Err("failed to follow path for source file name");
@@ -158,7 +158,7 @@ mv_file_to_other(CapMvCmd *self) {
         return 1;
     }
 
-    char dstpath[FILE_NPATH * 2];
+    char dstpath[PAD_FILE__NPATH * 2];
 
     if (!Cap_SolveCmdlineArgPath(self->config, dstpath, sizeof dstpath, dst_cap_path)) {
         PadErr_Err("failed to solve path for destination file name");
@@ -173,7 +173,7 @@ mv_file_to_other(CapMvCmd *self) {
 
     // if dst path is directory then switch to process of directory
     if (PadFile_IsDir(dstpath)) {
-        char basename[FILE_NPATH];
+        char basename[PAD_FILE__NPATH];
 
         if (src_cap_path[0] == ':') {
             src_cap_path += 1;
@@ -183,8 +183,8 @@ mv_file_to_other(CapMvCmd *self) {
             return 1;
         }
 
-        char dstpath2[FILE_NPATH * 3];
-        char tmppath[FILE_NPATH * 3];
+        char dstpath2[PAD_FILE__NPATH * 3];
+        char tmppath[PAD_FILE__NPATH * 3];
         snprintf(tmppath, sizeof tmppath, "%s/%s", dstpath, basename);
         if (!PadFile_Solve(dstpath2, sizeof dstpath2, tmppath)) {
             PadErr_Err("failed to follow path for second destination path in file to other");

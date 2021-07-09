@@ -49,7 +49,7 @@ bake(CapBakeCmd *self) {
     FILE *fin = NULL;
     FILE *fout = NULL;
     const char *cap_path = NULL;
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     char *src = NULL;
     char *compiled = NULL;
     bool use_stdin = false;

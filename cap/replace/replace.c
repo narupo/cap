@@ -165,7 +165,7 @@ replace(CapReplaceCmd *self) {
     char *content = NULL;
     FILE *fout = NULL;
 
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     if (!Cap_SolveCmdlineArgPath(self->config, path, sizeof path, cap_fname)) {
         blush("failed to solve path %s", cap_fname);
         goto error;

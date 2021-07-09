@@ -89,10 +89,10 @@ CapRunCmd_Run(CapRunCmd *self) {
     const char *org = Cap_GetOrigin(self->config, argpath);
 
     // Create script path
-    char tmppath[FILE_NPATH];
+    char tmppath[PAD_FILE__NPATH];
     snprintf(tmppath, sizeof tmppath, "%s/%s", org, argpath);
 
-    char filepath[FILE_NPATH];
+    char filepath[PAD_FILE__NPATH];
     if (!CapSymlink_FollowPath(self->config, filepath, sizeof filepath, tmppath)) {
         PadErr_Err("failed to follow path");
         return 1;

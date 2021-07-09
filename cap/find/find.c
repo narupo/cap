@@ -12,7 +12,7 @@ struct Opts {
     bool is_normalize;
     bool is_alias;
     int max_recursion;
-    char origin[FILE_NPATH];
+    char origin[PAD_FILE__NPATH];
 };
 
 /**
@@ -191,13 +191,13 @@ find_files_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirpat
             continue;
         }
 
-        char cap_path[FILE_NPATH];
+        char cap_path[PAD_FILE__NPATH];
         join_cap_path(cap_path, sizeof cap_path, cap_dirpath, name);
 
-        char tmp_path[FILE_NPATH];
+        char tmp_path[PAD_FILE__NPATH];
         snprintf(tmp_path, sizeof tmp_path, "%s/%s", dirpath, name);
 
-        char path[FILE_NPATH];
+        char path[PAD_FILE__NPATH];
         if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmp_path)) {
             PadErr_Err("failed to follow path on find file recursive");
             PadDirNode_Del(node);
@@ -245,7 +245,7 @@ has_contents(const CapFindCmd *self, const PadDict *alias_kvmap, int32_t *maxkey
 
 static int
 find_aliases_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirpath, int dep) {
-    char alpath[FILE_NPATH];
+    char alpath[PAD_FILE__NPATH];
     if (dep >= self->opts.max_recursion) {
         return 1;
     }
@@ -306,13 +306,13 @@ find_aliases_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirp
             continue;
         }
 
-        char cap_path[FILE_NPATH];
+        char cap_path[PAD_FILE__NPATH];
         join_cap_path(cap_path, sizeof cap_path, cap_dirpath, name);
 
-        char tmp_path[FILE_NPATH];
+        char tmp_path[PAD_FILE__NPATH];
         snprintf(tmp_path, sizeof tmp_path, "%s/%s", dirpath, name);
 
-        char path[FILE_NPATH];
+        char path[PAD_FILE__NPATH];
         if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmp_path)) {
             PadErr_Err("failed to follow path on find file recursive");
             PadDirNode_Del(node);
@@ -332,10 +332,10 @@ find_aliases_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirp
 static int
 find_start(const CapFindCmd *self) {
     const char *origin = Cap_GetOrigin(self->config, self->opts.origin);
-    char tmppath[FILE_NPATH*2];
+    char tmppath[PAD_FILE__NPATH*2];
     snprintf(tmppath, sizeof tmppath, "%s/%s", origin, self->opts.origin);
 
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     if (!CapSymlink_FollowPath(self->config, path, sizeof path, tmppath)) {
         PadErr_Err("failed to follow path in find files");
         return 1;

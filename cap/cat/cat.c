@@ -363,7 +363,7 @@ CapCatCmd_Run(CapCatCmd *self) {
             continue;
         }
 
-        char path[FILE_NPATH];
+        char path[PAD_FILE__NPATH];
         if (!make_path(self, path, sizeof path, name)) {
             ++ret;
             PadErr_Err("failed to make path by \"%s\"", name);

@@ -70,7 +70,7 @@ CapMakeCmd_MakeFromArgs(
             return 1;
         }
     } else {
-        char path[FILE_NPATH];
+        char path[PAD_FILE__NPATH];
         const char *cap_path = argv[1];
 
         if (solve_path) {

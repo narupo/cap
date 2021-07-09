@@ -38,13 +38,13 @@ CapCdCmd_New(const CapConfig *config, int argc, char *argv[]) {
 
 static bool
 cd(CapCdCmd *self, const char *drtpath) {
-    char normpath[FILE_NPATH];
+    char normpath[PAD_FILE__NPATH];
     if (!CapSymlink_NormPath(self->config, normpath, sizeof normpath, drtpath)) {
         PadErr_Err("failed to normalize path");
         return false;
     }
 
-    char realpath[FILE_NPATH];
+    char realpath[PAD_FILE__NPATH];
     if (!CapSymlink_FollowPath(self->config, realpath, sizeof realpath, normpath)) {
         PadErr_Err("failed to follow path");
         return false;
@@ -79,7 +79,7 @@ CapCdCmd_Run(CapCdCmd *self) {
 
     const char *argpath = self->argv[1];
     const char *org;
-    char drtpath[FILE_NPATH*2];
+    char drtpath[PAD_FILE__NPATH*2];
     bool has_head_slash = argpath[0] == '/' || argpath[0] == '\\';
 
     if (has_head_slash) {

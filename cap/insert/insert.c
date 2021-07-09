@@ -356,7 +356,7 @@ insert(CapInsertCmd *self) {
     const char *cap_path = NULL;
     const char *raw_elem = NULL;
     char *elem = NULL;
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     int result = 0;
 
     if (self->argc < 3) {

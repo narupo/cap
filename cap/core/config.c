@@ -36,7 +36,7 @@ error:
 
 static bool
 if_not_exists_to_mkdir(CapConfig *self, const char *dirpath) {
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     if (!PadFile_Solve(path, sizeof path, dirpath)) {
         Pad_PushErr("failed to solve %s", dirpath);
         return false;

@@ -25,7 +25,7 @@ read_sympath(const CapConfig *config, char *sympath, uint32_t sympathsz, const c
     }
 
     uint32_t symheaderlen = strlen(CAP_SYMLINK__HEADER);
-    char line[FILE_NPATH + symheaderlen + 1];
+    char line[PAD_FILE__NPATH + symheaderlen + 1];
     int32_t linelen = PadFile_GetLine(line, sizeof line, fin);
     if (linelen == EOF) {
         fclose(fin);
@@ -46,7 +46,7 @@ read_sympath(const CapConfig *config, char *sympath, uint32_t sympathsz, const c
     ++p;
     for (; *p == ' '; ++p) ;
 
-    char cappath[FILE_NPATH];
+    char cappath[PAD_FILE__NPATH];
     for (int i = 0; i < sizeof(cappath)-1 && *p; ++i, ++p) {
         cappath[i] = *p;
         cappath[i+1] = '\0';
@@ -100,7 +100,7 @@ follow_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *absp
         return NULL;
     }
 
-    char normpath[FILE_NPATH];
+    char normpath[PAD_FILE__NPATH];
     fix_path_seps(normpath, sizeof normpath, abspath);
 
     const char *p = find_path_head(normpath);
@@ -114,7 +114,7 @@ follow_path(const CapConfig *config, char *dst, uint32_t dstsz, const char *absp
     }
 
     char **save_toks = NULL;
-    char sympath[FILE_NPATH];
+    char sympath[PAD_FILE__NPATH];
 
     string_t *path = PadStr_New();
 #ifdef CAP__WINDOWS
@@ -211,7 +211,7 @@ CapSymlink_NormPath(const CapConfig *config, char *dst, uint32_t dstsz, const ch
         return NULL;
     }
 
-    char cleanpath[FILE_NPATH];
+    char cleanpath[PAD_FILE__NPATH];
     fix_path_seps(cleanpath, sizeof cleanpath, drtpath);
     const char *pathhead = find_path_head(cleanpath);
     if (!pathhead) {
@@ -268,7 +268,7 @@ CapSymlink_NormPath(const CapConfig *config, char *dst, uint32_t dstsz, const ch
 
 bool
 CapSymlink_IsLinkFile(const char *path) {
-    char line[FILE_NPATH + 100];
+    char line[PAD_FILE__NPATH + 100];
     if (!PadFile_ReadLine(line, sizeof line, path)) {
         return false;
     }

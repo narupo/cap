@@ -34,7 +34,7 @@ CapHomeCmd_Run(CapHomeCmd *self) {
     char **argv = self->argv;
 
     if (argc < 2) {
-        char line[FILE_NPATH];
+        char line[PAD_FILE__NPATH];
         if (!PadFile_ReadLine(line, sizeof line, self->config->var_home_path)) {
             PadErr_Err("failed to read line from home of variable");
             return 1;
@@ -43,7 +43,7 @@ CapHomeCmd_Run(CapHomeCmd *self) {
         return 0;
     }
 
-    char newhome[FILE_NPATH];
+    char newhome[PAD_FILE__NPATH];
     if (!PadFile_Solve(newhome, sizeof newhome, argv[1])) {
         PadErr_Err("failed to solve path from \"%s\"", argv[1]);
         return 1;

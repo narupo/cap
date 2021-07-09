@@ -180,7 +180,7 @@ create_prompt(CapShCmd *self, char *dst, int32_t dstsz) {
 
 int
 shcmd_input(CapShCmd *self) {
-    char prompt[FILE_NPATH];
+    char prompt[PAD_FILE__NPATH];
     create_prompt(self, prompt, sizeof prompt);
 
     PadTerm_CFPrintf(stderr, TERM_CYAN, TERM_DEFAULT, TERM_BRIGHT, "(cap) ");

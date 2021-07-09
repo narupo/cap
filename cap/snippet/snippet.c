@@ -87,7 +87,7 @@ _add(CapSnptCmd *self) {
     }
 
     const char *name = self->argv[2];
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
 
     if (!strlen(self->config->codes_dir_path)) {
         PadErr_Err("codes directory path is empty");
@@ -123,7 +123,7 @@ snptcmd_show(CapSnptCmd *self) {
     }
 
     const char *name = self->argv[1];
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
 
     if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
         PadErr_Err("failed to solve path for \"%s\"", name);
@@ -182,7 +182,7 @@ _clear(CapSnptCmd *self) {
         if (!strcmp(name, ".") || !strcmp(name, "..")) {
             continue;
         }
-        char path[FILE_NPATH];
+        char path[PAD_FILE__NPATH];
         if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", self->config->codes_dir_path, name)) {
             PadErr_Err("failed to solve path for \"%s\"", name);
             goto fail;

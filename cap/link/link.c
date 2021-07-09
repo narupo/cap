@@ -131,7 +131,7 @@ _unlink(CapLinkCmd *self) {
     const char *linkname = self->argv[self->optind];
     const char *org = Cap_GetOrigin(self->config, linkname);
 
-    char path[FILE_NPATH];
+    char path[PAD_FILE__NPATH];
     if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", org, linkname)) {
         PadErr_Err("failed to solve path");
         return 1;
@@ -171,7 +171,7 @@ _link(CapLinkCmd *self) {
     const char *cappath = self->argv[self->optind+1];
     const char *org = Cap_GetOrigin(self->config, linkname);
 
-    char dstpath[FILE_NPATH];
+    char dstpath[PAD_FILE__NPATH];
     if (!PadFile_Solvefmt(dstpath, sizeof dstpath, "%s/%s", org, linkname)) {
         PadErr_Err("failed to solve path");
         return 1;
@@ -182,7 +182,7 @@ _link(CapLinkCmd *self) {
         return 1;
     }
 
-    char line[FILE_NPATH + 100];
+    char line[PAD_FILE__NPATH + 100];
     snprintf(line, sizeof line, "%s %s", CAP_SYMLINK__HEADER, cappath);
     if (!PadFile_WriteLine(line, dstpath)) {
         PadErr_Err("failed to create link");
