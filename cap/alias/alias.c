@@ -64,7 +64,7 @@ parse_opts(CapAlCmd *self) {
 }
 
 static void
-show_usage(const CapAlCmd *self) {
+usage(const CapAlCmd *self) {
     fprintf(stdout, "Usage:\n"
         "\n"
         "    cap alias [name] [options]\n"
@@ -77,6 +77,7 @@ show_usage(const CapAlCmd *self) {
         "\n"
     );
     fflush(stdout);
+    exit(0);
 }
 
 void
@@ -312,8 +313,7 @@ CapAlCmd_ShowDescOfAlias(CapAlCmd *self) {
 int
 alcmd_run(CapAlCmd *self) {
     if (self->opts.is_help) {
-        show_usage(self);
-        return 0;
+        usage(self);
     }
 
     if (!load_alias_list_by_opts(self)) {
