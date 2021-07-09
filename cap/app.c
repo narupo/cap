@@ -332,7 +332,7 @@ static void
 app_version(app_t *self) {
     fflush(stdout);
     fflush(stderr);
-    printf("%s\n", _CAP_VERSION);
+    printf("%s\n", CAP__VERSION);
     fflush(stdout);
 }
 
