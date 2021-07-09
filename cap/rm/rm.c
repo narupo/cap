@@ -8,18 +8,18 @@ struct Opts {
     bool is_recursive;
 };
 
-struct rmcmd {
+struct CapRmCmd {
     const CapConfig *config;
     int argc;
     int optind;
-    rmcmd_errno_t errno_;
+    CapRmCmdErrno errno_;
     char **argv;
     struct Opts opts;
     char what[1024];
 };
 
 static bool
-rmcmd_parse_opts(rmcmd_t *self) {
+parse_opts(CapRmCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -43,15 +43,15 @@ rmcmd_parse_opts(rmcmd_t *self) {
         case 'r': self->opts.is_recursive = true; break;
         case '?':
         default:
-            PadCStr_App_fmt(self->what, sizeof self->what, "unknown option.");
-            self->errno_ = RMCMD_ERR_UNKNOWN_OPTS;
+            PadCStr_AppFmt(self->what, sizeof self->what, "unknown option.");
+            self->errno_ = CAP_RMCMD_ERR__UNKNOWN_OPTS;
             return false;
         }
     }
 
     if (self->argc < optind) {
-        PadCStr_App_fmt(self->what, sizeof self->what, "failed to parse option.");
-        self->errno_ = RMCMD_ERR_PARSE_OPTS;
+        PadCStr_AppFmt(self->what, sizeof self->what, "failed to parse option.");
+        self->errno_ = CAP_RMCMD_ERR__PARSE_OPTS;
         return false;
     }
 
@@ -60,31 +60,36 @@ rmcmd_parse_opts(rmcmd_t *self) {
 }
 
 void
-rmcmd_del(rmcmd_t *self) {
+CapRmCmd_Del(CapRmCmd *self) {
     if (!self) {
         return;
     }
-
-    free(self);
+    Pad_SafeFree(self);
 }
 
-rmcmd_t *
-rmcmd_new(const CapConfig *config, int argc, char **argv) {
-    rmcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapRmCmd *
+CapRmCmd_New(const CapConfig *config, int argc, char **argv) {
+    CapRmCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        goto error;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
 
-    if (!rmcmd_parse_opts(self)) {
-        return self;
+    if (!parse_opts(self)) {
+        goto error;
     }
 
     return self;
+error:
+    CapRmCmd_Del(self);
+    return NULL;
 }
 
 static void
-rmcmd_show_usage(rmcmd_t *self) {
+usage(CapRmCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Remove files or directories from environment.\n"
@@ -100,36 +105,37 @@ rmcmd_show_usage(rmcmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
-rmcmd_errno_t
-rmcmd_errno(const rmcmd_t *self) {
+CapRmCmdErrno
+CapRmCmd_Errno(const CapRmCmd *self) {
     return self->errno_;
 }
 
 const char *
-rmcmd_what(const rmcmd_t *self) {
+CapRmCmd_What(const CapRmCmd *self) {
     return self->what;
 }
 
 static bool
-rmcmd_remove_r(rmcmd_t *self, const char *dirpath) {
+remove_re(CapRmCmd *self, const char *dirpath) {
     if (Cap_IsOutOfHome(self->config->home_path, dirpath)) {
-        PadCStr_App_fmt(self->what, sizeof self->what, "\"%s\" is out of home.", dirpath);
-        self->errno_ = RMCMD_ERR_OUTOFHOME;
+        PadCStr_AppFmt(self->what, sizeof self->what, "\"%s\" is out of home.", dirpath);
+        self->errno_ = CAP_RMCMD_ERR__OUTOFHOME;
         return false;
     }
 
     if (!PadFile_IsDir(dirpath)) {
-        PadCStr_App_fmt(self->what, sizeof self->what, "\"%s\" is not a directory.", dirpath);
-        self->errno_ = RMCMD_ERR_OPENDIR;
+        PadCStr_AppFmt(self->what, sizeof self->what, "\"%s\" is not a directory.", dirpath);
+        self->errno_ = CAP_RMCMD_ERR__OPENDIR;
         return false;
     }
 
     file_dir_t *dir = PadDir_Open(dirpath);
     if (!dir) {
-        PadCStr_App_fmt(self->what, sizeof self->what, "failed to open directory \"%s\".", dirpath);
-        self->errno_ = RMCMD_ERR_OPENDIR;
+        PadCStr_AppFmt(self->what, sizeof self->what, "failed to open directory \"%s\".", dirpath);
+        self->errno_ = CAP_RMCMD_ERR__OPENDIR;
         return false;
     }
 
@@ -141,38 +147,38 @@ rmcmd_remove_r(rmcmd_t *self, const char *dirpath) {
 
         char path[FILE_NPATH];
         if (!PadFile_Solvefmt(path, sizeof path, "%s/%s", dirpath, dirname)) {
-            PadCStr_App_fmt(self->what, sizeof self->what, "failed to solve path by \"%s\".", dirname);
-            self->errno_ = RMCMD_ERR_SOLVEPATH;
+            PadCStr_AppFmt(self->what, sizeof self->what, "failed to solve path by \"%s\".", dirname);
+            self->errno_ = CAP_RMCMD_ERR__SOLVEPATH;
         }
 
         if (Cap_IsOutOfHome(self->config->home_path, path)) {
-            PadCStr_App_fmt(self->what, sizeof self->what, "\"%s\" is out of home.", path);
-            self->errno_ = RMCMD_ERR_OUTOFHOME;
+            PadCStr_AppFmt(self->what, sizeof self->what, "\"%s\" is out of home.", path);
+            self->errno_ = CAP_RMCMD_ERR__OUTOFHOME;
             return false;
         }
 
         if (PadFile_IsDir(path)) {
-            if (!rmcmd_remove_r(self, path)) {
+            if (!remove_re(self, path)) {
                 return false;
             }
             // directory is empty, remove directory
             if (PadFile_Remove(path) != 0) {
-                PadCStr_App_fmt(self->what, sizeof self->what, "failed to remove directory \"%s\".", path);
-                self->errno_ = RMCMD_ERR_REMOVE_FILE;
+                PadCStr_AppFmt(self->what, sizeof self->what, "failed to remove directory \"%s\".", path);
+                self->errno_ = CAP_RMCMD_ERR__REMOVE_FILE;
                 return false;
             }
         } else {
             if (PadFile_Remove(path) != 0) {
-                PadCStr_App_fmt(self->what, sizeof self->what, "failed to remove file \"%s\".", path);
-                self->errno_ = RMCMD_ERR_REMOVE_FILE;
+                PadCStr_AppFmt(self->what, sizeof self->what, "failed to remove file \"%s\".", path);
+                self->errno_ = CAP_RMCMD_ERR__REMOVE_FILE;
                 return false;
             }
         }
     }
 
     if (PadDir_Close(dir) != 0) {
-        PadCStr_App_fmt(self->what, sizeof self->what, "failed to close directory \"%s\".", dirpath);
-        self->errno_ = RMCMD_ERR_CLOSEDIR;
+        PadCStr_AppFmt(self->what, sizeof self->what, "failed to close directory \"%s\".", dirpath);
+        self->errno_ = CAP_RMCMD_ERR__CLOSEDIR;
         return false;
     }
 
@@ -180,12 +186,12 @@ rmcmd_remove_r(rmcmd_t *self, const char *dirpath) {
 }
 
 static int
-rmcmd_rmr(rmcmd_t *self) {
+_rm_re(CapRmCmd *self) {
     for (int i = self->optind; i < self->argc; ++i) {
         const char *argpath = self->argv[i];
         if (!strcmp(argpath, ".") || !strcmp(argpath, "..")) {
-            PadCStr_App_fmt(self->what, sizeof self->what, "refusing to remove '.' or '..'");
-            self->errno_ = RMCMD_ERR_REMOVE_FILE;
+            PadCStr_AppFmt(self->what, sizeof self->what, "refusing to remove '.' or '..'");
+            self->errno_ = CAP_RMCMD_ERR__REMOVE_FILE;
             return 1;
         }
 
@@ -196,25 +202,25 @@ rmcmd_rmr(rmcmd_t *self) {
         snprintf(drtpath, sizeof drtpath, "%s/%s", org, argpath);
 
         if (!CapSymlink_FollowPath(self->config, path, sizeof path, drtpath)) {
-            PadCStr_App_fmt(self->what, sizeof self->what, "failed to solve path from \"%s\".", argpath);
-            self->errno_ = RMCMD_ERR_SOLVEPATH;
+            PadCStr_AppFmt(self->what, sizeof self->what, "failed to solve path from \"%s\".", argpath);
+            self->errno_ = CAP_RMCMD_ERR__SOLVEPATH;
             return 1;
         }
 
         if (Cap_IsOutOfHome(self->config->home_path, path)) {
-            PadCStr_App_fmt(self->what, sizeof self->what, "\"%s\" is out of home.", path);
-            self->errno_ = RMCMD_ERR_OUTOFHOME;
+            PadCStr_AppFmt(self->what, sizeof self->what, "\"%s\" is out of home.", path);
+            self->errno_ = CAP_RMCMD_ERR__OUTOFHOME;
             return 1;
         }
 
-        if (!rmcmd_remove_r(self, path)) {
-            PadCStr_App_fmt(self->what, sizeof self->what, "could not delete recusively.");
+        if (!remove_re(self, path)) {
+            PadCStr_AppFmt(self->what, sizeof self->what, "could not delete recusively.");
             return 1;
         }
 
         if (PadFile_Remove(path) != 0) {
-            PadCStr_App_fmt(self->what, sizeof self->what, "failed to remove directory \"%s\".", path);
-            self->errno_ = RMCMD_ERR_REMOVE_FILE;
+            PadCStr_AppFmt(self->what, sizeof self->what, "failed to remove directory \"%s\".", path);
+            self->errno_ = CAP_RMCMD_ERR__REMOVE_FILE;
             return false;
         }
     }
@@ -223,7 +229,7 @@ rmcmd_rmr(rmcmd_t *self) {
 }
 
 static int
-rmcmd_rm(rmcmd_t *self, const char *argpath) {
+_rm(CapRmCmd *self, const char *argpath) {
     char path[FILE_NPATH];
     const char *org = Cap_GetOrigin(self->config, argpath);
 
@@ -231,20 +237,20 @@ rmcmd_rm(rmcmd_t *self, const char *argpath) {
     snprintf(drtpath, sizeof drtpath, "%s/%s", org, argpath);
 
     if (!CapSymlink_FollowPath(self->config, path, sizeof path, drtpath)) {
-        PadCStr_App_fmt(self->what, sizeof self->what, "failed to solve path.");
-        self->errno_ = RMCMD_ERR_SOLVEPATH;
+        PadCStr_AppFmt(self->what, sizeof self->what, "failed to solve path.");
+        self->errno_ = CAP_RMCMD_ERR__SOLVEPATH;
         return 1;
     }
 
     if (Cap_IsOutOfHome(self->config->home_path, path)) {
-        PadCStr_App_fmt(self->what, sizeof self->what, "\"%s\" is out of home.", path);
-        self->errno_ = RMCMD_ERR_OUTOFHOME;
+        PadCStr_AppFmt(self->what, sizeof self->what, "\"%s\" is out of home.", path);
+        self->errno_ = CAP_RMCMD_ERR__OUTOFHOME;
         return 1;
     }
 
     if (PadFile_Remove(path) != 0) {
-        PadCStr_App_fmt(self->what, sizeof self->what, "failed to remove \"%s\".", path);
-        self->errno_ = RMCMD_ERR_REMOVE_FILE;
+        PadCStr_AppFmt(self->what, sizeof self->what, "failed to remove \"%s\".", path);
+        self->errno_ = CAP_RMCMD_ERR__REMOVE_FILE;
         return 1;
     }
 
@@ -252,32 +258,30 @@ rmcmd_rm(rmcmd_t *self, const char *argpath) {
 }
 
 static int
-rmcmd_rm_all(rmcmd_t *self) {
+_rm_all(CapRmCmd *self) {
     int ret = 0;
 
     for (int i = self->optind; i < self->argc; ++i) {
         const char *argpath = self->argv[i];
-        ret += rmcmd_rm(self, argpath);
+        ret += _rm(self, argpath);
     }
 
     return ret;
 }
 
 int
-rmcmd_run(rmcmd_t *self) {
+CapRmCmd_Run(CapRmCmd *self) {
     if (self->argc < self->optind+1) {
-        rmcmd_show_usage(self);
-        return 0;
+        usage(self);
     }
 
     if (self->opts.is_help) {
-        rmcmd_show_usage(self);
-        return 0;
+        usage(self);
     }
 
     if (self->opts.is_recursive) {
-        return rmcmd_rmr(self);
+        return _rm_re(self);
     }
 
-    return rmcmd_rm_all(self);
+    return _rm_all(self);
 }

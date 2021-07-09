@@ -242,18 +242,18 @@ symlink_norm_path(const CapConfig *config, char *dst, uint32_t dstsz, const char
 #ifdef CAP__WINDOWS
     // append drive letter of Windows
     if (hasdriveletter) {
-        PadCStr_App_fmt(dst, dstsz, "%c:", drtpath[0]);
+        PadCStr_AppFmt(dst, dstsz, "%c:", drtpath[0]);
     }
 #endif
 
     if (pathhead[0] == FILE_SEP) {
-        PadCStr_App_fmt(dst, dstsz, "%c", FILE_SEP);
+        PadCStr_AppFmt(dst, dstsz, "%c", FILE_SEP);
     }
 
     for (int32_t i = 0; i < PadCStrAry_Len(dsttoks)-1; ++i) {
         const char *tok = PadCStrAry_Getc(dsttoks, i);
         PadCStr_App(dst, dstsz, tok);
-        PadCStr_App_fmt(dst, dstsz, "%c", FILE_SEP);
+        PadCStr_AppFmt(dst, dstsz, "%c", FILE_SEP);
     }
     if (PadCStrAry_Len(dsttoks)) {
         const char *tok = PadCStrAry_Getc(dsttoks, PadCStrAry_Len(dsttoks)-1);

@@ -3,41 +3,42 @@
 #include <getopt.h>
 #include <string.h>
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <lib/string.h>
-#include <lib/cstring.h>
-#include <core/constant.h>
-#include <core/util.h>
-#include <core/config.h>
-#include <core/symlink.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <pad/lib/string.h>
+#include <pad/lib/cstring.h>
+
+#include <cap/core/constant.h>
+#include <cap/core/util.h>
+#include <cap/core/config.h>
+#include <cap/core/symlink.h>
 
 typedef enum {
-    RMCMD_ERR_NOERR = 0,
-    RMCMD_ERR_UNKNOWN_OPTS,
-    RMCMD_ERR_PARSE_OPTS,
-    RMCMD_ERR_OPENDIR,
-    RMCMD_ERR_SOLVEPATH,
-    RMCMD_ERR_REMOVE_FILE,
-    RMCMD_ERR_READ_CD,
-    RMCMD_ERR_OUTOFHOME,
-    RMCMD_ERR_CLOSEDIR,
-} rmcmd_errno_t;
+    CAP_RMCMD_ERR__NOERR = 0,
+    CAP_RMCMD_ERR__UNKNOWN_OPTS,
+    CAP_RMCMD_ERR__PARSE_OPTS,
+    CAP_RMCMD_ERR__OPENDIR,
+    CAP_RMCMD_ERR__SOLVEPATH,
+    CAP_RMCMD_ERR__REMOVE_FILE,
+    CAP_RMCMD_ERR__READ_CD,
+    CAP_RMCMD_ERR__OUTOFHOME,
+    CAP_RMCMD_ERR__CLOSEDIR,
+} CapRmCmdErrno;
 
-struct rmcmd;
-typedef struct rmcmd rmcmd_t;
+struct CapRmCmd;
+typedef struct CapRmCmd CapRmCmd;
 
 void
-rmcmd_del(rmcmd_t *self);
+CapRmCmd_Del(CapRmCmd *self);
 
-rmcmd_t *
-rmcmd_new(const CapConfig *config, int argc, char **argv);
+CapRmCmd *
+CapRmCmd_New(const CapConfig *config, int argc, char **argv);
 
 int
-rmcmd_run(rmcmd_t *self);
+CapRmCmd_Run(CapRmCmd *self);
 
-rmcmd_errno_t
-rmcmd_errno(const rmcmd_t *self);
+CapRmCmdErrno
+CapRmCmd_Errno(const CapRmCmd *self);
 
 const char *
-rmcmd_what(const rmcmd_t *self);
+CapRmCmd_What(const CapRmCmd *self);

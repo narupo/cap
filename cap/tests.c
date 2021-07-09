@@ -862,26 +862,26 @@ test_cstring_PadCStr_App(void) {
 }
 
 static void
-test_cstring_PadCStr_App_fmt(void) {
+test_cstring_PadCStr_AppFmt(void) {
     char dst[100] = {0};
 
-    assert(PadCStr_App_fmt(dst, sizeof dst, NULL) == NULL);
-    assert(PadCStr_App_fmt(NULL, sizeof dst, "source") == NULL);
-    assert(PadCStr_App_fmt(dst, 0, "source") == NULL);
+    assert(PadCStr_AppFmt(dst, sizeof dst, NULL) == NULL);
+    assert(PadCStr_AppFmt(NULL, sizeof dst, "source") == NULL);
+    assert(PadCStr_AppFmt(dst, 0, "source") == NULL);
 
-    assert(PadCStr_App_fmt(dst, 3, "source") != NULL);
+    assert(PadCStr_AppFmt(dst, 3, "source") != NULL);
     assert(strcmp(dst, "so") == 0);
 
     *dst = '\0';
-    assert(PadCStr_App_fmt(dst, sizeof dst, "source") != NULL);
+    assert(PadCStr_AppFmt(dst, sizeof dst, "source") != NULL);
     assert(strcmp(dst, "source") == 0);
-    assert(PadCStr_App_fmt(dst, sizeof dst, " is available.") != NULL);
+    assert(PadCStr_AppFmt(dst, sizeof dst, " is available.") != NULL);
     assert(strcmp(dst, "source is available.") == 0);
-    assert(PadCStr_App_fmt(dst, sizeof dst, "") != NULL);
+    assert(PadCStr_AppFmt(dst, sizeof dst, "") != NULL);
     assert(strcmp(dst, "source is available.") == 0);
 
     *dst = '\0';
-    assert(PadCStr_App_fmt(dst, sizeof dst, "n %d is %c", 10, 'i') != NULL);
+    assert(PadCStr_AppFmt(dst, sizeof dst, "n %d is %c", 10, 'i') != NULL);
     assert(strcmp(dst, "n 10 is i") == 0);
 }
 
@@ -953,7 +953,7 @@ cstring_tests[] = {
     {"cstr_pop_newline", test_cstring_cstr_pop_newline},
     {"cstr_cpywithout", test_cstring_cstr_cpywithout},
     {"PadCStr_App", test_cstring_PadCStr_App},
-    {"PadCStr_App_fmt", test_cstring_PadCStr_App_fmt},
+    {"PadCStr_AppFmt", test_cstring_PadCStr_AppFmt},
     {"cstr_edup", test_cstring_cstr_edup},
     {"cstr_split", test_cstring_cstr_split},
     {"PadCStr_Eq", test_cstring_PadCStr_Eq},
@@ -29224,18 +29224,18 @@ test_rmcmd_default(void) {
     file_trunc("./tests/rm/file1");
     assert(PadFile_IsExists("./tests/rm/file1"));
 
-    rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
-    rmcmd_run(rmcmd);
-    rmcmd_errno_t errn = rmcmd_errno(rmcmd);
+    CapRmCmd *rmcmd = CapRmCmd_New(config, argc, argv);
+    CapRmCmd_Run(rmcmd);
+    CapRmCmdErrno errn = CapRmCmd_Errno(rmcmd);
     switch (errn) {
-    case RMCMD_ERR_NOERR:
+    case CAP_RMCMD_ERR__NOERR:
         break;
     default:
         fprintf(stderr, "failed to run rm command. %s %s\n",
-            rmcmd_what(rmcmd), strerror(errno));
+            CapRmCmd_What(rmcmd), strerror(errno));
         break;
     }
-    rmcmd_del(rmcmd);
+    CapRmCmd_Del(rmcmd);
 
     assert(!PadFile_IsExists("./tests/rm/file1"));
 
@@ -29267,9 +29267,9 @@ test_rmcmd_multi(void) {
     assert(PadFile_IsExists("./tests/rm/file1"));
     assert(PadFile_IsExists("./tests/rm/file2"));
 
-    rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
-    rmcmd_run(rmcmd);
-    rmcmd_del(rmcmd);
+    CapRmCmd *rmcmd = CapRmCmd_New(config, argc, argv);
+    CapRmCmd_Run(rmcmd);
+    CapRmCmd_Del(rmcmd);
 
     assert(!PadFile_IsExists("./tests/rm/file1"));
     assert(!PadFile_IsExists("./tests/rm/file2"));
@@ -29295,9 +29295,9 @@ test_rmcmd_dir(void) {
     PadFile_MkdirQ("./tests/rm/dir1");
     assert(PadFile_IsExists("./tests/rm/dir1"));
 
-    rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
-    rmcmd_run(rmcmd);
-    rmcmd_del(rmcmd);
+    CapRmCmd *rmcmd = CapRmCmd_New(config, argc, argv);
+    CapRmCmd_Run(rmcmd);
+    CapRmCmd_Del(rmcmd);
 
     assert(!PadFile_IsExists("./tests/rm/dir1"));
 
@@ -29325,9 +29325,9 @@ test_rmcmd_dir_multi(void) {
     assert(PadFile_IsExists("./tests/rm/dir1"));
     assert(PadFile_IsExists("./tests/rm/dir2"));
 
-    rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
-    rmcmd_run(rmcmd);
-    rmcmd_del(rmcmd);
+    CapRmCmd *rmcmd = CapRmCmd_New(config, argc, argv);
+    CapRmCmd_Run(rmcmd);
+    CapRmCmd_Del(rmcmd);
 
     assert(!PadFile_IsExists("./tests/rm/dir1"));
     assert(!PadFile_IsExists("./tests/rm/dir2"));
@@ -29364,9 +29364,9 @@ test_rmcmd_dir_r(void) {
     assert(PadFile_IsExists("./tests/rm/dir1/file1"));
     assert(PadFile_IsExists("./tests/rm/dir1/file2"));
 
-    rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
-    rmcmd_run(rmcmd);
-    rmcmd_del(rmcmd);
+    CapRmCmd *rmcmd = CapRmCmd_New(config, argc, argv);
+    CapRmCmd_Run(rmcmd);
+    CapRmCmd_Del(rmcmd);
 
     assert(!PadFile_IsExists("./tests/rm/dir1"));
 
@@ -29416,9 +29416,9 @@ test_rmcmd_dir_r_multi(void) {
     assert(PadFile_IsExists("./tests/rm/dir2/file1"));
     assert(PadFile_IsExists("./tests/rm/dir2/file2"));
 
-    rmcmd_t *rmcmd = rmcmd_new(config, argc, argv);
-    rmcmd_run(rmcmd);
-    rmcmd_del(rmcmd);
+    CapRmCmd *rmcmd = CapRmCmd_New(config, argc, argv);
+    CapRmCmd_Run(rmcmd);
+    CapRmCmd_Del(rmcmd);
 
     assert(!PadFile_IsExists("./tests/rm/dir1"));
     assert(!PadFile_IsExists("./tests/rm/dir2"));
@@ -29427,7 +29427,7 @@ test_rmcmd_dir_r_multi(void) {
 }
 
 static const struct testcase
-rmcmd_tests[] = {
+CapRmCmdests[] = {
     {"default", test_rmcmd_default},
     {"multi", test_rmcmd_multi},
     {"dir", test_rmcmd_dir},
@@ -30240,7 +30240,7 @@ testmodules[] = {
     {"edit", CapEditCmdests},
     {"editor", CapEditorCmdests},
     {"mkdir", CapMkdirCmdests},
-    {"rm", rmcmd_tests},
+    {"rm", CapRmCmdests},
     {"mv", CapMvCmdests},
     {"cp", CapCpCmdests},
     {"touch", touchcmd_tests},

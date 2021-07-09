@@ -303,13 +303,13 @@ shcmd_exec_command(shcmd_t *self, int argc, char **argv) {
     } else if (PadCStr_Eq(cmdname, "mkdir")) {
         routine(mkdircmd);
     } else if (PadCStr_Eq(cmdname, "rm")) {
-        rmcmd_t *cmd = rmcmd_new(self->config, argc, argv);
-        result = rmcmd_run(cmd);
-        switch (rmcmd_errno(cmd)) {
-        case RMCMD_ERR_NOERR: break;
-        default: PadErr_Err(rmcmd_what(cmd)); break;
+        CapRmCmd *cmd = CapRmCmd_New(self->config, argc, argv);
+        result = CapRmCmd_Run(cmd);
+        switch (CapRmCmd_Errno(cmd)) {
+        case CAP_RMCMD_ERR__NOERR: break;
+        default: PadErr_Err(CapRmCmd_What(cmd)); break;
         }
-        rmcmd_del(cmd);
+        CapRmCmd_Del(cmd);
     } else if (PadCStr_Eq(cmdname, "mv")) {
         routine(mvcmd);
     } else if (PadCStr_Eq(cmdname, "cp")) {

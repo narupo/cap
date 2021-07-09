@@ -431,13 +431,13 @@ app_execute_command_by_name(app_t *self, const char *name) {
     } else if (PadCStr_Eq(name, "mkdir")) {
         routine(mkdircmd);
     } else if (PadCStr_Eq(name, "rm")) {
-        rmcmd_t *cmd = rmcmd_new(self->config, self->cmd_argc, self->cmd_argv);
-        result = rmcmd_run(cmd);
-        switch (rmcmd_errno(cmd)) {
-        case RMCMD_ERR_NOERR: break;
-        default: Pad_PushErr(rmcmd_what(cmd)); break;
+        CapRmCmd *cmd = CapRmCmd_New(self->config, self->cmd_argc, self->cmd_argv);
+        result = CapRmCmd_Run(cmd);
+        switch (CapRmCmd_Errno(cmd)) {
+        case CAP_RMCMD_ERR__NOERR: break;
+        default: Pad_PushErr(CapRmCmd_What(cmd)); break;
         }
-        rmcmd_del(cmd);
+        CapRmCmd_Del(cmd);
     } else if (PadCStr_Eq(name, "mv")) {
         routine(mvcmd);
     } else if (PadCStr_Eq(name, "cp")) {

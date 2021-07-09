@@ -27,7 +27,7 @@ mkdir *
 mv *
 pwd *
 replace *
-rm
+rm *
 run
 sh
 snippet
