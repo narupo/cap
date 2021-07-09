@@ -206,9 +206,9 @@ exec_alias(CapShCmd *self, bool *found, int argc, char **argv) {
     // not found to find from global scope
     const char *cmdname = argv[0];
     char alias_val[1024];
-    if (CapAliasMgr_FindAliasValue(almgr, alias_val, sizeof alias_val, cmdname, CAP_SCOPE_LOCAL) == NULL) {
+    if (CapAliasMgr_FindAliasValue(almgr, alias_val, sizeof alias_val, cmdname, CAP_SCOPE__LOCAL) == NULL) {
         CapAliasMgr_ClearError(almgr);
-        if (CapAliasMgr_FindAliasValue(almgr, alias_val, sizeof alias_val, cmdname, CAP_SCOPE_GLOBAL) == NULL) {
+        if (CapAliasMgr_FindAliasValue(almgr, alias_val, sizeof alias_val, cmdname, CAP_SCOPE__GLOBAL) == NULL) {
             *found = false;
             return 1;
         }

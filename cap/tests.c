@@ -14,7 +14,7 @@
 #define showbuf() printf("stdout[%s]\n", ctx_getc_stdout_buf(ctx))
 #define showerr() printf("stderr[%s]\n", ctx_getc_stderr_buf(ctx))
 
-#define showdetail() printf("detail[%s]\n", ast_getc_first_error_message(ast))
+#define showdetail() printf("detail[%s]\n", PadAST_GetcFirstErrMsg(ast))
 #define ERR PadErrStack_Trace(ast->error_stack, stderr)
 
 #define ast_debug(stmt) { \
@@ -129,16 +129,16 @@ solve_path(char *dst, int32_t dstsz, const char *path) {
 #define trv_ready \
     CapConfig *config = config_new(); \
     tokenizer_option_t *opt = tkropt_new(); \
-    tokenizer_t *tkr = tkr_new(mem_move(opt)); \
-    ast_t *ast = ast_new(config); \
-    gc_t *gc = gc_new(); \
-    PadCtx *ctx = ctx_new(gc); \
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt)); \
+    ast_t *ast = PadAST_New(config); \
+    gc_t *gc = PadGC_New(); \
+    PadCtx *ctx = PadCtx_New(gc); \
 
 #define trv_cleanup \
-    ctx_del(ctx); \
-    gc_del(gc); \
-    ast_del(ast); \
-    tkr_del(tkr); \
+    PadCtx_Del(ctx); \
+    PadGC_Del(gc); \
+    PadAST_Del(ast); \
+    PadTkr_Del(tkr); \
     config_del(config); \
 
 /********
@@ -3450,7 +3450,7 @@ test_util_argsbyoptind(void) {
 static void
 test_util_Cap_SolveCmdlineArgPath(void) {
     CapConfig *config = config_new();
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
 
     char fname[FILE_NPATH];
 
@@ -3557,11 +3557,11 @@ test_util_Cap_GetOrigin(void) {
     const char *org = Cap_GetOrigin(config, "/file");
     assert(!strcmp(org, "/home"));
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     org = Cap_GetOrigin(config, "file");
     assert(!strcmp(org, "/cd"));
 
-    config->scope = CAP_SCOPE_GLOBAL;
+    config->scope = CAP_SCOPE__GLOBAL;
     org = Cap_GetOrigin(config, "file");
     assert(!strcmp(org, "/home"));
 
@@ -3684,7 +3684,7 @@ static void
 test_util_Cap_ExecProg(void) {
     CapConfig *config = config_new();
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     strcpy(config->cd_path, "tests/util");
     strcpy(config->home_path, "tests/util");
 
@@ -3999,19 +3999,19 @@ lang_opts_tests[] = {
 *****************/
 
 static void
-test_tkr_new(void) {
+test_PadTkr_New(void) {
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(opt);
-    tkr_del(tkr);
+    tokenizer_t *tkr = PadTkr_New(opt);
+    PadTkr_Del(tkr);
 }
 
 static void
-test_tkr_parse(void) {
+test_PadTkr_Parse(void) {
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(opt);
+    tokenizer_t *tkr = PadTkr_New(opt);
     const token_t *token;
 
-    tkr_parse(tkr, "abc");
+    PadTkr_Parse(tkr, "abc");
     {
         assert(tkr_tokens_len(tkr) == 1);
         token = tkr_tokens_getc(tkr, 0);
@@ -4019,7 +4019,7 @@ test_tkr_parse(void) {
         assert(strcmp(token->text, "abc") == 0);
     }
 
-    tkr_parse(tkr, "abc{@@}bbc");
+    PadTkr_Parse(tkr, "abc{@@}bbc");
     {
         assert(tkr_tokens_len(tkr) == 4);
         token = tkr_tokens_getc(tkr, 0);
@@ -4035,32 +4035,32 @@ test_tkr_parse(void) {
     }
 
     // test of realloc of tokens
-    tkr_parse(tkr, "{@......@}");
+    PadTkr_Parse(tkr, "{@......@}");
     {
         assert(tkr_tokens_len(tkr) == 8);
     }
 
-    tkr_parse(tkr, "");
+    PadTkr_Parse(tkr, "");
     {
-        assert(tkr_has_error_stack(tkr) == false);
+        assert(PadTkr_HasErrStack(tkr) == false);
         assert(tkr_tokens_len(tkr) == 0);
     }
 
-    tkr_parse(tkr, "{@");
+    PadTkr_Parse(tkr, "{@");
     {
         assert(tkr_tokens_len(tkr) == 1);
-        assert(tkr_has_error_stack(tkr) == true);
+        assert(PadTkr_HasErrStack(tkr) == true);
         token = tkr_tokens_getc(tkr, 0);
         assert(token->type == TOKEN_TYPE_LBRACEAT);
     }
 
-    tkr_parse(tkr, "{@@");
+    PadTkr_Parse(tkr, "{@@");
     {
-        assert(tkr_has_error_stack(tkr) == true);
-        assert(strcmp(tkr_getc_first_error_message(tkr), "invalid syntax. single '@' is not supported") == 0);
+        assert(PadTkr_HasErrStack(tkr) == true);
+        assert(strcmp(PadTkr_GetcFirstErrMsg(tkr), "invalid syntax. single '@' is not supported") == 0);
     }
 
-    tkr_parse(tkr, "{@@}");
+    PadTkr_Parse(tkr, "{@@}");
     {
         assert(tkr_tokens_len(tkr) == 2);
         token = tkr_tokens_getc(tkr, 0);
@@ -4069,7 +4069,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@.@}");
+    PadTkr_Parse(tkr, "{@.@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4080,7 +4080,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@..@}");
+    PadTkr_Parse(tkr, "{@..@}");
     {
         assert(tkr_tokens_len(tkr) == 4);
         token = tkr_tokens_getc(tkr, 0);
@@ -4093,7 +4093,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@,@}");
+    PadTkr_Parse(tkr, "{@,@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4104,7 +4104,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@,,@}");
+    PadTkr_Parse(tkr, "{@,,@}");
     {
         assert(tkr_tokens_len(tkr) == 4);
         token = tkr_tokens_getc(tkr, 0);
@@ -4117,7 +4117,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@:@}");
+    PadTkr_Parse(tkr, "{@:@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4128,7 +4128,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@;@}");
+    PadTkr_Parse(tkr, "{@;@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4139,7 +4139,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@(@}");
+    PadTkr_Parse(tkr, "{@(@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4150,7 +4150,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@)@}");
+    PadTkr_Parse(tkr, "{@)@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4161,7 +4161,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@[@}");
+    PadTkr_Parse(tkr, "{@[@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4172,7 +4172,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@]@}");
+    PadTkr_Parse(tkr, "{@]@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4183,7 +4183,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@{@}");
+    PadTkr_Parse(tkr, "{@{@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4194,7 +4194,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@}@}");
+    PadTkr_Parse(tkr, "{@}@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4205,7 +4205,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@()@}");
+    PadTkr_Parse(tkr, "{@()@}");
     {
         assert(tkr_tokens_len(tkr) == 4);
         token = tkr_tokens_getc(tkr, 0);
@@ -4218,7 +4218,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@a@}");
+    PadTkr_Parse(tkr, "{@a@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4230,7 +4230,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@abc@}");
+    PadTkr_Parse(tkr, "{@abc@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4242,7 +4242,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@abc123@}");
+    PadTkr_Parse(tkr, "{@abc123@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4254,7 +4254,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@abc_123@}");
+    PadTkr_Parse(tkr, "{@abc_123@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4266,7 +4266,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@123@}");
+    PadTkr_Parse(tkr, "{@123@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4279,7 +4279,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@-123@}");
+    PadTkr_Parse(tkr, "{@-123@}");
     {
         assert(tkr_tokens_len(tkr) == 4);
         token = tkr_tokens_getc(tkr, 0);
@@ -4297,7 +4297,7 @@ test_tkr_parse(void) {
     * as from *
     **********/
 
-    tkr_parse(tkr, "{@as@}");
+    PadTkr_Parse(tkr, "{@as@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4308,7 +4308,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@from@}");
+    PadTkr_Parse(tkr, "{@from@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4323,7 +4323,7 @@ test_tkr_parse(void) {
     * statements *
     *************/
 
-    tkr_parse(tkr, "{@ end @}");
+    PadTkr_Parse(tkr, "{@ end @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4334,7 +4334,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ if @}");
+    PadTkr_Parse(tkr, "{@ if @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4345,7 +4345,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ elif @}");
+    PadTkr_Parse(tkr, "{@ elif @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4356,7 +4356,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ else @}");
+    PadTkr_Parse(tkr, "{@ else @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4367,7 +4367,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ for @}");
+    PadTkr_Parse(tkr, "{@ for @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4382,7 +4382,7 @@ test_tkr_parse(void) {
     * operators *
     ************/
 
-    tkr_parse(tkr, "{@ + @}");
+    PadTkr_Parse(tkr, "{@ + @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4393,7 +4393,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ - @}");
+    PadTkr_Parse(tkr, "{@ - @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4404,7 +4404,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ * @}");
+    PadTkr_Parse(tkr, "{@ * @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4415,7 +4415,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ / @}");
+    PadTkr_Parse(tkr, "{@ / @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4426,7 +4426,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ % @}");
+    PadTkr_Parse(tkr, "{@ % @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4437,7 +4437,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ = @}");
+    PadTkr_Parse(tkr, "{@ = @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4448,7 +4448,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ += @}");
+    PadTkr_Parse(tkr, "{@ += @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4459,7 +4459,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ -= @}");
+    PadTkr_Parse(tkr, "{@ -= @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4470,7 +4470,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ *= @}");
+    PadTkr_Parse(tkr, "{@ *= @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4481,7 +4481,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ /= @}");
+    PadTkr_Parse(tkr, "{@ /= @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4492,7 +4492,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ %= @}");
+    PadTkr_Parse(tkr, "{@ %= @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4507,7 +4507,7 @@ test_tkr_parse(void) {
     * comparison operators *
     ***********************/
 
-    tkr_parse(tkr, "{@ == @}");
+    PadTkr_Parse(tkr, "{@ == @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4518,7 +4518,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ != @}");
+    PadTkr_Parse(tkr, "{@ != @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4529,7 +4529,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ <= @}");
+    PadTkr_Parse(tkr, "{@ <= @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4540,7 +4540,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ >= @}");
+    PadTkr_Parse(tkr, "{@ >= @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4551,7 +4551,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ < @}");
+    PadTkr_Parse(tkr, "{@ < @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4562,7 +4562,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ > @}");
+    PadTkr_Parse(tkr, "{@ > @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4573,7 +4573,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ or @}");
+    PadTkr_Parse(tkr, "{@ or @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4584,7 +4584,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ and @}");
+    PadTkr_Parse(tkr, "{@ and @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4595,7 +4595,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@ not @}");
+    PadTkr_Parse(tkr, "{@ not @}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4610,7 +4610,7 @@ test_tkr_parse(void) {
     * expr *
     *******/
 
-    tkr_parse(tkr, "{@ 1 * 2 @}");
+    PadTkr_Parse(tkr, "{@ 1 * 2 @}");
     {
         assert(tkr_tokens_len(tkr) == 5);
         token = tkr_tokens_getc(tkr, 0);
@@ -4629,7 +4629,7 @@ test_tkr_parse(void) {
     * others *
     *********/
 
-    tkr_parse(tkr, "{@\"\"@}");
+    PadTkr_Parse(tkr, "{@\"\"@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4641,7 +4641,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@\"abc\"@}");
+    PadTkr_Parse(tkr, "{@\"abc\"@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4653,7 +4653,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@\"abc\"\"bbc\"@}");
+    PadTkr_Parse(tkr, "{@\"abc\"\"bbc\"@}");
     {
         assert(tkr_tokens_len(tkr) == 4);
         token = tkr_tokens_getc(tkr, 0);
@@ -4668,7 +4668,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ import alias\n"
         "alias.set(\"dtl\", \"run bin/date-line\") @}");
     {
@@ -4711,16 +4711,16 @@ test_tkr_parse(void) {
     * reference block *
     ******************/
 
-    tkr_parse(tkr, "{:");
+    PadTkr_Parse(tkr, "{:");
     {
         assert(tkr_tokens_len(tkr) == 1);
         token = tkr_tokens_getc(tkr, 0);
         assert(token->type == TOKEN_TYPE_LDOUBLE_BRACE);
-        assert(tkr_has_error_stack(tkr) == true);
-        assert(strcmp(tkr_getc_first_error_message(tkr), "not closed by block") == 0);
+        assert(PadTkr_HasErrStack(tkr) == true);
+        assert(strcmp(PadTkr_GetcFirstErrMsg(tkr), "not closed by block") == 0);
     }
 
-    tkr_parse(tkr, "{::}");
+    PadTkr_Parse(tkr, "{::}");
     {
         assert(tkr_tokens_len(tkr) == 2);
         token = tkr_tokens_getc(tkr, 0);
@@ -4729,7 +4729,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{:\n:}");
+    PadTkr_Parse(tkr, "{:\n:}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4740,7 +4740,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{:abc:}");
+    PadTkr_Parse(tkr, "{:abc:}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4751,7 +4751,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{:abc123:}");
+    PadTkr_Parse(tkr, "{:abc123:}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4762,7 +4762,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{:abc_123:}");
+    PadTkr_Parse(tkr, "{:abc_123:}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4773,7 +4773,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: 123 :}");
+    PadTkr_Parse(tkr, "{: 123 :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4785,7 +4785,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: alias.run(\"dtl\") :}");
+    PadTkr_Parse(tkr, "{: alias.run(\"dtl\") :}");
     {
         assert(tkr_tokens_len(tkr) == 8);
         token = tkr_tokens_getc(tkr, 0);
@@ -4810,7 +4810,7 @@ test_tkr_parse(void) {
     * reference block: operators *
     *****************************/
 
-    tkr_parse(tkr, "{: + :}");
+    PadTkr_Parse(tkr, "{: + :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4821,7 +4821,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: - :}");
+    PadTkr_Parse(tkr, "{: - :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4832,7 +4832,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: * :}");
+    PadTkr_Parse(tkr, "{: * :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4843,7 +4843,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: / :}");
+    PadTkr_Parse(tkr, "{: / :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4854,7 +4854,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: = :}");
+    PadTkr_Parse(tkr, "{: = :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4865,7 +4865,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: += :}");
+    PadTkr_Parse(tkr, "{: += :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4876,7 +4876,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: -= :}");
+    PadTkr_Parse(tkr, "{: -= :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4887,7 +4887,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: *= :}");
+    PadTkr_Parse(tkr, "{: *= :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4898,7 +4898,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: /= :}");
+    PadTkr_Parse(tkr, "{: /= :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4913,7 +4913,7 @@ test_tkr_parse(void) {
     * reference block: comparison operators *
     ****************************************/
 
-    tkr_parse(tkr, "{: == :}");
+    PadTkr_Parse(tkr, "{: == :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4924,7 +4924,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RDOUBLE_BRACE);
     }
 
-    tkr_parse(tkr, "{: != :}");
+    PadTkr_Parse(tkr, "{: != :}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -4939,7 +4939,7 @@ test_tkr_parse(void) {
     * comment *
     **********/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "// comment\n"
     "@}");
     {
@@ -4952,7 +4952,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "// comment\n"
     "// comment\n"
     "@}");
@@ -4966,20 +4966,20 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "// comment\n");
     {
-        assert(tkr_has_error_stack(tkr));
-        assert(!strcmp(tkr_getc_first_error_message(tkr), "not closed by block"));
+        assert(PadTkr_HasErrStack(tkr));
+        assert(!strcmp(PadTkr_GetcFirstErrMsg(tkr), "not closed by block"));
     }
 
-    tkr_parse(tkr, "{@ // comment");
+    PadTkr_Parse(tkr, "{@ // comment");
     {
-        assert(tkr_has_error_stack(tkr));
-        assert(!strcmp(tkr_getc_first_error_message(tkr), "not closed by block"));
+        assert(PadTkr_HasErrStack(tkr));
+        assert(!strcmp(PadTkr_GetcFirstErrMsg(tkr), "not closed by block"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "/* comment */"
     "@}");
     {
@@ -4992,7 +4992,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "/* comment \n"
     "   comment \n"
     "   comment */"
@@ -5011,7 +5011,7 @@ test_tkr_parse(void) {
     * newlines *
     ***********/
 
-    tkr_parse(tkr, "{@\n@}");
+    PadTkr_Parse(tkr, "{@\n@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -5022,7 +5022,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@\n\n@}");
+    PadTkr_Parse(tkr, "{@\n\n@}");
     {
         assert(tkr_tokens_len(tkr) == 4);
         token = tkr_tokens_getc(tkr, 0);
@@ -5035,7 +5035,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@\r@}");
+    PadTkr_Parse(tkr, "{@\r@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -5046,7 +5046,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@\r\r@}");
+    PadTkr_Parse(tkr, "{@\r\r@}");
     {
         assert(tkr_tokens_len(tkr) == 4);
         token = tkr_tokens_getc(tkr, 0);
@@ -5059,7 +5059,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@\r\n@}");
+    PadTkr_Parse(tkr, "{@\r\n@}");
     {
         assert(tkr_tokens_len(tkr) == 3);
         token = tkr_tokens_getc(tkr, 0);
@@ -5070,7 +5070,7 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_parse(tkr, "{@\r\n\r\n@}");
+    PadTkr_Parse(tkr, "{@\r\n\r\n@}");
     {
         assert(tkr_tokens_len(tkr) == 4);
         token = tkr_tokens_getc(tkr, 0);
@@ -5083,29 +5083,29 @@ test_tkr_parse(void) {
         assert(token->type == TOKEN_TYPE_RBRACEAT);
     }
 
-    tkr_del(tkr);
+    PadTkr_Del(tkr);
 }
 
 static void
 test_tkr_deep_copy(void) {
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(opt);
+    tokenizer_t *tkr = PadTkr_New(opt);
     assert(tkr);
 
-    assert(tkr_parse(tkr, "{@ i = 0 @}"));
+    assert(PadTkr_Parse(tkr, "{@ i = 0 @}"));
     assert(tkr_tokens_len(tkr) == 5);
 
     tokenizer_t *other = tkr_deep_copy(tkr);
     assert(tkr_tokens_len(other) == 5);
 
-    tkr_del(other);
-    tkr_del(tkr);
+    PadTkr_Del(other);
+    PadTkr_Del(tkr);
 }
 
 static const struct testcase
 tokenizer_tests[] = {
-    {"tkr_new", test_tkr_new},
-    {"tkr_parse", test_tkr_parse},
+    {"PadTkr_New", test_PadTkr_New},
+    {"PadTkr_Parse", test_PadTkr_Parse},
     {"tkr_deep_copy", test_tkr_deep_copy},
     {0},
 };
@@ -5116,8 +5116,8 @@ tokenizer_tests[] = {
 
 static void
 test_ast_show_error(const ast_t *ast) {
-    if (ast_has_errors(ast)) {
-        printf("error detail[%s]\n", ast_getc_first_error_message(ast));
+    if (PadAST_HasErrs(ast)) {
+        printf("error detail[%s]\n", PadAST_GetcFirstErrMsg(ast));
     }
 }
 
@@ -5125,19 +5125,19 @@ static void
 test_cc_basic_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
 
-    tkr_parse(tkr, "");
-    ast_clear(ast);
-    ast_clear(ast);
-    cc_compile(ast, tkr_get_tokens(tkr));
+    PadTkr_Parse(tkr, "");
+    PadAST_Clear(ast);
+    PadAST_Clear(ast);
+    PadCC_Compile(ast, PadTkr_GetToks(tkr));
     root = ast_getc_root(ast);
     assert(root == NULL);
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5145,8 +5145,8 @@ static void
 test_cc_basic_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -5169,9 +5169,9 @@ test_cc_basic_1(void) {
     node_atom_t *atom;
     node_identifier_t *identifier;
 
-    tkr_parse(tkr, "{@ i = 0 @}"); {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+    PadTkr_Parse(tkr, "{@ i = 0 @}"); {
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root);
         program = root->real;
@@ -5203,8 +5203,8 @@ test_cc_basic_1(void) {
         assert(!strcmp(identifier->identifier, "i"));
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5212,16 +5212,16 @@ static void
 test_cc_code_block(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
     node_code_block_t *code_block;
 
-    tkr_parse(tkr, "{@@}");
-    ast_clear(ast);
-    cc_compile(ast, tkr_get_tokens(tkr));
+    PadTkr_Parse(tkr, "{@@}");
+    PadAST_Clear(ast);
+    PadCC_Compile(ast, PadTkr_GetToks(tkr));
     root = ast_getc_root(ast);
     assert(root);
     program = root->real;
@@ -5229,8 +5229,8 @@ test_cc_code_block(void) {
     code_block = blocks->code_block->real;
     assert(code_block);
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5238,15 +5238,15 @@ static void
 test_cc_code_block_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
 
-    tkr_parse(tkr, "{@@}");
-    ast_clear(ast);
-    cc_compile(ast, tkr_get_tokens(tkr));
+    PadTkr_Parse(tkr, "{@@}");
+    PadAST_Clear(ast);
+    PadCC_Compile(ast, PadTkr_GetToks(tkr));
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5254,8 +5254,8 @@ static void
 test_cc_ref_block(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -5280,11 +5280,11 @@ test_cc_ref_block(void) {
     node_nil_t *nil;
     node_identifier_t *identifier;
 
-    tkr_parse(tkr, "{: nil :}");
+    PadTkr_Parse(tkr, "{: nil :}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         program = root->real;
@@ -5314,11 +5314,11 @@ test_cc_ref_block(void) {
         assert(nil != NULL);
     }
 
-    tkr_parse(tkr, "{: 1 :}");
+    PadTkr_Parse(tkr, "{: 1 :}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         program = root->real;
@@ -5340,11 +5340,11 @@ test_cc_ref_block(void) {
         negative = nodearr_get(term->nodearr, 0)->real;
     }
 
-    tkr_parse(tkr, "{: var :}");
+    PadTkr_Parse(tkr, "{: var :}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         program = root->real;
@@ -5375,11 +5375,11 @@ test_cc_ref_block(void) {
         assert(!strcmp(identifier->identifier, "var"));
     }
 
-    tkr_parse(tkr, "{: [1, 2] :}");
+    PadTkr_Parse(tkr, "{: [1, 2] :}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         program = root->real;
@@ -5412,8 +5412,8 @@ test_cc_ref_block(void) {
         assert(nodearr_len(array_elems->nodearr) == 2);
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5421,15 +5421,15 @@ static void
 test_cc_ref_block_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
 
-    tkr_parse(tkr, "{: nil :}");
-    ast_clear(ast);
-    (cc_compile(ast, tkr_get_tokens(tkr)));
+    PadTkr_Parse(tkr, "{: nil :}");
+    PadAST_Clear(ast);
+    (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5437,15 +5437,15 @@ static void
 test_cc_ref_block_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
 
-    tkr_parse(tkr, "{: 1 :}");
-    ast_clear(ast);
-    (cc_compile(ast, tkr_get_tokens(tkr)));
+    PadTkr_Parse(tkr, "{: 1 :}");
+    PadAST_Clear(ast);
+    (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5453,15 +5453,15 @@ static void
 test_cc_ref_block_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
 
-    tkr_parse(tkr, "{: var :}");
-    ast_clear(ast);
-    (cc_compile(ast, tkr_get_tokens(tkr)));
+    PadTkr_Parse(tkr, "{: var :}");
+    PadAST_Clear(ast);
+    (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5469,15 +5469,15 @@ static void
 test_cc_ref_block_3(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
 
-    tkr_parse(tkr, "{: [1, 2] :}");
-    ast_clear(ast);
-    (cc_compile(ast, tkr_get_tokens(tkr)));
+    PadTkr_Parse(tkr, "{: [1, 2] :}");
+    PadAST_Clear(ast);
+    (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5485,8 +5485,8 @@ static void
 test_cc_formula(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -5511,11 +5511,11 @@ test_cc_formula(void) {
     node_digit_t *digit;
     node_string_t *string;
 
-    tkr_parse(tkr, "{@ a = 1 @}");
+    PadTkr_Parse(tkr, "{@ a = 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         program = root->real;
@@ -5555,11 +5555,11 @@ test_cc_formula(void) {
         negative = nodearr_get(term->nodearr, 0)->real;
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" @}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -5606,11 +5606,11 @@ test_cc_formula(void) {
         assert(!strcmp(string->string, "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = b = 1 @}");
+    PadTkr_Parse(tkr, "{@ a = b = 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -5680,11 +5680,11 @@ test_cc_formula(void) {
         assert(digit->lvalue == 1);
     }
 
-    tkr_parse(tkr, "{@ a = 1, b = 2 @}");
+    PadTkr_Parse(tkr, "{@ a = 1, b = 2 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -5768,8 +5768,8 @@ test_cc_formula(void) {
         assert(digit->lvalue == 2);
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5777,8 +5777,8 @@ static void
 test_cc_dict(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -5804,11 +5804,11 @@ test_cc_dict(void) {
     node_simple_assign_t *simple_assign;
     node_asscalc_t *asscalc;
 
-    tkr_parse(tkr, "{@ { \"key\" : \"value\" } @}");
+    PadTkr_Parse(tkr, "{@ { \"key\" : \"value\" } @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         program = root->real;
@@ -5848,11 +5848,11 @@ test_cc_dict(void) {
         assert(simple_assign);
     }
 
-    tkr_parse(tkr, "{@ { \"key\" : \"value\", } @}");
+    PadTkr_Parse(tkr, "{@ { \"key\" : \"value\", } @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         program = root->real;
@@ -5892,11 +5892,11 @@ test_cc_dict(void) {
         assert(simple_assign);
     }
 
-    tkr_parse(tkr, "{@ { \"key1\" : \"value1\", \"key2\" : \"value2\" } @}");
+    PadTkr_Parse(tkr, "{@ { \"key1\" : \"value1\", \"key2\" : \"value2\" } @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         program = root->real;
@@ -5941,8 +5941,8 @@ test_cc_dict(void) {
         assert(simple_assign);
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5950,15 +5950,15 @@ static void
 test_cc_dict_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
 
-    tkr_parse(tkr, "{@ {} @}");
-    ast_clear(ast);
-    (cc_compile(ast, tkr_get_tokens(tkr)));
+    PadTkr_Parse(tkr, "{@ {} @}");
+    PadAST_Clear(ast);
+    (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5966,16 +5966,16 @@ static void
 test_cc_dict_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
 
-    tkr_parse(tkr, "{@ { \"key\" : \"value\", } @}");
-    ast_clear(ast);
-    ast_clear(ast);
-    (cc_compile(ast, tkr_get_tokens(tkr)));
+    PadTkr_Parse(tkr, "{@ { \"key\" : \"value\", } @}");
+    PadAST_Clear(ast);
+    PadAST_Clear(ast);
+    (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5983,15 +5983,15 @@ static void
 test_cc_dict_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
 
-    tkr_parse(tkr, "{@ { \"key1\" : \"value1\", \"key2\" : \"value2\" } @}");
-    ast_clear(ast);
-    (cc_compile(ast, tkr_get_tokens(tkr)));
+    PadTkr_Parse(tkr, "{@ { \"key1\" : \"value1\", \"key2\" : \"value2\" } @}");
+    PadAST_Clear(ast);
+    (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -5999,8 +5999,8 @@ static void
 test_cc_expr(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -6026,11 +6026,11 @@ test_cc_expr(void) {
     node_add_sub_op_t *add_sub_op;
     node_mul_div_op_t *mul_div_op;
 
-    tkr_parse(tkr, "{@ 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6061,11 +6061,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 1);
     }
 
-    tkr_parse(tkr, "{@ 1 == 2 @}");
+    PadTkr_Parse(tkr, "{@ 1 == 2 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6109,11 +6109,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 2);
     }
 
-    tkr_parse(tkr, "{@ 1 == 2 == 3 @}");
+    PadTkr_Parse(tkr, "{@ 1 == 2 == 3 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6172,11 +6172,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 3);
     }
 
-    tkr_parse(tkr, "{@ 1 != 2 @}");
+    PadTkr_Parse(tkr, "{@ 1 != 2 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6220,11 +6220,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 2);
     }
 
-    tkr_parse(tkr, "{@ 1 != 2 != 3 @}");
+    PadTkr_Parse(tkr, "{@ 1 != 2 != 3 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6283,11 +6283,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 3);
     }
 
-    tkr_parse(tkr, "{@ 1 + 2 @}");
+    PadTkr_Parse(tkr, "{@ 1 + 2 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6329,11 +6329,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 2);
     }
 
-    tkr_parse(tkr, "{@ 1 + 2 + 3 @}");
+    PadTkr_Parse(tkr, "{@ 1 + 2 + 3 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6384,11 +6384,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 3);
     }
 
-    tkr_parse(tkr, "{@ 1 - 2 @}");
+    PadTkr_Parse(tkr, "{@ 1 - 2 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6430,11 +6430,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 2);
     }
 
-    tkr_parse(tkr, "{@ 1 - 2 - 3 @}");
+    PadTkr_Parse(tkr, "{@ 1 - 2 - 3 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6485,11 +6485,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 3);
     }
 
-    tkr_parse(tkr, "{@ 1 * 2 @}");
+    PadTkr_Parse(tkr, "{@ 1 * 2 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6530,11 +6530,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 2);
     }
 
-    tkr_parse(tkr, "{@ 1 * 2 * 3 @}");
+    PadTkr_Parse(tkr, "{@ 1 * 2 * 3 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6583,11 +6583,11 @@ test_cc_expr(void) {
         assert(digit->lvalue == 3);
     }
 
-    tkr_parse(tkr, "{@ 1 / 2 @}");
+    PadTkr_Parse(tkr, "{@ 1 / 2 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6608,11 +6608,11 @@ test_cc_expr(void) {
         assert(mul_div_op->op == OP_DIV);
     }
 
-    tkr_parse(tkr, "{@ 1 / 2 / 3 @}");
+    PadTkr_Parse(tkr, "{@ 1 / 2 / 3 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6661,8 +6661,8 @@ test_cc_expr(void) {
         assert(digit->lvalue == 3);
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -6670,8 +6670,8 @@ static void
 test_cc_index(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -6694,11 +6694,11 @@ test_cc_index(void) {
     node_atom_t *atom;
     node_identifier_t *identifier;
 
-    tkr_parse(tkr, "{@ a[0] @}");
+    PadTkr_Parse(tkr, "{@ a[0] @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6728,11 +6728,11 @@ test_cc_index(void) {
         assert(!strcmp(identifier->identifier, "a"));
     }
 
-    tkr_parse(tkr, "{@ a[0][0] @}");
+    PadTkr_Parse(tkr, "{@ a[0][0] @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6762,8 +6762,8 @@ test_cc_index(void) {
         assert(!strcmp(identifier->identifier, "a"));
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -6771,8 +6771,8 @@ static void
 test_cc_dot(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -6793,11 +6793,11 @@ test_cc_dot(void) {
     node_asscalc_t *asscalc;
     node_factor_t *factor;
 
-    tkr_parse(tkr, "{@ a.b @}");
+    PadTkr_Parse(tkr, "{@ a.b @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6819,11 +6819,11 @@ test_cc_dot(void) {
         negative = nodearr_get(term->nodearr, 0)->real;
     }
 
-    tkr_parse(tkr, "{@ a.b() @}");
+    PadTkr_Parse(tkr, "{@ a.b() @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6845,11 +6845,11 @@ test_cc_dot(void) {
         negative = nodearr_get(term->nodearr, 0)->real;
     }
 
-    tkr_parse(tkr, "{@ a.b[0] @}");
+    PadTkr_Parse(tkr, "{@ a.b[0] @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6876,8 +6876,8 @@ test_cc_dot(void) {
         assert(factor);
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -6885,8 +6885,8 @@ static void
 test_cc_call(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -6909,11 +6909,11 @@ test_cc_call(void) {
     node_identifier_t *identifier;
     node_chain_t *chain;
 
-    tkr_parse(tkr, "{@ f() @}");
+    PadTkr_Parse(tkr, "{@ f() @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6943,11 +6943,11 @@ test_cc_call(void) {
         assert(!strcmp(identifier->identifier, "f"));
     }
 
-    tkr_parse(tkr, "{@ f(1) @}");
+    PadTkr_Parse(tkr, "{@ f(1) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6969,11 +6969,11 @@ test_cc_call(void) {
         negative = nodearr_get(term->nodearr, 0)->real;
     }
 
-    tkr_parse(tkr, "{@ f(1, \"abc\") @}");
+    PadTkr_Parse(tkr, "{@ f(1, \"abc\") @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -6995,11 +6995,11 @@ test_cc_call(void) {
         negative = nodearr_get(term->nodearr, 0)->real;
     }
 
-    tkr_parse(tkr, "{@ a.b() @}");
+    PadTkr_Parse(tkr, "{@ a.b() @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7022,11 +7022,11 @@ test_cc_call(void) {
         negative = nodearr_get(term->nodearr, 0)->real;
     }
 
-    tkr_parse(tkr, "{@ f()() @}");
+    PadTkr_Parse(tkr, "{@ f()() @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7053,11 +7053,11 @@ test_cc_call(void) {
         assert(!strcmp(identifier->identifier, "f"));
    }
 
-    tkr_parse(tkr, "{@ a[0]() @}");
+    PadTkr_Parse(tkr, "{@ a[0]() @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7084,8 +7084,8 @@ test_cc_call(void) {
         assert(!strcmp(identifier->identifier, "a"));
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -7093,8 +7093,8 @@ static void
 test_cc_array(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -7119,11 +7119,11 @@ test_cc_array(void) {
     node_simple_assign_t *simple_assign;
     node_array_t_ *array;
 
-    tkr_parse(tkr, "{@ [] @}");
+    PadTkr_Parse(tkr, "{@ [] @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7154,11 +7154,11 @@ test_cc_array(void) {
         assert(nodearr_len(array_elems->nodearr) == 0);
     }
 
-    tkr_parse(tkr, "{@ [1, 2] @}");
+    PadTkr_Parse(tkr, "{@ [1, 2] @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7190,11 +7190,11 @@ test_cc_array(void) {
         test = nodearr_get(simple_assign->nodearr, 0)->real;
     }
 
-    tkr_parse(tkr, "{@ [1] @}");
+    PadTkr_Parse(tkr, "{@ [1] @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7226,11 +7226,11 @@ test_cc_array(void) {
         test = nodearr_get(simple_assign->nodearr, 0)->real;
     }
 
-    tkr_parse(tkr, "{@ [a = 1] @}");
+    PadTkr_Parse(tkr, "{@ [a = 1] @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7263,11 +7263,11 @@ test_cc_array(void) {
         assert(test);
     }
 
-    tkr_parse(tkr, "{@ [a = 1, b = 2] @}");
+    PadTkr_Parse(tkr, "{@ [a = 1, b = 2] @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7304,11 +7304,11 @@ test_cc_array(void) {
         assert(test);
     }
 
-    tkr_parse(tkr, "{@ [1, a = 2] @}");
+    PadTkr_Parse(tkr, "{@ [1, a = 2] @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7345,8 +7345,8 @@ test_cc_array(void) {
     }
 
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -7354,8 +7354,8 @@ static void
 test_cc_asscalc(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -7382,11 +7382,11 @@ test_cc_asscalc(void) {
     node_augassign_t *augassign;
     node_t *node;
 
-    tkr_parse(tkr, "{@ a += 1 @}");
+    PadTkr_Parse(tkr, "{@ a += 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7429,11 +7429,11 @@ test_cc_asscalc(void) {
         assert(digit->lvalue == 1);
     }
 
-    tkr_parse(tkr, "{@ a += \"b\" @}");
+    PadTkr_Parse(tkr, "{@ a += \"b\" @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7476,11 +7476,11 @@ test_cc_asscalc(void) {
         assert(!strcmp(string->string, "b"));
     }
 
-    tkr_parse(tkr, "{@ a -= 1 @}");
+    PadTkr_Parse(tkr, "{@ a -= 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7523,11 +7523,11 @@ test_cc_asscalc(void) {
         assert(digit->lvalue == 1);
     }
 
-    tkr_parse(tkr, "{@ a *= 1 @}");
+    PadTkr_Parse(tkr, "{@ a *= 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7571,12 +7571,12 @@ test_cc_asscalc(void) {
         assert(digit->lvalue == 1);
     }
 
-    /* tkr_parse(tkr, "{@ a /= 1 @}");
+    /* PadTkr_Parse(tkr, "{@ a /= 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7607,12 +7607,12 @@ test_cc_asscalc(void) {
         assert(digit->lvalue == 1);
     } */
 /*
-    tkr_parse(tkr, "{@ func() @}");
+    PadTkr_Parse(tkr, "{@ func() @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7638,8 +7638,8 @@ test_cc_asscalc(void) {
         assert(!strcmp(identifier->identifier, "func"));
     }
 */
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -7647,8 +7647,8 @@ static void
 test_cc_atom(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -7676,11 +7676,11 @@ test_cc_atom(void) {
     node_false_t *false_;
     node_true_t *true_;
 
-    tkr_parse(tkr, "{@ nil @}");
+    PadTkr_Parse(tkr, "{@ nil @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7709,11 +7709,11 @@ test_cc_atom(void) {
         assert(nil);
     }
 
-    tkr_parse(tkr, "{@ false @}");
+    PadTkr_Parse(tkr, "{@ false @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7742,11 +7742,11 @@ test_cc_atom(void) {
         assert(false_);
     }
 
-    tkr_parse(tkr, "{@ true @}");
+    PadTkr_Parse(tkr, "{@ true @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7775,11 +7775,11 @@ test_cc_atom(void) {
         assert(true_);
     }
 
-    tkr_parse(tkr, "{@ 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7809,11 +7809,11 @@ test_cc_atom(void) {
         assert(digit->lvalue == 1);
     }
 
-    /* tkr_parse(tkr, "{@ -1 @}");
+    /* PadTkr_Parse(tkr, "{@ -1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7839,11 +7839,11 @@ test_cc_atom(void) {
         assert(digit->lvalue == -1);
     } */
 
-    tkr_parse(tkr, "{@ \"abc\" @}");
+    PadTkr_Parse(tkr, "{@ \"abc\" @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7873,11 +7873,11 @@ test_cc_atom(void) {
         assert(!strcmp(string->string, "abc"));
     }
 
-    tkr_parse(tkr, "{@ var @}");
+    PadTkr_Parse(tkr, "{@ var @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7907,11 +7907,11 @@ test_cc_atom(void) {
         assert(!strcmp(identifier->identifier, "var"));
     }
 /*
-    tkr_parse(tkr, "{@ f() @}");
+    PadTkr_Parse(tkr, "{@ f() @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -7938,18 +7938,18 @@ test_cc_atom(void) {
     }
 */
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
 static void
-test_cc_compile(void) {
+test_PadCC_Compile(void) {
     // head
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
     const node_t *root;
     node_program_t *program;
     node_blocks_t *blocks;
@@ -7993,11 +7993,11 @@ test_cc_compile(void) {
     * func_def *
     ***********/
 
-    tkr_parse(tkr, "{@ def func(a, b): end @}");
+    PadTkr_Parse(tkr, "{@ def func(a, b): end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root);
         program = root->real;
@@ -8024,11 +8024,11 @@ test_cc_compile(void) {
         assert(!strcmp(identifier->identifier, "b"));
     }
 
-    tkr_parse(tkr, "{@ def func(): end @}");
+    PadTkr_Parse(tkr, "{@ def func(): end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8053,11 +8053,11 @@ test_cc_compile(void) {
         assert(nodearr_len(func_def_args->identifiers) == 0);
     }
 
-    tkr_parse(tkr, "{@ def func(): a = 1 end @}");
+    PadTkr_Parse(tkr, "{@ def func(): a = 1 end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8126,16 +8126,16 @@ test_cc_compile(void) {
         assert(digit->lvalue == 1);
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   a = 1\n"
         "end\n"
         "@}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(!PadAST_HasErrs(ast));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8206,12 +8206,12 @@ test_cc_compile(void) {
     * call *
     *******/
 /*
-    tkr_parse(tkr, "{@ func() + 1 @}");
+    PadTkr_Parse(tkr, "{@ func() + 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8246,12 +8246,12 @@ test_cc_compile(void) {
     }
 */
 /*
-    tkr_parse(tkr, "{@ my.func() @}");
+    PadTkr_Parse(tkr, "{@ my.func() @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8280,12 +8280,12 @@ test_cc_compile(void) {
         assert(!strcmp(identifier->identifier, "func"));
     }
 
-    tkr_parse(tkr, "{@ my.func(1) @}");
+    PadTkr_Parse(tkr, "{@ my.func(1) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8330,12 +8330,12 @@ test_cc_compile(void) {
         assert(digit->lvalue == 1);
     }
 
-    tkr_parse(tkr, "{@ my.func(1, 2) @}");
+    PadTkr_Parse(tkr, "{@ my.func(1, 2) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8395,12 +8395,12 @@ test_cc_compile(void) {
         assert(digit->lvalue == 2);
     }
 
-    tkr_parse(tkr, "{@ my.func(\"abc\") @}");
+    PadTkr_Parse(tkr, "{@ my.func(\"abc\") @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8445,12 +8445,12 @@ test_cc_compile(void) {
         assert(!strcmp(string->string, "abc"));
     }
 
-    tkr_parse(tkr, "{@ my.func(\"abc\", \"def\") @}");
+    PadTkr_Parse(tkr, "{@ my.func(\"abc\", \"def\") @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8509,12 +8509,12 @@ test_cc_compile(void) {
         assert(!strcmp(string->string, "def"));
     }
 
-    tkr_parse(tkr, "{@ my.func(\"abc\", \"def\", \"ghi\") @}");
+    PadTkr_Parse(tkr, "{@ my.func(\"abc\", \"def\", \"ghi\") @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8587,12 +8587,12 @@ test_cc_compile(void) {
         assert(!strcmp(string->string, "ghi"));
     }
 
-    tkr_parse(tkr, "{@ my.func(\"\", \"\") @}");
+    PadTkr_Parse(tkr, "{@ my.func(\"\", \"\") @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8655,10 +8655,10 @@ test_cc_compile(void) {
     * test_list *
     ************/
 
-    tkr_parse(tkr, "{@ 1, 2 @}");
+    PadTkr_Parse(tkr, "{@ 1, 2 @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8711,10 +8711,10 @@ test_cc_compile(void) {
         assert(digit->lvalue == 2);
     }
 
-    tkr_parse(tkr, "{@ 1, 2, 3 @}");
+    PadTkr_Parse(tkr, "{@ 1, 2, 3 @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8779,10 +8779,10 @@ test_cc_compile(void) {
         assert(digit->lvalue == 3);
     }
 
-    tkr_parse(tkr, "{@ \"abc\", \"def\" @}");
+    PadTkr_Parse(tkr, "{@ \"abc\", \"def\" @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8829,10 +8829,10 @@ test_cc_compile(void) {
         assert(!strcmp(string->string, "def"));
     }
 
-    tkr_parse(tkr, "{@ \"abc\", \"def\", \"ghi\" @}");
+    PadTkr_Parse(tkr, "{@ \"abc\", \"def\", \"ghi\" @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8897,10 +8897,10 @@ test_cc_compile(void) {
         assert(!strcmp(string->string, "ghi"));
     }
 
-    tkr_parse(tkr, "{@ 1, \"def\" @}");
+    PadTkr_Parse(tkr, "{@ 1, \"def\" @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8947,10 +8947,10 @@ test_cc_compile(void) {
         assert(!strcmp(string->string, "def"));
     }
 
-    tkr_parse(tkr, "{@ 1, var @}");
+    PadTkr_Parse(tkr, "{@ 1, var @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -8997,10 +8997,10 @@ test_cc_compile(void) {
         assert(!strcmp(identifier->identifier, "var"));
     }
 
-    tkr_parse(tkr, "{@ 1, var, \"abc\" @}");
+    PadTkr_Parse(tkr, "{@ 1, var, \"abc\" @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9065,10 +9065,10 @@ test_cc_compile(void) {
         assert(!strcmp(string->string, "abc"));
     }
 
-    tkr_parse(tkr, "{@ 1, var, \"abc\", func() @}");
+    PadTkr_Parse(tkr, "{@ 1, var, \"abc\", func() @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9154,11 +9154,11 @@ test_cc_compile(void) {
     * test *
     *******/
 
-    tkr_parse(tkr, "{@ 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9217,11 +9217,11 @@ test_cc_compile(void) {
         // TODO
     }
 
-    tkr_parse(tkr, "{@ 1 or 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 or 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9246,11 +9246,11 @@ test_cc_compile(void) {
         assert(comparison != NULL);
     }
 
-    tkr_parse(tkr, "{@ 1 or 1 or 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 or 1 or 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9275,11 +9275,11 @@ test_cc_compile(void) {
         assert(comparison != NULL);
     }
 
-    tkr_parse(tkr, "{@ 1 and 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 and 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9299,11 +9299,11 @@ test_cc_compile(void) {
         assert(comparison != NULL);
     }
 
-    tkr_parse(tkr, "{@ 1 and 1 and 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 and 1 and 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9326,11 +9326,11 @@ test_cc_compile(void) {
         assert(comparison != NULL);
     }
 
-    tkr_parse(tkr, "{@ not 1 @}");
+    PadTkr_Parse(tkr, "{@ not 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9348,11 +9348,11 @@ test_cc_compile(void) {
         assert(comparison != NULL);
     }
 
-    tkr_parse(tkr, "{@ not not 1 @}");
+    PadTkr_Parse(tkr, "{@ not not 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9371,11 +9371,11 @@ test_cc_compile(void) {
         assert(comparison != NULL);
     }
 
-    tkr_parse(tkr, "{@ 1 or 1 and 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 or 1 and 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9400,11 +9400,11 @@ test_cc_compile(void) {
         assert(comparison != NULL);
     }
 
-    tkr_parse(tkr, "{@ 1 and 1 or 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 and 1 or 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9428,11 +9428,11 @@ test_cc_compile(void) {
         assert(comparison != NULL);
     }
 
-    tkr_parse(tkr, "{@ not 1 or 1 @}");
+    PadTkr_Parse(tkr, "{@ not 1 or 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9454,11 +9454,11 @@ test_cc_compile(void) {
         assert(comparison != NULL);
     }
 
-    tkr_parse(tkr, "{@ not 1 and 1 @}");
+    PadTkr_Parse(tkr, "{@ not 1 and 1 @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9483,11 +9483,11 @@ test_cc_compile(void) {
     * blocks *
     *********/
 
-    tkr_parse(tkr, "{@@}");
+    PadTkr_Parse(tkr, "{@@}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9505,11 +9505,11 @@ test_cc_compile(void) {
         assert(code_block->elems == NULL);
     }
 
-    tkr_parse(tkr, "abc{@@}def");
+    PadTkr_Parse(tkr, "abc{@@}def");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9524,11 +9524,11 @@ test_cc_compile(void) {
         assert(!strcmp(text_block->text, "def"));
     }
 
-    tkr_parse(tkr, "{@@}{@@}");
+    PadTkr_Parse(tkr, "{@@}{@@}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9539,11 +9539,11 @@ test_cc_compile(void) {
         assert(code_block->elems == NULL);
     }
 
-    tkr_parse(tkr, "{@@}abc{@@}");
+    PadTkr_Parse(tkr, "{@@}abc{@@}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9557,11 +9557,11 @@ test_cc_compile(void) {
         assert(code_block->elems == NULL);
     }
 
-    tkr_parse(tkr, "{@\n@}");
+    PadTkr_Parse(tkr, "{@\n@}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9579,11 +9579,11 @@ test_cc_compile(void) {
         assert(code_block->elems == NULL);
     }
 
-    tkr_parse(tkr, "{@\n\n@}");
+    PadTkr_Parse(tkr, "{@\n\n@}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9605,11 +9605,11 @@ test_cc_compile(void) {
     * if statement *
     ***************/
 
-    tkr_parse(tkr, "{@ if 1: end @}");
+    PadTkr_Parse(tkr, "{@ if 1: end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9644,11 +9644,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ if 1 + 2: end @}");
+    PadTkr_Parse(tkr, "{@ if 1 + 2: end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -9687,11 +9687,11 @@ test_cc_compile(void) {
         assert(digit->lvalue == 2);
     }
 
-    tkr_parse(tkr, "abc{@ if 1: end @}def");
+    PadTkr_Parse(tkr, "abc{@ if 1: end @}def");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9750,11 +9750,11 @@ test_cc_compile(void) {
         assert(!strcmp(text_block->text, "def"));
     }
 
-    tkr_parse(tkr, "{@\n\nif 1: end\n\n@}");
+    PadTkr_Parse(tkr, "{@\n\nif 1: end\n\n@}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9789,11 +9789,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@\n\nif 1:\n\nend\n\n@}");
+    PadTkr_Parse(tkr, "{@\n\nif 1:\n\nend\n\n@}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9828,11 +9828,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ if 1: else: end @}");
+    PadTkr_Parse(tkr, "{@ if 1: else: end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9871,11 +9871,11 @@ test_cc_compile(void) {
         assert(else_stmt);
     }
 
-    tkr_parse(tkr, "{@ if 1:\n\nelse:\n\nend @}");
+    PadTkr_Parse(tkr, "{@ if 1:\n\nelse:\n\nend @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9913,11 +9913,11 @@ test_cc_compile(void) {
         else_stmt = if_stmt->else_stmt->real;
     }
 
-    tkr_parse(tkr, "{@ if 1: elif 2: end @}");
+    PadTkr_Parse(tkr, "{@ if 1: elif 2: end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -9957,11 +9957,11 @@ test_cc_compile(void) {
         assert(elif_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ if 1:\n\nelif 2:\n\nend @}");
+    PadTkr_Parse(tkr, "{@ if 1:\n\nelif 2:\n\nend @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10001,11 +10001,11 @@ test_cc_compile(void) {
         assert(elif_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ if 1: elif 2: else: end @}");
+    PadTkr_Parse(tkr, "{@ if 1: elif 2: else: end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10048,11 +10048,11 @@ test_cc_compile(void) {
         else_stmt = elif_stmt->else_stmt->real;
     }
 
-    tkr_parse(tkr, "{@ if 1:\n\nelif 2:\n\nelse:\n\nend @}");
+    PadTkr_Parse(tkr, "{@ if 1:\n\nelif 2:\n\nelse:\n\nend @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10095,11 +10095,11 @@ test_cc_compile(void) {
         else_stmt = elif_stmt->else_stmt->real;
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 0: else: a = 1 end @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 0: else: a = 1 end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10142,11 +10142,11 @@ test_cc_compile(void) {
         else_stmt = elif_stmt->else_stmt->real;
     }
 
-    tkr_parse(tkr, "{@ if 1: if 2: end end @}");
+    PadTkr_Parse(tkr, "{@ if 1: if 2: end end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10194,11 +10194,11 @@ test_cc_compile(void) {
         assert(if_stmt->test != NULL);
     }
 
-    tkr_parse(tkr, "{@ if 1:\n\nif 2:\n\nend\n\nend @}");
+    PadTkr_Parse(tkr, "{@ if 1:\n\nif 2:\n\nend\n\nend @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10246,11 +10246,11 @@ test_cc_compile(void) {
         assert(if_stmt->test != NULL);
     }
 
-    tkr_parse(tkr, "{@ if 1: if 2: end if 3: end end @}");
+    PadTkr_Parse(tkr, "{@ if 1: if 2: end if 3: end end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10317,11 +10317,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10356,11 +10356,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ if 1: @}abc{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}abc{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10404,20 +10404,20 @@ test_cc_compile(void) {
         assert(!strcmp(text_block->text, "abc"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ else: @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ else: @}{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
-        assert(!ast_has_errors(ast));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}abc{@ else: @}def{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}abc{@ else: @}def{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         program = root->real;
         blocks = program->blocks->real;
@@ -10431,11 +10431,11 @@ test_cc_compile(void) {
         assert(!strcmp(text_block->text, "abc"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ if 2: end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ if 2: end @}{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10494,11 +10494,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ if 1: @}abc{@ if 2: end @}def{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}abc{@ if 2: end @}def{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10586,11 +10586,11 @@ test_cc_compile(void) {
     * for statement *
     ****************/
 
-    tkr_parse(tkr, "{@ for 1; 1; 1: end @}");
+    PadTkr_Parse(tkr, "{@ for 1; 1; 1: end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10632,11 +10632,11 @@ test_cc_compile(void) {
         assert(nodearr_len(for_stmt->contents) == 0);
     }
 
-    tkr_parse(tkr, "{@ for 1; 1; 1: if 1: end end @}");
+    PadTkr_Parse(tkr, "{@ for 1; 1; 1: if 1: end end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10692,11 +10692,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ for 1; 1; 1: for 1; 1; 1: end end @}");
+    PadTkr_Parse(tkr, "{@ for 1; 1; 1: for 1; 1; 1: end end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10759,11 +10759,11 @@ test_cc_compile(void) {
         assert(nodearr_len(for_stmt->contents) == 0);
     }
 
-    tkr_parse(tkr, "{@ for 1: end @}");
+    PadTkr_Parse(tkr, "{@ for 1: end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10801,11 +10801,11 @@ test_cc_compile(void) {
         assert(nodearr_len(for_stmt->contents) == 0);
     }
 
-    tkr_parse(tkr, "{@ for 1: if 1: end end @}");
+    PadTkr_Parse(tkr, "{@ for 1: if 1: end end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10857,11 +10857,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ for 1: @}{@ if 1: end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ for 1: @}{@ if 1: end @}{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10923,11 +10923,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ for 1: @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ for 1: @}{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -10965,11 +10965,11 @@ test_cc_compile(void) {
         assert(nodearr_len(for_stmt->contents) == 0);
     }
 
-    tkr_parse(tkr, "{@ for: end @}");
+    PadTkr_Parse(tkr, "{@ for: end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11005,11 +11005,11 @@ test_cc_compile(void) {
         assert(nodearr_len(for_stmt->contents) == 0);
     }
 
-    tkr_parse(tkr, "{@ for: @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ for: @}{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11045,11 +11045,11 @@ test_cc_compile(void) {
         assert(nodearr_len(for_stmt->contents) == 0);
     }
 
-    tkr_parse(tkr, "{@ for: @}abc{@ end @}");
+    PadTkr_Parse(tkr, "{@ for: @}abc{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11094,11 +11094,11 @@ test_cc_compile(void) {
         assert(!strcmp(text_block->text, "abc"));
     }
 
-    tkr_parse(tkr, "{@ for: @}{@ if 1: end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ for: @}{@ if 1: end @}{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11158,11 +11158,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ if 1: for 1; 1; 1: end end @}");
+    PadTkr_Parse(tkr, "{@ if 1: for 1; 1; 1: end end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11215,11 +11215,11 @@ test_cc_compile(void) {
         assert(nodearr_len(for_stmt->contents) == 0);
     }
 
-    tkr_parse(tkr, "{@ for 1; 1; 1: @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ for 1; 1; 1: @}{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11261,11 +11261,11 @@ test_cc_compile(void) {
         assert(nodearr_len(for_stmt->contents) == 0);
     }
 
-    tkr_parse(tkr, "{@ for 1; 1; 1: @}abc{@ end @}");
+    PadTkr_Parse(tkr, "{@ for 1; 1; 1: @}abc{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11316,11 +11316,11 @@ test_cc_compile(void) {
         assert(!strcmp(text_block->text, "abc"));
     }
 
-    tkr_parse(tkr, "{@ for 1; 1; 1: @}{@ if 1: end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ for 1; 1; 1: @}{@ if 1: end @}{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11386,11 +11386,11 @@ test_cc_compile(void) {
         assert(if_stmt->else_stmt == NULL);
     }
 
-    tkr_parse(tkr, "{@ for 1; 1; 1: @}abc{@ if 1: end @}def{@ end @}");
+    PadTkr_Parse(tkr, "{@ for 1; 1; 1: @}abc{@ if 1: end @}def{@ end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11485,11 +11485,11 @@ test_cc_compile(void) {
     * jump *
     *******/
 
-    tkr_parse(tkr, "{@ for 1; 1; 1: break end @}");
+    PadTkr_Parse(tkr, "{@ for 1; 1; 1: break end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11536,11 +11536,11 @@ test_cc_compile(void) {
         assert(break_stmt);
     }
 
-    tkr_parse(tkr, "{@ for 1; 1; 1: continue end @}");
+    PadTkr_Parse(tkr, "{@ for 1; 1; 1: continue end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         root = ast_getc_root(ast);
         assert(root != NULL);
         assert(root->type == NODE_TYPE_PROGRAM);
@@ -11587,8 +11587,8 @@ test_cc_compile(void) {
         assert(continue_stmt);
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
     // tail
 }
@@ -11597,8 +11597,8 @@ static void
 test_cc_import_stmt(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
 
     const node_t *root;
     node_t *node;
@@ -11619,12 +11619,12 @@ test_cc_import_stmt(void) {
     * import as statement *
     **********************/
 
-    tkr_parse(tkr, "{@ import \"path/to/module\" as mod @}");
+    PadTkr_Parse(tkr, "{@ import \"path/to/module\" as mod @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(!PadAST_HasErrs(ast));
         root = ast_getc_root(ast);
         assert(root->type == NODE_TYPE_PROGRAM);
         program = root->real;
@@ -11677,78 +11677,78 @@ test_cc_import_stmt(void) {
         assert(!strcmp(identifier->identifier, "mod"));
     }
 
-    tkr_parse(tkr, "{@ import \"path/to/module\" as mod \n @}");
+    PadTkr_Parse(tkr, "{@ import \"path/to/module\" as mod \n @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ import @}");
+    PadTkr_Parse(tkr, "{@ import @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found path in compile import as statement"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found path in compile import as statement"));
     }
 
-    tkr_parse(tkr, "{@ import \"path/to/module\" @}");
+    PadTkr_Parse(tkr, "{@ import \"path/to/module\" @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found keyword 'as' in compile import as statement"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found keyword 'as' in compile import as statement"));
     }
 
-    tkr_parse(tkr, "{@ import \"path/to/module\" as @}");
+    PadTkr_Parse(tkr, "{@ import \"path/to/module\" as @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found alias in compile import as statement"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found alias in compile import as statement"));
     }
 
-    tkr_parse(tkr, "{@ import \n\"path/to/module\" as mod @}");
+    PadTkr_Parse(tkr, "{@ import \n\"path/to/module\" as mod @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found path in compile import as statement"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found path in compile import as statement"));
     }
 
-    tkr_parse(tkr, "{@ import \"path/to/module\" \n as mod @}");
+    PadTkr_Parse(tkr, "{@ import \"path/to/module\" \n as mod @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found keyword 'as' in compile import as statement"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found keyword 'as' in compile import as statement"));
     }
 
-    tkr_parse(tkr, "{@ import \"path/to/module\" as \n mod @}");
+    PadTkr_Parse(tkr, "{@ import \"path/to/module\" as \n mod @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found alias in compile import as statement"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found alias in compile import as statement"));
     }
 
     /************************
     * from import statement *
     ************************/
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import func @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import func @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(!PadAST_HasErrs(ast));
         root = ast_getc_root(ast);
         assert(root->type == NODE_TYPE_PROGRAM);
         program = root->real;
@@ -11819,12 +11819,12 @@ test_cc_import_stmt(void) {
         assert(!strcmp(identifier->identifier, "func"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import func as f @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import func as f @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
         root = ast_getc_root(ast);
         assert(root->type == NODE_TYPE_PROGRAM);
         program = root->real;
@@ -11902,12 +11902,12 @@ test_cc_import_stmt(void) {
         assert(!strcmp(identifier->identifier, "f"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import ( aaa ) @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import ( aaa ) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
         root = ast_getc_root(ast);
         assert(root->type == NODE_TYPE_PROGRAM);
         program = root->real;
@@ -11978,12 +11978,12 @@ test_cc_import_stmt(void) {
         assert(!strcmp(identifier->identifier, "aaa"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import ( aaa, bbb ) @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import ( aaa, bbb ) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
         root = ast_getc_root(ast);
         assert(root->type == NODE_TYPE_PROGRAM);
         program = root->real;
@@ -12067,28 +12067,28 @@ test_cc_import_stmt(void) {
         assert(!strcmp(identifier->identifier, "bbb"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import ( aaa, bbb, ) @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import ( aaa, bbb, ) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import (\naaa,\nbbb,\n) @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import (\naaa,\nbbb,\n) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import ( aaa as a, bbb ) @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import ( aaa as a, bbb ) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
         root = ast_getc_root(ast);
         assert(root->type == NODE_TYPE_PROGRAM);
         program = root->real;
@@ -12178,131 +12178,131 @@ test_cc_import_stmt(void) {
         assert(!strcmp(identifier->identifier, "bbb"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import (\n aaa as a, bbb ) @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import (\n aaa as a, bbb ) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import (\n aaa as a, \nbbb ) @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import (\n aaa as a, \nbbb ) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import (\n aaa as a,\n bbb \n) @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import (\n aaa as a,\n bbb \n) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ from @}");
+    PadTkr_Parse(tkr, "{@ from @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found path in compile from import statement"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found path in compile from import statement"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found import in compile from import statement"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found import in compile from import statement"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found import variables in compile from import statement"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found import variables in compile from import statement"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import \naaa @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import \naaa @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found import variables in compile from import statement"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found import variables in compile from import statement"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import aaa as @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import aaa as @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found second identifier in compile import variable"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found second identifier in compile import variable"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import ( aaa @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import ( aaa @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid token 5 in compile import variables"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid token 5 in compile import variables"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import ( aaa as a @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import ( aaa as a @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid token 5 in compile import variables"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid token 5 in compile import variables"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import ( aaa as a, @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import ( aaa as a, @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found import variable in compile import variables"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found import variable in compile import variables"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import ( aaa as a, bbb @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import ( aaa as a, bbb @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid token 5 in compile import variables"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid token 5 in compile import variables"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import ( aaa \n as a ) @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import ( aaa \n as a ) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid token 45 in compile import variables"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid token 45 in compile import variables"));
     }
 
-    tkr_parse(tkr, "{@ from \"path/to/module\" import ( aaa as \n a ) @}");
+    PadTkr_Parse(tkr, "{@ from \"path/to/module\" import ( aaa as \n a ) @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found second identifier in compile import variable"));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found second identifier in compile import variable"));
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -12310,74 +12310,74 @@ static void
 test_cc_func_def(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
 
-    tkr_parse(tkr, "{@ def func():\n"
+    PadTkr_Parse(tkr, "{@ def func():\n"
     "end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ def func():\n"
+    PadTkr_Parse(tkr, "{@ def func():\n"
     "   i = 0\n"
     "end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ def func():\n"
+    PadTkr_Parse(tkr, "{@ def func():\n"
     "@}123{@\n"
     "end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ def func():\n"
+    PadTkr_Parse(tkr, "{@ def func():\n"
     "@}123{@\n"
     "@}223{@\n"
     "end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ def func():\n"
+    PadTkr_Parse(tkr, "{@ def func():\n"
     "   i = 0\n"
     "@}123{@\n"
     "end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ def func():\n"
+    PadTkr_Parse(tkr, "{@ def func():\n"
     "   i = 0\n"
     "@}123{@\n"
     "   j = 1\n"
     "end @}");
     {
-        ast_clear(ast);
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_del(tkr);
-    ast_del(ast);
+    PadTkr_Del(tkr);
+    PadAST_Del(ast);
     config_del(config);
 }
 
@@ -12387,7 +12387,7 @@ test_cc_func_def(void) {
  */
 static const struct testcase
 compiler_tests[] = {
-    {"cc_compile", test_cc_compile},
+    {"PadCC_Compile", test_PadCC_Compile},
     {"cc_basic_0", test_cc_basic_0},
     {"cc_basic_1", test_cc_basic_1},
     {"cc_code_block", test_cc_code_block},
@@ -12421,198 +12421,198 @@ static void
 test_trv_comparison(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = 1 == 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 == 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 == \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 == \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = 1 == f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = 1 == f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" == 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" == 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" == \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" == \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = \"abc\" == f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = \"abc\" == f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 == 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 == 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 == 1 == 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 == 1 == 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 == 1 == 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 == 1 == 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 != 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 != 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 != \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 != \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" != 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" != 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" != \"def\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" != \"def\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f != 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f != 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = 1 != f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = 1 != f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 != 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 != 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 != 1 != 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 != 1 != 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 != 1 != 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 != 1 != 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" == \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" == \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
@@ -12620,23 +12620,23 @@ test_trv_comparison(void) {
      * well-formed on Python
      * ill-formed on Ruby
      */
-    tkr_parse(tkr, "{@ a = \"abc\" == \"abc\" == \"def\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" == \"abc\" == \"def\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" == \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" == \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
@@ -12644,23 +12644,23 @@ test_trv_comparison(void) {
     * boolean can convert to integer *
     *********************************/
 
-    tkr_parse(tkr, "{@ a = true == 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true == 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = false == 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false == 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
@@ -12668,63 +12668,63 @@ test_trv_comparison(void) {
     * lte *
     ******/
 
-    tkr_parse(tkr, "{@ a = 1 <= 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 <= 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 <= 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 <= 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = true <= 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true <= 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = true <= 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true <= 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 <= true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 <= true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 <= true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 <= true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
@@ -12732,63 +12732,63 @@ test_trv_comparison(void) {
     * gte *
     ******/
 
-    tkr_parse(tkr, "{@ a = 1 >= 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 >= 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 >= 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 >= 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = true >= 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true >= 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = true >= 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true >= 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 >= true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 >= true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 >= true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 >= true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
@@ -12796,63 +12796,63 @@ test_trv_comparison(void) {
     * lt *
     *****/
 
-    tkr_parse(tkr, "{@ a = 1 < 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 < 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 < 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 < 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = true < 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true < 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = true < 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true < 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 < true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 < true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 < true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 < true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
@@ -12860,70 +12860,70 @@ test_trv_comparison(void) {
     * gt *
     *****/
 
-    tkr_parse(tkr, "{@ a = 1 > 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 > 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 > 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 > 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = true > 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true > 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = true > 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true > 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 > true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 > true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 > true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 > true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -12931,115 +12931,115 @@ static void
 test_trv_array_index(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    // tkr_parse(tkr, "{@ a[0] @}");
+    // PadTkr_Parse(tkr, "{@ a[0] @}");
     // {
-    ast_clear(ast);
-    //     (cc_compile(ast, tkr_get_tokens(tkr)));
-    //     ctx_clear(ctx);
-    //     (trv_traverse(ast, ctx));
-    //     assert(ast_has_errors(ast));
-    //     assert(!strcmp(ast_getc_first_error_message(ast), "can't index access. \"a\" is not defined"));
+    PadAST_Clear(ast);
+    //     (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+    //     PadCtx_Clear(ctx);
+    //     (PadTrv_Trav(ast, ctx));
+    //     assert(PadAST_HasErrs(ast));
+    //     assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "can't index access. \"a\" is not defined"));
     // }
 
-    tkr_parse(tkr, "{@ a = [1, 2] \n @}{: a[0] :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] \n @}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] \n @}{: a[1] :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] \n @}{: a[1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] \n @}{: a[0] :},{: a[1] :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] \n @}{: a[0] :},{: a[1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] \n @}{: a[2] :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] \n @}{: a[2] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "index out of range"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "index out of range"));
     }
 
-    /* tkr_parse(tkr, "{@ a = [1, 2] \n @}{: a[-1] :}");
+    /* PadTkr_Parse(tkr, "{@ a = [1, 2] \n @}{: a[-1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "index out of range of array"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "index out of range of array"));
     } */
 
-    // tkr_parse(tkr, "{@ a = (b, c = 1, 2)[0] \n @}{: a :}");
+    // PadTkr_Parse(tkr, "{@ a = (b, c = 1, 2)[0] \n @}{: a :}");
     // {
-    //     ast_clear(ast);
-    //     cc_compile(ast, tkr_get_tokens(tkr));
-    //     ctx_clear(ctx);
-    //     (trv_traverse(ast, ctx));
-    //     assert(!ast_has_errors(ast));
+    //     PadAST_Clear(ast);
+    //     PadCC_Compile(ast, PadTkr_GetToks(tkr));
+    //     PadCtx_Clear(ctx);
+    //     (PadTrv_Trav(ast, ctx));
+    //     assert(!PadAST_HasErrs(ast));
     //     assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     // }
 
-    // tkr_parse(tkr, "{@ a = (b, c = 1, 2)[1] \n @}{: a :}");
+    // PadTkr_Parse(tkr, "{@ a = (b, c = 1, 2)[1] \n @}{: a :}");
     // {
-    ast_clear(ast);
-    //     cc_compile(ast, tkr_get_tokens(tkr));
-    //     ctx_clear(ctx);
-    //     (trv_traverse(ast, ctx));
-    //     assert(!ast_has_errors(ast));
+    PadAST_Clear(ast);
+    //     PadCC_Compile(ast, PadTkr_GetToks(tkr));
+    //     PadCtx_Clear(ctx);
+    //     (PadTrv_Trav(ast, ctx));
+    //     assert(!PadAST_HasErrs(ast));
     //     assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     // }
 
-    tkr_parse(tkr, "{@ a = [[1, 2]] \n @}{: a[0] :}");
+    PadTkr_Parse(tkr, "{@ a = [[1, 2]] \n @}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [[1, 2]] \n @}{: a[0][0] :}");
+    PadTkr_Parse(tkr, "{@ a = [[1, 2]] \n @}{: a[0][0] :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -13047,24 +13047,24 @@ static void
 test_trv_text_block_old(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "abc");
+    PadTkr_Parse(tkr, "abc");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -13072,115 +13072,115 @@ static void
 test_trv_ref_block_old(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: nil :}");
+    PadTkr_Parse(tkr, "{: nil :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{: false :}");
+    PadTkr_Parse(tkr, "{: false :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{: true :}");
+    PadTkr_Parse(tkr, "{: true :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{: 1 :}");
+    PadTkr_Parse(tkr, "{: 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{: 123 :}");
+    PadTkr_Parse(tkr, "{: 123 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "123"));
     }
 
-    tkr_parse(tkr, "{: \"abc\" :}");
+    PadTkr_Parse(tkr, "{: \"abc\" :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{: a :}");
+    PadTkr_Parse(tkr, "{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined in ref block"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined in ref block"));
     }
 
-    /* tkr_parse(tkr, "{: alias(\"dtl\", \"run bin/date-line.py\") :}");
+    /* PadTkr_Parse(tkr, "{: alias(\"dtl\", \"run bin/date-line.py\") :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     } */
 
-    tkr_parse(tkr, "{: 1 + 1 :}");
+    PadTkr_Parse(tkr, "{: 1 + 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{: 1 + 1 + 1 :}");
+    PadTkr_Parse(tkr, "{: 1 + 1 + 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{: [1, 2] :}");
+    PadTkr_Parse(tkr, "{: [1, 2] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -13188,40 +13188,40 @@ static void
 test_trv_assign_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0\n"
+    PadTkr_Parse(tkr, "{@ a = 0\n"
         "for i=0; i!=4; i+=1:\n"
         "   if i == 2:\n"
         "   end\n"
         "   a += 1\n"
         "end @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -13231,68 +13231,68 @@ test_trv_assign_1(void) {
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "@}{: string :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(module)"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "   string.a = 1\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "   string.a = 1\n"
     "@}{: string :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(module)"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "   string.a = 1\n"
     "@}{: string.a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "   string.a = 1\n"
     "   string.b = string.a\n"
     "@}{: string.b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -13305,16 +13305,16 @@ test_trv_assign_2(void) {
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "   string.a = 1\n"
     "@}{: string.a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -13325,58 +13325,58 @@ static void
 test_trv_atom_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ nil @}");
+    PadTkr_Parse(tkr, "{@ nil @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ false @}");
+    PadTkr_Parse(tkr, "{@ false @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ true @}");
+    PadTkr_Parse(tkr, "{@ true @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ \"abc\" @}");
+    PadTkr_Parse(tkr, "{@ \"abc\" @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ var @}");
+    PadTkr_Parse(tkr, "{@ var @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
     }
 
     trv_cleanup;
@@ -13386,75 +13386,75 @@ static void
 test_trv_array(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [1] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [1] \n b = a @}{: a :},{: b :}");
+    PadTkr_Parse(tkr, "{@ a = [1] \n b = a @}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array),(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [b = 1, c = 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [b = 1, c = 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, b = 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, b = 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -13462,386 +13462,386 @@ static void
 test_trv_index(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" @}{: a[0] :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" @}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "a"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" @}{: a[0] :},{: a[1] :},{: a[2] :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" @}{: a[0] :},{: a[1] :},{: a[2] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "a,b,c"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] @}{: a[0] :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] @}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] @}{: a[0] :},{: a[1] :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] @}{: a[0] :},{: a[1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\": 1, \"b\": 2} @}{: a[\"a\"] :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\": 1, \"b\": 2} @}{: a[\"a\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\": 1, \"b\": 2} @}{: a[\"a\"] :},{: a[\"b\"] :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\": 1, \"b\": 2} @}{: a[\"a\"] :},{: a[\"b\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" \n b = a[0] or a[1] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" \n b = a[0] or a[1] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "a"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" \n b = a[0] and a[1] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" \n b = a[0] and a[1] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "b"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" \n b = not a[0] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" \n b = not a[0] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = [1,2] \n b = a[0] or a[1] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = [1,2] \n b = a[0] or a[1] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = [1,2] \n b = a[0] and a[1] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = [1,2] \n b = a[0] and a[1] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = [1,2] \n b = not a[0] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = [1,2] \n b = not a[0] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = a[\"a\"] or a[\"b\"] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = a[\"a\"] or a[\"b\"] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = a[\"a\"] and a[\"b\"] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = a[\"a\"] and a[\"b\"] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = not a[\"a\"] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = not a[\"a\"] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" \n b = a[0] == \"a\" @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" \n b = a[0] == \"a\" @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" \n b = \"a\" == a[0] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" \n b = \"a\" == a[0] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" \n b = a[0] != \"a\" @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" \n b = a[0] != \"a\" @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" \n b = \"a\" != a[0] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" \n b = \"a\" != a[0] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = [1,2] \n b = a[0] == 1 @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = [1,2] \n b = a[0] == 1 @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = [1,2] \n b = 1 == a[0] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = [1,2] \n b = 1 == a[0] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = [1,2] \n b = a[0] != 1 @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = [1,2] \n b = a[0] != 1 @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = [1,2] \n b = 1 != a[0] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = [1,2] \n b = 1 != a[0] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = a[\"a\"] == 1 @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = a[\"a\"] == 1 @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = 1 == a[\"a\"] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = 1 == a[\"a\"] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = a[\"a\"] != 1 @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = a[\"a\"] != 1 @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = 1 != a[\"a\"] @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\":1, \"b\":2} \n b = 1 != a[\"a\"] @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" \n if a[0] == \"a\": puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" \n if a[0] == \"a\": puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ a = [1,2] \n a[0] = 3 @}{: a[0] :},{: a[1] :}");
+    PadTkr_Parse(tkr, "{@ a = [1,2] \n a[0] = 3 @}{: a[0] :},{: a[1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3,2"));
     }
 
-    tkr_parse(tkr, "{@ a = [1,2] \n a[0] = 3 \n a[1] = 4 @}{: a[0] :},{: a[1] :}");
+    PadTkr_Parse(tkr, "{@ a = [1,2] \n a[0] = 3 \n a[1] = 4 @}{: a[0] :},{: a[1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3,4"));
     }
 
-    tkr_parse(tkr, "{@ a = [\"a\",\"b\"] \n a[0] = \"c\" @}{: a[0] :},{: a[1] :}");
+    PadTkr_Parse(tkr, "{@ a = [\"a\",\"b\"] \n a[0] = \"c\" @}{: a[0] :},{: a[1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "c,b"));
     }
 
-    tkr_parse(tkr, "{@ a = [\"a\",\"b\"] \n a[0] = \"c\" \n a[1] = \"d\" @}{: a[0] :},{: a[1] :}");
+    PadTkr_Parse(tkr, "{@ a = [\"a\",\"b\"] \n a[0] = \"c\" \n a[1] = \"d\" @}{: a[0] :},{: a[1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "c,d"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\":1, \"b\":2 } \n a[\"a\"] = 3 @}{: a[\"a\"] :},{: a[\"b\"] :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\":1, \"b\":2 } \n a[\"a\"] = 3 @}{: a[\"a\"] :},{: a[\"b\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3,2"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"a\":1, \"b\":2 } \n a[\"a\"] = 3 \n a[\"b\"] = 4 @}{: a[\"a\"] :},{: a[\"b\"] :}");
+    PadTkr_Parse(tkr, "{@ a = {\"a\":1, \"b\":2 } \n a[\"a\"] = 3 \n a[\"b\"] = 4 @}{: a[\"a\"] :},{: a[\"b\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3,4"));
     }
 
-    tkr_parse(tkr, "{@ a = [] a.push(1) @}{: a[0] :}");
+    PadTkr_Parse(tkr, "{@ a = [] a.push(1) @}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = [\"abc_def\"] @}{: a[0].camel() :}");
+    PadTkr_Parse(tkr, "{@ a = [\"abc_def\"] @}{: a[0].camel() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         showdetail();
-        assert(!ast_has_errors(ast));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abcDef"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -13849,75 +13849,75 @@ static void
 test_trv_string_index(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = \"ab\" \n @}{: a[0] :}");
+    PadTkr_Parse(tkr, "{@ a = \"ab\" \n @}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "a"));
     }
 
-    tkr_parse(tkr, "{@ a = \"ab\" \n @}{: a[1] :}");
+    PadTkr_Parse(tkr, "{@ a = \"ab\" \n @}{: a[1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "b"));
     }
 
-    tkr_parse(tkr, "{@ a = \"ab\" \n @}{: a[2] :}");
+    PadTkr_Parse(tkr, "{@ a = \"ab\" \n @}{: a[2] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "index out of range"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "index out of range"));
     }
 
-    tkr_parse(tkr, "{@ a = (\"a\" + \"b\")[0] \n @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = (\"a\" + \"b\")[0] \n @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "a"));
     }
 
-    tkr_parse(tkr, "{@ a = (\"a\" + \"b\")[1] \n @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = (\"a\" + \"b\")[1] \n @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "b"));
     }
 
-    tkr_parse(tkr, "{@ a = \"ab\"[0][0] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"ab\"[0][0] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "a"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -13925,59 +13925,59 @@ static void
 test_trv_multi_assign(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     // error
 
-    tkr_parse(tkr, "{@ a, b = 1, 2, 3 @}{: a :} {: b :}");
+    PadTkr_Parse(tkr, "{@ a, b = 1, 2, 3 @}{: a :} {: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "can't assign array to array. not same length"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "can't assign array to array. not same length"));
     }
 
-    tkr_parse(tkr, "{@ a, b = 2 @}");
+    PadTkr_Parse(tkr, "{@ a, b = 2 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid right operand (1)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid right operand (1)"));
     }
 
     // success
 
-    tkr_parse(tkr, "{@ a, b = 1, 2 @}{: a :} {: b :}");
+    PadTkr_Parse(tkr, "{@ a, b = 1, 2 @}{: a :} {: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1 2"));
     }
 
-    tkr_parse(tkr, "{@ a = 1, 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1, 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -13985,1319 +13985,1319 @@ static void
 test_trv_and_test(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     // nil and objects
 
-    tkr_parse(tkr, "{@ a = nil and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = nil and 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil and 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = nil and 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil and 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = nil and true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil and true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = nil and false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil and false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = nil and \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil and \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = nil and \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil and \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = nil and f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = nil and f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = nil and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = nil and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
     // digit and objects
 
-    tkr_parse(tkr, "{@ a = 1 and 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 and 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 and 2 and 3 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and 2 and 3 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 and true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 and true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 and true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 and false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 and false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 and false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 and \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = 0 and \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 and \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = 0 and \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 and \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 and \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = 1 and f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = 1 and f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = 0 and f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = 0 and f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
     // bool and objects
 
-    tkr_parse(tkr, "{@ a = true and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = false and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = true and 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true and 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = true and 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true and 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = false and 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false and 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = false and \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false and \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = false and \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false and \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = true and \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true and \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = true and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = false and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = false and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = true and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = true and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
     // string and other
 
-    tkr_parse(tkr, "{@ a = \"abc\" and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" and false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" and true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" and 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" and 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" and \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" and \"def\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and \"def\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "def"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" and {} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and {} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" and {\"k\":1} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and {\"k\":1} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = \"abc\" and f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = \"abc\" and f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = \"abc\" and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = \"abc\" and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ b = 0 \n a = \"abc\" and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 0 \n a = \"abc\" and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and \"def\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and \"def\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and {} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and {} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" and {\"k\":1} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" and {\"k\":1} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = \"\" and f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = \"\" and f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = \"\" and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = \"\" and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ b = 0 \n a = \"\" and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 0 \n a = \"\" and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
     // array and other
 
-    tkr_parse(tkr, "{@ a = [1, 2] and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] and false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] and true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] and 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] and 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] and \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] and \"def\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and \"def\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "def"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] and {} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and {} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] and {\"k\":1} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] and {\"k\":1} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = [1, 2] and f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = [1, 2] and f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = [1, 2] and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = [1, 2] and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ b = 0 \n a = [1, 2] and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 0 \n a = [1, 2] and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and \"def\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and \"def\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and {} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and {} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] and {\"k\":1} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] and {\"k\":1} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = [] and f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = [] and f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = [] and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = [] and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ b = 0 \n a = [] and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 0 \n a = [] and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
     // dict and other
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and \"def\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and \"def\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "def"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and {} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and {} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = {\"k\": 1} and {\"k\":1} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {\"k\": 1} and {\"k\":1} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = {\"k\": 1} and f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = {\"k\": 1} and f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = {\"k\": 1} and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = {\"k\": 1} and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ b = 0 \n a = {\"k\": 1} and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 0 \n a = {\"k\": 1} and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and \"def\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and \"def\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and {} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and {} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = {} and {\"k\":1} @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = {} and {\"k\":1} @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = {} and f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = {} and f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = {} and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = {} and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ b = 0 \n a = {} and b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 0 \n a = {} and b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
     //
 
-    tkr_parse(tkr, "{@ a = \"abc\" and 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" and 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 and \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 and \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = 1 and f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = 1 and f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -15305,164 +15305,164 @@ static void
 test_trv_assign_list(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     // success
 
-    tkr_parse(tkr, "{@ a = nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\"\n b = a @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\"\n b = a @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 1, b = 2 @}{: a :},{: b :}");
+    PadTkr_Parse(tkr, "{@ a = 1, b = 2 @}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 + 2, b = 3 * 4 @}{: a :},{: b :}");
+    PadTkr_Parse(tkr, "{@ a = 1 + 2, b = 3 * 4 @}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3,12"));
     }
 
-    tkr_parse(tkr, "{@ a = 1, b = 2, c = 3 @}{: a :},{: b :},{: c :}");
+    PadTkr_Parse(tkr, "{@ a = 1, b = 2, c = 3 @}{: a :},{: b :},{: c :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2,3"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n b = a = 1 @}{: a :},{: b :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n b = a = 1 @}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n b = a = 1, c = b = 1 @}{: a :},{: b :},{: c :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n b = a = 1, c = b = 1 @}{: a :},{: b :},{: c :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,1,1"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a, b = 1, 2 @}{: a :},{: b :}");
+    PadTkr_Parse(tkr, "{@ a, b = 1, 2 @}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2"));
     }
 
-    tkr_parse(tkr, "{@ a = alias.set(\"\", \"\") @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = alias.set(\"\", \"\") @}{: a :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = alias.set(\"\", \"\")\n b = alias.set(\"\", \"\") @}{: a :},{: b :}");
+    PadTkr_Parse(tkr, "{@ a = alias.set(\"\", \"\")\n b = alias.set(\"\", \"\") @}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil,nil"));
     }
 
-    tkr_parse(tkr, "{@ a = opts.get(\"abc\") @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = opts.get(\"abc\") @}{: a :}");
     {
         char *argv[] = {
             "make",
@@ -15472,20 +15472,20 @@ test_trv_assign_list(void) {
         };
         opts_t *opts = opts_new();
         assert(opts_parse(opts, 3, argv));
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
         ast_move_opts(ast, opts);
-        (trv_traverse(ast, ctx));
+        (PadTrv_Trav(ast, ctx));
         ast_move_opts(ast, NULL);
-        assert(!ast_has_errors(ast));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "def"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -15493,43 +15493,43 @@ static void
 test_trv_test_list(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ 1, 2 @}");
+    PadTkr_Parse(tkr, "{@ 1, 2 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ 1, \"abc\", var, alias.set(\"\", \"\") @}");
+    PadTkr_Parse(tkr, "{@ 1, \"abc\", var, alias.set(\"\", \"\") @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n b = 0 \n a += 1, b += 2 @}{: a :} {: b :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n b = 0 \n a += 1, b += 2 @}{: a :} {: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1 2"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -15537,85 +15537,85 @@ static void
 test_trv_negative_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 :}");
+    PadTkr_Parse(tkr, "{: 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{: -1 :}");
+    PadTkr_Parse(tkr, "{: -1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "-1"));
     }
 
-    tkr_parse(tkr, "{: 1 + -1 :}");
+    PadTkr_Parse(tkr, "{: 1 + -1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{: -1 + -1 :}");
+    PadTkr_Parse(tkr, "{: -1 + -1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "-2"));
     }
 
-    tkr_parse(tkr, "{: 1 - -1 :}");
+    PadTkr_Parse(tkr, "{: 1 - -1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{: -1 - -1 :}");
+    PadTkr_Parse(tkr, "{: -1 - -1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{: 1-1 :}");
+    PadTkr_Parse(tkr, "{: 1-1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -15623,56 +15623,56 @@ static void
 test_trv_dot_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: \"ABC\".lower() :}");
+    PadTkr_Parse(tkr, "{: \"ABC\".lower() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{: \"abc\".upper() :}");
+    PadTkr_Parse(tkr, "{: \"abc\".upper() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "ABC"));
     }
 
-    tkr_parse(tkr, "{: \"ABC\".lower().upper() :}");
+    PadTkr_Parse(tkr, "{: \"ABC\".lower().upper() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "ABC"));
     }
 
-    tkr_parse(tkr, "{: alias.set(\"a\", \"b\") :}");
+    PadTkr_Parse(tkr, "{: alias.set(\"a\", \"b\") :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
-        assert(!strcmp(ctx_get_alias_value(ctx, "a"), "b"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
+        assert(!strcmp(PadCtx_GetAliasValue(ctx, "a"), "b"));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -15682,15 +15682,15 @@ test_trv_dot_1(void) {
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "@}{: string.variable.upper() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "STRING"));
     }
 
@@ -15701,17 +15701,17 @@ static void
 test_trv_dot_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "    arr = [1, 2]\n"
     "    dst = []\n"
     "    dst.push(arr[1])\n"
     "@}{: dst[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
@@ -15722,17 +15722,17 @@ static void
 test_trv_dot_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "    arr = [1, 2]\n"
     "    dst = []\n"
     "    dst.push(arr.pop())\n"
     "@}{: dst[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
@@ -15743,17 +15743,17 @@ static void
 test_trv_dot_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "    arr = [[1, 2], [3, 4]]\n"
     "    dst = []\n"
     "    n = dst.push(arr.pop().pop()).pop()\n"
     "@}{: n :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4"));
     }
 
@@ -15764,17 +15764,17 @@ static void
 test_trv_dot_5(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "    arr = [[[[[[[[1, 2]]]]]]]]\n"
     "    dst = []\n"
     "    n = dst.push(arr.pop().pop().pop().pop().pop().pop().pop().pop()).pop()\n"
     "@}{: n :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
@@ -15785,55 +15785,55 @@ static void
 test_trv_call(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ def f(): return 1 end @}{: f() :}");
+    PadTkr_Parse(tkr, "{@ def f(): return 1 end @}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ puts(1) @}");
+    PadTkr_Parse(tkr, "{@ puts(1) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return 1 end \n funcs = { \"a\": f } @}{: funcs[\"a\"]() :}");
+    PadTkr_Parse(tkr, "{@ def f(): return 1 end \n funcs = { \"a\": f } @}{: funcs[\"a\"]() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ def a(n): return n*2 end \n def b(): return a end @}{: b()(2) :}");
+    PadTkr_Parse(tkr, "{@ def a(n): return n*2 end \n def b(): return a end @}{: b()(2) :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -15841,112 +15841,112 @@ static void
 test_trv_func_def(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ def f(): end @}{: f() :}");
+    PadTkr_Parse(tkr, "{@ def f(): end @}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ def f(a): return a end @}{: f(1) :}");
+    PadTkr_Parse(tkr, "{@ def f(a): return a end @}{: f(1) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ def f(a, b): return a + b end @}{: f(1, 2) :}");
+    PadTkr_Parse(tkr, "{@ def f(a, b): return a + b end @}{: f(1, 2) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return true end @}{: f() :}");
+    PadTkr_Parse(tkr, "{@ def f(): return true end @}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return 0 end @}{: f() :}");
+    PadTkr_Parse(tkr, "{@ def f(): return 0 end @}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return 1 + 2 end @}{: f() :}");
+    PadTkr_Parse(tkr, "{@ def f(): return 1 + 2 end @}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@ def f(): @}abc{@ end @}{: f() :}");
+    PadTkr_Parse(tkr, "{@ def f(): @}abc{@ end @}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abcnil"));
     }
 
-    tkr_parse(tkr, "{@ def f(): @}abc{@ a = 1 @}def{@ end @}{: f() :}");
+    PadTkr_Parse(tkr, "{@ def f(): @}abc{@ a = 1 @}def{@ end @}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abcdefnil"));
     }
 
-    tkr_parse(tkr, "{@ def f(): @}abc{@ a = 1 @}{: a :}{@ end @}{: f() :}");
+    PadTkr_Parse(tkr, "{@ def f(): @}abc{@ a = 1 @}{: a :}{@ end @}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc1nil"));
     }
 
-    tkr_parse(tkr, "{@ def f(a): @}{: a :}{@ b = 123 @}{: b :}{@ end @}{: f(\"abc\") :}");
+    PadTkr_Parse(tkr, "{@ def f(a): @}{: a :}{@ b = 123 @}{: b :}{@ end @}{: f(\"abc\") :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc123nil"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "    def usage():\n"
         "@}abc{@\n"
@@ -15954,15 +15954,15 @@ test_trv_func_def(void) {
         "@}{: usage() :}"
     );
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abcnil"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "    def func():\n"
         "        puts(\"hi\")\n"
@@ -15974,15 +15974,15 @@ test_trv_func_def(void) {
         "@}"
     );
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "hi\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "    def func():\n"
         "        puts(\"hi\")\n"
@@ -15997,15 +15997,15 @@ test_trv_func_def(void) {
         "@}"
     );
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "hi\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "    def func():\n"
         "       i = 0\n"
@@ -16018,18 +16018,18 @@ test_trv_func_def(void) {
         "@}"
     );
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0,1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -16037,185 +16037,185 @@ static void
 test_trv_builtin_string(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     /********
     * upper *
     ********/
 
-    tkr_parse(tkr, "{: \"abc\".upper() :}");
+    PadTkr_Parse(tkr, "{: \"abc\".upper() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "ABC"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" \n @}{: a.upper() :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" \n @}{: a.upper() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "ABC"));
     }
 
-    tkr_parse(tkr, "{: nil.upper() :}");
+    PadTkr_Parse(tkr, "{: nil.upper() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"upper\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"upper\" is not defined"));
     }
 
     /********
     * lower *
     ********/
 
-    tkr_parse(tkr, "{: \"ABC\".lower() :}");
+    PadTkr_Parse(tkr, "{: \"ABC\".lower() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"ABC\" \n @}{: a.lower() :}");
+    PadTkr_Parse(tkr, "{@ a = \"ABC\" \n @}{: a.lower() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{: nil.lower() :}");
+    PadTkr_Parse(tkr, "{: nil.lower() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"lower\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"lower\" is not defined"));
     }
 
     /*************
     * capitalize *
     *************/
 
-    tkr_parse(tkr, "{: \"abc\".capitalize() :}");
+    PadTkr_Parse(tkr, "{: \"abc\".capitalize() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "Abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" \n @}{: a.capitalize() :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" \n @}{: a.capitalize() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "Abc"));
     }
 
-    tkr_parse(tkr, "{: nil.capitalize() :}");
+    PadTkr_Parse(tkr, "{: nil.capitalize() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"capitalize\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"capitalize\" is not defined"));
     }
 
     /********
     * snake *
     ********/
 
-    tkr_parse(tkr, "{: \"abcDef\".snake() :}");
+    PadTkr_Parse(tkr, "{: \"abcDef\".snake() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc_def"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abcDef\" \n @}{: a.snake() :}");
+    PadTkr_Parse(tkr, "{@ a = \"abcDef\" \n @}{: a.snake() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc_def"));
     }
 
-    tkr_parse(tkr, "{: nil.snake() :}");
+    PadTkr_Parse(tkr, "{: nil.snake() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"snake\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"snake\" is not defined"));
     }
 
     /********
     * camel *
     ********/
 
-    tkr_parse(tkr, "{: \"camel_case\".camel() :}");
+    PadTkr_Parse(tkr, "{: \"camel_case\".camel() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "camelCase"));
     }
 
-    tkr_parse(tkr, "{@ a = \"camel_case\" \n @}{: a.camel() :}");
+    PadTkr_Parse(tkr, "{@ a = \"camel_case\" \n @}{: a.camel() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "camelCase"));
     }
 
-    tkr_parse(tkr, "{: nil.camel() :}");
+    PadTkr_Parse(tkr, "{: nil.camel() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"camel\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"camel\" is not defined"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -16223,39 +16223,39 @@ static void
 test_trv_builtin_unicode_split(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ toks = \"abc\ndef\nghi\".split(\"\n\") @}"
+    PadTkr_Parse(tkr, "{@ toks = \"abc\ndef\nghi\".split(\"\n\") @}"
         "{: len(toks) :}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@ toks = \"abc\ndef\nghi\n\".split(\"\n\") @}"
+    PadTkr_Parse(tkr, "{@ toks = \"abc\ndef\nghi\n\".split(\"\n\") @}"
         "{: len(toks) :}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@ toks = \"\".split(\"\n\") @}"
+    PadTkr_Parse(tkr, "{@ toks = \"\".split(\"\n\") @}"
         "{: len(toks) :}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -16266,27 +16266,27 @@ static void
 test_trv_builtin_unicode_rstrip(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ s = \"abc \r\n\".rstrip() @}"
+    PadTkr_Parse(tkr, "{@ s = \"abc \r\n\".rstrip() @}"
         "{: s :}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ s = \"abcdef\".rstrip(\"def\") @}"
+    PadTkr_Parse(tkr, "{@ s = \"abcdef\".rstrip(\"def\") @}"
         "{: s :}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
@@ -16297,27 +16297,27 @@ static void
 test_trv_builtin_unicode_lstrip(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ s = \"\r\n abc\".lstrip() @}"
+    PadTkr_Parse(tkr, "{@ s = \"\r\n abc\".lstrip() @}"
         "{: s :}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ s = \"defabc\".lstrip(\"def\") @}"
+    PadTkr_Parse(tkr, "{@ s = \"defabc\".lstrip(\"def\") @}"
         "{: s :}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
@@ -16328,27 +16328,27 @@ static void
 test_trv_builtin_unicode_strip(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ s = \"\r\n abc\r\n \".strip() @}"
+    PadTkr_Parse(tkr, "{@ s = \"\r\n abc\r\n \".strip() @}"
         "{: s :}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ s = \"defabcdef\".strip(\"def\") @}"
+    PadTkr_Parse(tkr, "{@ s = \"defabcdef\".strip(\"def\") @}"
         "{: s :}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
@@ -16359,35 +16359,35 @@ static void
 test_trv_builtin_functions(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     /********
     * alias *
     ********/
 
-    tkr_parse(tkr, "{@ alias.set(\"abc\", \"def\") @}");
+    PadTkr_Parse(tkr, "{@ alias.set(\"abc\", \"def\") @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
         const char *value = alinfo_getc_value(alinfo, "abc");
         assert(value);
         assert(!strcmp(value, "def"));
     }
 
-    tkr_parse(tkr, "{@ alias.set(\"abc\", \"def\", \"ghi\") @}");
+    PadTkr_Parse(tkr, "{@ alias.set(\"abc\", \"def\", \"ghi\") @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
         const char *value = alinfo_getc_value(alinfo, "abc");
         assert(value);
@@ -16401,7 +16401,7 @@ test_trv_builtin_functions(void) {
     * opts *
     *******/
 
-    tkr_parse(tkr, "{: opts.get(\"abc\") :}");
+    PadTkr_Parse(tkr, "{: opts.get(\"abc\") :}");
     {
         opts_t *opts = opts_new();
         char *argv[] = {
@@ -16411,16 +16411,16 @@ test_trv_builtin_functions(void) {
             NULL,
         };
         opts_parse(opts, 3, argv);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         ast_move_opts(ast, opts);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "def"));
     }
 
-    tkr_parse(tkr, "{: opts.has(\"abc\") :}");
+    PadTkr_Parse(tkr, "{: opts.has(\"abc\") :}");
     {
         opts_t *opts = opts_new();
         char *argv[] = {
@@ -16429,16 +16429,16 @@ test_trv_builtin_functions(void) {
             NULL,
         };
         opts_parse(opts, 2, argv);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         ast_move_opts(ast, opts);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{: opts.has(\"def\") :}");
+    PadTkr_Parse(tkr, "{: opts.has(\"def\") :}");
     {
         opts_t *opts = opts_new();
         char *argv[] = {
@@ -16447,12 +16447,12 @@ test_trv_builtin_functions(void) {
             NULL,
         };
         opts_parse(opts, 2, argv);
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
         ast_move_opts(ast, opts);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
@@ -16460,53 +16460,53 @@ test_trv_builtin_functions(void) {
     * puts *
     *******/
 
-    tkr_parse(tkr, "{@ puts() @}");
+    PadTkr_Parse(tkr, "{@ puts() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "\n"));
     }
 
-    tkr_parse(tkr, "{@ puts(1) @}");
+    PadTkr_Parse(tkr, "{@ puts(1) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ puts(1, 2) @}");
+    PadTkr_Parse(tkr, "{@ puts(1, 2) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1 2\n"));
     }
 
-    tkr_parse(tkr, "{@ puts(1, \"abc\") @}");
+    PadTkr_Parse(tkr, "{@ puts(1, \"abc\") @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1 abc\n"));
     }
 
-    tkr_parse(tkr, "{@ puts(\"abc\") @}");
+    PadTkr_Parse(tkr, "{@ puts(\"abc\") @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc\n"));
     }
 
@@ -16514,53 +16514,53 @@ test_trv_builtin_functions(void) {
     * eputs *
     ********/
 
-    tkr_parse(tkr, "{@ eputs() @}");
+    PadTkr_Parse(tkr, "{@ eputs() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stderr_buf(ctx), "\n"));
     }
 
-    tkr_parse(tkr, "{@ eputs(1) @}");
+    PadTkr_Parse(tkr, "{@ eputs(1) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stderr_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ eputs(1, 2) @}");
+    PadTkr_Parse(tkr, "{@ eputs(1, 2) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stderr_buf(ctx), "1 2\n"));
     }
 
-    tkr_parse(tkr, "{@ eputs(1, \"abc\") @}");
+    PadTkr_Parse(tkr, "{@ eputs(1, \"abc\") @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stderr_buf(ctx), "1 abc\n"));
     }
 
-    tkr_parse(tkr, "{@ eputs(\"abc\") @}");
+    PadTkr_Parse(tkr, "{@ eputs(\"abc\") @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stderr_buf(ctx), "abc\n"));
     }
 
@@ -16568,19 +16568,19 @@ test_trv_builtin_functions(void) {
     * id *
     *****/
 
-    tkr_parse(tkr, "{: id(1) :}");
+    PadTkr_Parse(tkr, "{: id(1) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -16592,7 +16592,7 @@ test_trv_builtin_modules_opts_0(void) {
     * ok *
     *****/
 
-    tkr_parse(tkr, "{: opts.args(0) :},{: opts.args(1) :}");
+    PadTkr_Parse(tkr, "{: opts.args(0) :},{: opts.args(1) :}");
     {
         int argc = 2;
         char *argv[] = {
@@ -16602,12 +16602,12 @@ test_trv_builtin_modules_opts_0(void) {
         };
         opts_t *opts = opts_new();
         opts_parse(opts, argc, argv);
-        ast_clear(ast);
+        PadAST_Clear(ast);
         ast_move_opts(ast, mem_move(opts));
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "cmd,aaa"));
     }
 
@@ -16618,14 +16618,14 @@ static void
 test_trv_builtin_modules_alias_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ alias.set(1, 2, 3) @}");
+    PadTkr_Parse(tkr, "{@ alias.set(1, 2, 3) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "can't invoke alias.set. key is not string"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "can't invoke alias.set. key is not string"));
     }
 
     trv_cleanup;
@@ -16635,24 +16635,24 @@ static void
 test_trv_builtin_modules_alias_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ alias.set() @}");
+    PadTkr_Parse(tkr, "{@ alias.set() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "can't invoke alias.set. too few arguments"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "can't invoke alias.set. too few arguments"));
     }
 
-    tkr_parse(tkr, "{@ alias.set(1, 2, 3) @}");
+    PadTkr_Parse(tkr, "{@ alias.set(1, 2, 3) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "can't invoke alias.set. key is not string"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "can't invoke alias.set. key is not string"));
     }
 
     trv_cleanup;
@@ -16662,12 +16662,12 @@ static void
 test_trv_builtin_modules_alias_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ alias.set() @}");
+    PadTkr_Parse(tkr, "{@ alias.set() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
     }
 
     trv_cleanup;
@@ -16677,17 +16677,17 @@ static void
 test_trv_builtin_modules_array_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "    arr = [1, 2]"
     "    dst = []\n"
     "    dst.push(arr[1])\n"
     "@}{: dst[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
@@ -16698,18 +16698,18 @@ static void
 test_trv_builtin_modules_array_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   arr = []\n"
     "   for i = 0; i < 3; i += 1:\n"
     "       arr.push(i)\n"
     "   end\n"
     "@}{: arr[0] :},{: arr[1] :},{: arr[2] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0,1,2"));
     }
 
@@ -16720,61 +16720,61 @@ static void
 test_trv_builtin_functions_type_dict(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ d = {\"a\": 1} @}");
+    PadTkr_Parse(tkr, "{@ d = {\"a\": 1} @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ def f(d): end \n f({\"a\": 1}) @}");
+    PadTkr_Parse(tkr, "{@ def f(d): end \n f({\"a\": 1}) @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ def f(d): end @}{: f(1) :}");
+    PadTkr_Parse(tkr, "{@ def f(d): end @}{: f(1) :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{@ def f(d): end @}{: f({\"a\": 1}) :}");
+    PadTkr_Parse(tkr, "{@ def f(d): end @}{: f({\"a\": 1}) :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    tkr_parse(tkr, "{: type({ \"a\": 1 }) :}");
+    PadTkr_Parse(tkr, "{: type({ \"a\": 1 }) :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(type)"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -16782,95 +16782,95 @@ static void
 test_trv_builtin_functions_type(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: type(nil) :}");
+    PadTkr_Parse(tkr, "{: type(nil) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(type)"));
     }
 
-    tkr_parse(tkr, "{: type(1) :}");
+    PadTkr_Parse(tkr, "{: type(1) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(type)"));
     }
 
-    tkr_parse(tkr, "{: type(true) :}");
+    PadTkr_Parse(tkr, "{: type(true) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(type)"));
     }
 
-    tkr_parse(tkr, "{: type(\"string\") :}");
+    PadTkr_Parse(tkr, "{: type(\"string\") :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(type)"));
     }
 
-    tkr_parse(tkr, "{: type([1, 2]) :}");
+    PadTkr_Parse(tkr, "{: type([1, 2]) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(type)"));
     }
 
-    tkr_parse(tkr, "{: type({ \"a\": 1 }) :}");
+    PadTkr_Parse(tkr, "{: type({ \"a\": 1 }) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(type)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end @}{: type(f) :}");
+    PadTkr_Parse(tkr, "{@ def f(): end @}{: type(f) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(type)"));
     }
 
-    tkr_parse(tkr, "{@ import \":tests/lang/modules/hello.cap\" as mod @}{: type(mod) :}");
+    PadTkr_Parse(tkr, "{@ import \":tests/lang/modules/hello.cap\" as mod @}{: type(mod) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\n(type)"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -16878,13 +16878,13 @@ static void
 test_trv_builtin_functions_puts_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ puts(1) @}");
+    PadTkr_Parse(tkr, "{@ puts(1) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -16895,66 +16895,66 @@ static void
 test_trv_builtin_functions_len_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: len([1, 2]) :}");
+    PadTkr_Parse(tkr, "{: len([1, 2]) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{: len([]) :}");
+    PadTkr_Parse(tkr, "{: len([]) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{: len(\"12\") :}");
+    PadTkr_Parse(tkr, "{: len(\"12\") :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{: len(\"\") :}");
+    PadTkr_Parse(tkr, "{: len(\"\") :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
 static void
-test_trv_traverse(void) {
+test_PadTrv_Trav(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     /*******
     * test *
@@ -16962,1097 +16962,1097 @@ test_trv_traverse(void) {
 
     // digit or objects
 
-    tkr_parse(tkr, "{@ a = 0 or nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 or nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 or 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 or 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 or false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 or false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 or true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 or true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 or \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 or \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = 0 or b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = 0 or b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = 0 or f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = 0 or f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return true end \n a = 0 or f() @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): return true end \n a = 0 or f() @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 or [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 or [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 or [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 or [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 or [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 or [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 or [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 or [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
     // bool or objects
 
-    tkr_parse(tkr, "{@ a = false or false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false or false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = true or false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true or false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = false or true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false or true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = false or 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false or 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = true or 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true or 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = true or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = false or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = false or \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false or \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = false or f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = false or f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = true or f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = true or f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return true end \n a = false or f() @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): return true end \n a = false or f() @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return 0 end \n a = false or f() @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): return 0 end \n a = false or f() @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = false or [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false or [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = false or [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false or [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = true or [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true or [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = true or [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true or [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
     // nil or objects
 
-    tkr_parse(tkr, "{@ a = nil or 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil or 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = nil or 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil or 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = nil or false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil or false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = nil or true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil or true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = nil or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = nil or \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil or \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = nil or b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = nil or b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = nil or f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = nil or f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return true end \n a = nil or f() @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): return true end \n a = nil or f() @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = nil or [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil or [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = nil or [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = nil or [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
     // string or objects
 
-    tkr_parse(tkr, "{@ a = \"abc\" or nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" or nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" or nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" or nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" or true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" or true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" or false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" or false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" or true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" or true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" or false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" or false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" or 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" or 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" or 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" or 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" or 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" or 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" or 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" or 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" or \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" or \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"def\" or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"def\" or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "def"));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = \"abc\" or b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = \"abc\" or b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ b = 0 \n a = \"abc\" or b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 0 \n a = \"abc\" or b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = \"abc\" or f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = \"abc\" or f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = \"\" or f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = \"\" or f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return true end \n a = \"\" or f() @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): return true end \n a = \"\" or f() @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return nil end \n a = \"\" or f() @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): return nil end \n a = \"\" or f() @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return nil end \n a = \"abc\" or f() @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): return nil end \n a = \"abc\" or f() @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" or [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" or [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" or [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" or [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" or [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" or [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = \"\" or [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"\" or [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
     // array or objects
 
-    tkr_parse(tkr, "{@ a = [1, 2] or nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] or nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] or nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] or nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] or 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] or 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] or 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] or 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] or 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] or 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] or 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] or 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] or true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] or true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] or true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] or true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] or false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] or false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] or false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] or false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] or \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] or \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] or \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] or \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] or [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] or [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ a = [] or [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = [] or [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = [] or b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = [] or b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ b = 0 \n a = [] or b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 0 \n a = [] or b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ b = 1 \n a = [1, 2] or b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ b = 1 \n a = [1, 2] or b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = [] or f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = [] or f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = [1, 2] or f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = [1, 2] or f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return 1 end \n a = [] or f() @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): return 1 end \n a = [] or f() @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ def f(): return 0 end \n a = [] or f() @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): return 0 end \n a = [] or f() @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
     // func or objects
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f or nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f or nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f or 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f or 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f or 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f or 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f or true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f or true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f or false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f or false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f or \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f or \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f or f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f or f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f or [] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f or [] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = f or [1, 2] @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = f or [1, 2] @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
     // other
 
-    tkr_parse(tkr, "{@ a = 0 or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
 
-    tkr_parse(tkr, "{@ a = 1 \n b = 0 or a @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = 1 \n b = 0 or a @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end\n"
+    PadTkr_Parse(tkr, "{@ def f(): end\n"
         "a = 0 or f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function)"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 or 0 or 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 or 0 or 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 or \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 or \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ a = not nil @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = not nil @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = not 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = not 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = not 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = not 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ a = not \"\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = not \"\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@ a = not \"abc\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = not \"abc\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    tkr_parse(tkr, "{@ def f(): end \n a = not f @}{: a :}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = not f @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
@@ -18060,66 +18060,66 @@ test_trv_traverse(void) {
     * expr *
     *******/
 
-    tkr_parse(tkr, "{@ a = 1 + 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 + 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 + 2 + 3 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 + 2 + 3 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "6"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 - 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 - 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 3 - 2 - 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 3 - 2 - 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 + 2 - 3 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 + 2 - 3 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = \"abc\" + \"def\" @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"abc\" + \"def\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abcdef"));
     }
 
-    tkr_parse(tkr, "{@ a = \"123\" \n b = \"abc\" + a + \"def\" @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = \"123\" \n b = \"abc\" + a + \"def\" @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc123def"));
     }
 
@@ -18127,57 +18127,57 @@ test_trv_traverse(void) {
     * term *
     *******/
 
-    tkr_parse(tkr, "{@ a = 2 * 3 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 * 3 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "6"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 * 3 * 4 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 * 3 * 4 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "24"));
     }
 
-    tkr_parse(tkr, "{@ a = 4 / 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 4 / 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 4 / 2 / 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 4 / 2 / 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 4 / (2 / 2) @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 4 / (2 / 2) @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 + ( 2 - 3 ) * 4 / 4 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 + ( 2 - 3 ) * 4 / 4 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -18185,82 +18185,82 @@ test_trv_traverse(void) {
     * asscalc *
     **********/
 
-    tkr_parse(tkr, "{@ a += 1 @}");
+    PadTkr_Parse(tkr, "{@ a += 1 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n a += 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a += 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n a += 1 + 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a += 1 + 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n b = 1 + 1 @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n b = 1 + 1 @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n b = 1 + (a += 1) @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n b = 1 + (a += 1) @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n a += 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a += 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n a += 1 \n a += 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a += 1 \n a += 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@ a = \"a\"\n"
+    PadTkr_Parse(tkr, "{@ a = \"a\"\n"
         "a += \"b\" @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "ab"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "a = \"x\"\n"
         "def f():\n"
         "   a += \"y\"\n"
@@ -18268,16 +18268,16 @@ test_trv_traverse(void) {
         "f()\n"
         "@}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        puts(ast_getc_first_error_message(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        puts(PadAST_GetcFirstErrMsg(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "    def add(a):\n"
         "        a += \"x\"\n"
         "    end\n"
@@ -18286,11 +18286,11 @@ test_trv_traverse(void) {
         "   add(a)\n"
         "@}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
@@ -18298,122 +18298,122 @@ test_trv_traverse(void) {
     * import statement *
     *******************/
 
-    tkr_parse(tkr, "{@ import alias @}");
+    PadTkr_Parse(tkr, "{@ import alias @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
     }
 
-    tkr_parse(tkr, "{@ import my.alias @}");
+    PadTkr_Parse(tkr, "{@ import my.alias @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
     }
 
     /***************
     * if statement *
     ***************/
 
-    tkr_parse(tkr, "{@ if 1: a = 1 end @}{: a :}");
+    PadTkr_Parse(tkr, "{@ if 1: a = 1 end @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 1: a = 1 end @}{: a :}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1: a = 1 end @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 0: else: a = 1 end @}{: a :}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 0: else: a = 1 end @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}abc{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}abc{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "abc{@ if 1: @}def{@ end @}ghi");
+    PadTkr_Parse(tkr, "abc{@ if 1: @}def{@ end @}ghi");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abcdefghi"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ if 1: @}abc{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ if 1: @}abc{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}abc{@ if 1: @}def{@ end @}ghi{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}abc{@ if 1: @}def{@ end @}ghi{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abcdefghi"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}abc{@ else: @}def{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}abc{@ else: @}def{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "def"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}abc{@ elif 1: @}def{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}abc{@ elif 1: @}def{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "def"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}abc{@ elif 0: @}def{@ else: @}ghi{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}abc{@ elif 0: @}def{@ else: @}ghi{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "ghi"));
     }
 
@@ -18421,113 +18421,113 @@ test_trv_traverse(void) {
     * for statement *
     ****************/
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "    for a != 0:\n"
         "        break\n"
         "    end\n"
         "@}\n");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined"));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined"));
     }
 
-    tkr_parse(tkr, "{@ a = 0\n"
+    PadTkr_Parse(tkr, "{@ a = 0\n"
         "for i = 0; i != 4; i += 1:\n"
         "   a += 1\n"
         "end @}{: a :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4"));
     }
 
-    tkr_parse(tkr, "{@ a = 0\n"
+    PadTkr_Parse(tkr, "{@ a = 0\n"
         "for i = 0, j = 0; i != 4; i += 1, j += 1:\n"
         "   a += 1\n"
         "end @}{: a :} {: i :} {: j :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4 4 4"));
     }
 
-    tkr_parse(tkr, "{@ for i = 0; i != 4; i += 1: @}a{@ end @}");
+    PadTkr_Parse(tkr, "{@ for i = 0; i != 4; i += 1: @}a{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "aaaa"));
     }
 
-    tkr_parse(tkr, "{@ for i, j = 0, 0; i != 4; i += 1, j += 2: end @}{: i :},{: j :}");
+    PadTkr_Parse(tkr, "{@ for i, j = 0, 0; i != 4; i += 1, j += 2: end @}{: i :},{: j :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4,8"));
     }
 
-    tkr_parse(tkr, "{@ i, a = 0, 0 \n for i != 4: a += i \n i += 1 end @}{: i :},{: a :}");
+    PadTkr_Parse(tkr, "{@ i, a = 0, 0 \n for i != 4: a += i \n i += 1 end @}{: i :},{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4,6"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ for i = 0; i != 4; i += 1: @}"
         "hige\n"
         "{@ end @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "hige\nhige\nhige\nhige\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ i = 0 for i != 4: @}"
         "hige\n{@ i += 1 @}"
         "{@ end @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "hige\nhige\nhige\nhige\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ i = 0 for: @}"
         "{@ if i == 4: break end @}hige\n{@ i += 1 @}"
         "{@ end @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "hige\nhige\nhige\nhige\n"));
     }
 
@@ -18535,49 +18535,49 @@ test_trv_traverse(void) {
     * jump *
     *******/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "for i=0; i!=4; i+=1:\n"
         "   break\n"
         "end @}{: i :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "for i=0; i!=4; i+=1:\n"
         "   if i == 2:\n"
         "       break\n"
         "   end\n"
         "end @}{: i :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 0\n"
+    PadTkr_Parse(tkr, "{@ a = 0\n"
         "for i=0; i!=4; i+=1:\n"
         "   continue\n"
         "   a += 1\n"
         "end @}{: i :},{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4,0"));
     }
 
-    tkr_parse(tkr, "{@ a = 0\n"
+    PadTkr_Parse(tkr, "{@ a = 0\n"
         "for i=0; i!=4; i+=1:\n"
         "   if i == 2:\n"
         "       continue\n"
@@ -18585,15 +18585,15 @@ test_trv_traverse(void) {
         "   a += 1\n"
         "end @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@ a = 0\n"
+    PadTkr_Parse(tkr, "{@ a = 0\n"
         "for i=0; i!=4; i+=1:\n"
         "   if i == 2:\n"
         "       continue\n"
@@ -18603,15 +18603,15 @@ test_trv_traverse(void) {
         "   a += 1\n"
         "end @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 0, b = 0\n"
+    PadTkr_Parse(tkr, "{@ a = 0, b = 0\n"
         "for i=0; i!=4; i+=1:\n"
         "   a += 1"
         "   if i == 2:\n"
@@ -18620,75 +18620,75 @@ test_trv_traverse(void) {
         "   b += 1\n"
         "end @}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4,3"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   return\n"
         "end\n"
         "puts(func())"
         "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   return 1\n"
         "end\n"
         "a = func()"
         "@}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   return 1\n"
         "end\n"
         "puts(func())"
         "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   return 1, 2\n"
         "end\n"
         "puts(func())"
         "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   puts(\"a\")\n"
         "   return 1\n"
@@ -18697,15 +18697,15 @@ test_trv_traverse(void) {
         "puts(func())"
         "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "a\n1\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   a = 1\n"
         "   return a\n"
@@ -18713,15 +18713,15 @@ test_trv_traverse(void) {
         "x = func()\n"
         "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   a = 1\n"
         "   if a == 1:\n"
@@ -18732,15 +18732,15 @@ test_trv_traverse(void) {
         "x = func()\n"
         "@}{: x :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   a = 1\n"
         "   if a == 1:\n"
@@ -18751,56 +18751,56 @@ test_trv_traverse(void) {
         "puts(func())\n"
         "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   return 1, 2\n"
         "end\n"
         "a, b = func()\n"
         "@}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   return 1, 2\n"
         "end\n"
         "a = func()\n"
         "@}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func(a):\n"
         "   return a, a\n"
         "end\n"
         "a, b = func(1)\n"
         "@}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,1"));
     }
 
@@ -18808,100 +18808,100 @@ test_trv_traverse(void) {
     * func_def *
     ***********/
 
-    tkr_parse(tkr, "{@ def func(): end @}");
+    PadTkr_Parse(tkr, "{@ def func(): end @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   a = 1\n"
         "end\n"
         "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   a = 1\n"
         "end\n"
         "@}{: a :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined in ref block"));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined in ref block"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func():\n"
         "   a = 1\n"
         "end\n"
         "func()"
         "@}{: a :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined in ref block"));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined in ref block"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func(a):\n"
         "   b = a\n"
         "end\n"
         "func(1)"
         "@}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined in ref block"));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined in ref block"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func(a, b):\n"
         "   c = a + b\n"
         "end\n"
         "func(1, 2)\n"
         "@}{: c :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"c\" is not defined in ref block"));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"c\" is not defined in ref block"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "c = 1\n"
         "def func(a, b):\n"
         "   c = a + b\n"
@@ -18909,16 +18909,16 @@ test_trv_traverse(void) {
         "func(1, 2)\n"
         "@}{: c :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "c = 1\n"
         "def func(a, b):\n"
         "   puts(c)\n"
@@ -18928,10 +18928,10 @@ test_trv_traverse(void) {
         "func(1, 2)\n"
         "@}{: c :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n3\n1"));
@@ -18941,31 +18941,31 @@ test_trv_traverse(void) {
     * escape character *
     *******************/
 
-    tkr_parse(tkr, "{: \"abc\ndef\n\" :}");
+    PadTkr_Parse(tkr, "{: \"abc\ndef\n\" :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc\ndef\n"));
     }
 
-    tkr_parse(tkr, "{: \"\tabc\tdef\" :}");
+    PadTkr_Parse(tkr, "{: \"\tabc\tdef\" :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "\tabc\tdef"));
     }
 
     // done
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -18977,51 +18977,51 @@ static void
 test_trv_assign_and_reference_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 0\n"
     "@}{: i :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = j = 0\n"
     "@}{: i :},{: j :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0,0"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = j = 0\n"
     "@}{: id(i) == id(j) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19029,27 +19029,27 @@ static void
 test_trv_assign_and_reference_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = j = 0\n"
     "@}{: i :},{: j :},{: id(i) == id(j) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0,0,true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19057,28 +19057,28 @@ static void
 test_trv_assign_and_reference_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 1\n"
     "   j = i\n"
     "@}{: i :},{: j :},{: id(i) == id(j) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,1,true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19086,27 +19086,27 @@ static void
 test_trv_assign_and_reference_3(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i, j = 1, 1\n"
     "@}{: i :},{: j :},{: id(i) != id(j) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,1,true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19114,28 +19114,28 @@ static void
 test_trv_assign_and_reference_4(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 1\n"
     "   j, k = i, i\n"
     "@}{: i :},{: j :},{: id(i) == id(j) :},{: id(i) == id(k) :},{: id(j) == id(k) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,1,true,true,true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19143,28 +19143,28 @@ static void
 test_trv_assign_and_reference_5(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 1, 2\n"
     "   j = i\n"
     "@}{: i :},{: j :},{: id(i) == id(j) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array),(array),true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19172,29 +19172,29 @@ static void
 test_trv_assign_and_reference_6(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = [1, 2]\n"
     "   j = 3\n"
     "   i[0] = j\n"
     "@}{: i[0] :},{: i[1] :},{: j :},{: id(i[0]) == id(j) :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3,2,3,true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19202,27 +19202,27 @@ static void
 test_trv_assign_and_reference_7(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i, j = [1, 2]\n"
     "@}{: i :},{: j :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19230,27 +19230,27 @@ static void
 test_trv_assign_and_reference_8(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i, j = k, l = 1, 2\n"
     "@}{: i :},{: j :},{: k :},{: l :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2,1,2"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19258,28 +19258,28 @@ static void
 test_trv_assign_and_reference_9(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = { \"a\": 1 }\n"
     "   j = i\n"
     "@}{: i :},{: j :},{: id(i) == id(j) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict),(dict),true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19287,18 +19287,18 @@ static void
 test_trv_assign_and_reference_10(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(a):\n"
     "       return a\n"
     "   end\n"
     "   i = f(1)"
     "@}{: i :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -19309,30 +19309,30 @@ static void
 test_trv_assign_and_reference_11(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       return 1, 2\n"
     "   end\n"
     "   i, j = f()\n"
     "@}{: i :},{: j :},{: id(i) != id(j) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2,true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19340,12 +19340,12 @@ static void
 test_trv_assign_and_reference_12(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(a):\n"
     "       return a, a\n"
     "   end\n"
@@ -19353,18 +19353,18 @@ test_trv_assign_and_reference_12(void) {
     "   i, j = f(k)\n"
     "@}{: i :},{: j :},{: id(i) != id(j) :},{: id(k) != id(i) :},{: id(k) != id(j) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,1,false,true,true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19372,27 +19372,27 @@ static void
 test_trv_assign_and_reference_13(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = j = 0\n"
     "@}{: id(i) == id(j) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19400,15 +19400,15 @@ static void
 test_trv_assign_and_reference_14(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 0\n"
     "@}{: i :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -19419,15 +19419,15 @@ static void
 test_trv_assign_and_reference_15(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = j = 0\n"
     "@}{: id(i) == id(j) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
@@ -19438,18 +19438,18 @@ static void
 test_trv_assign_and_reference_16(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(a):\n"
     "       return a\n"
     "   end\n"
     "   f(1)"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
@@ -19481,115 +19481,115 @@ static void
 test_trv_code_block(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@@}");
+    PadTkr_Parse(tkr, "{@@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ \n @}");
+    PadTkr_Parse(tkr, "{@ \n @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ \n\n @}");
+    PadTkr_Parse(tkr, "{@ \n\n @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ \n\n1 @}");
+    PadTkr_Parse(tkr, "{@ \n\n1 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ 1\n\n @}");
+    PadTkr_Parse(tkr, "{@ 1\n\n @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ \n\n1\n\n @}");
+    PadTkr_Parse(tkr, "{@ \n\n1\n\n @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@@}{@@}");
+    PadTkr_Parse(tkr, "{@@}{@@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@@}{@@}{@@}");
+    PadTkr_Parse(tkr, "{@@}{@@}{@@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "\n{@\n@}\n{@\n@}\n");
+    PadTkr_Parse(tkr, "\n{@\n@}\n{@\n@}\n");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "\n\n"));
     }
 
-    tkr_parse(tkr, "\n{@\n\n\n@}\n{@\n\n\n@}\n");
+    PadTkr_Parse(tkr, "\n{@\n\n\n@}\n{@\n\n\n@}\n");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "\n\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19597,85 +19597,85 @@ static void
 test_trv_ref_block(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 :}");
+    PadTkr_Parse(tkr, "{: 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{: 1\n :}");
+    PadTkr_Parse(tkr, "{: 1\n :}");
     {
-        assert(!tkr_has_error_stack(tkr));
+        assert(!PadTkr_HasErrStack(tkr));
     }
 
-    tkr_parse(tkr, "{: \n1 :}");
+    PadTkr_Parse(tkr, "{: \n1 :}");
     {
-        assert(!tkr_has_error_stack(tkr));
+        assert(!PadTkr_HasErrStack(tkr));
     }
 
-    tkr_parse(tkr, "\n{: 1 :}\n");
+    PadTkr_Parse(tkr, "\n{: 1 :}\n");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "\n1"));
     }
 
-    tkr_parse(tkr, "{@@}{: 1 :}{@@}");
+    PadTkr_Parse(tkr, "{@@}{: 1 :}{@@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{: 1 :}{@@}{: 2 :}");
+    PadTkr_Parse(tkr, "{: 1 :}{@@}{: 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "12"));
     }
 
-    tkr_parse(tkr, "{: 2 * 3 + 1 :}");
+    PadTkr_Parse(tkr, "{: 2 * 3 + 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "7"));
     }
 
-    tkr_parse(tkr, "{: \"ab\" * 4 :}");
+    PadTkr_Parse(tkr, "{: \"ab\" * 4 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abababab"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19683,65 +19683,65 @@ static void
 test_trv_text_block(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "1");
+    PadTkr_Parse(tkr, "1");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "1{@@}2");
+    PadTkr_Parse(tkr, "1{@@}2");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "12"));
     }
 
-    tkr_parse(tkr, "1{@@}2{@@}3");
+    PadTkr_Parse(tkr, "1{@@}2{@@}3");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "123"));
     }
 
-    tkr_parse(tkr, "1{: 2 :}3{: 4 :}5");
+    PadTkr_Parse(tkr, "1{: 2 :}3{: 4 :}5");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "12345"));
     }
 
-    tkr_parse(tkr, "1{@@}{: 2 :}{@@}3");
+    PadTkr_Parse(tkr, "1{@@}{: 2 :}{@@}3");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "123"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19749,79 +19749,79 @@ static void
 test_trv_import_stmt_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     /**********************
     * import as statement *
     **********************/
 
-    tkr_parse(tkr, "{@ import \":tests/lang/modules/hello.cap\" as hello @}");
+    PadTkr_Parse(tkr, "{@ import \":tests/lang/modules/hello.cap\" as hello @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\n"));
     }
 
-    tkr_parse(tkr, "{@ import \n \":tests/lang/modules/hello.cap\" as hello @}");
+    PadTkr_Parse(tkr, "{@ import \n \":tests/lang/modules/hello.cap\" as hello @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found path in compile import as statement"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found path in compile import as statement"));
     }
 
-    tkr_parse(tkr, "{@ import \":tests/lang/modules/hello.cap\" \n as hello @}");
+    PadTkr_Parse(tkr, "{@ import \":tests/lang/modules/hello.cap\" \n as hello @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found keyword 'as' in compile import as statement"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found keyword 'as' in compile import as statement"));
     }
 
-    tkr_parse(tkr, "{@ import \":tests/lang/modules/hello.cap\" as \n hello @}");
+    PadTkr_Parse(tkr, "{@ import \":tests/lang/modules/hello.cap\" as \n hello @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found alias in compile import as statement"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found alias in compile import as statement"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ import \":tests/lang/modules/hello.cap\" as hello \n"
         "hello.world() @}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\nhello, world\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ import \":tests/lang/modules/count.cap\" as count \n"
         "@}{: count.n :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "45"));
     }
 
@@ -19829,116 +19829,116 @@ test_trv_import_stmt_0(void) {
     * from import statement *
     ************************/
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import f1 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import f1 \n f1() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\nf1\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import ( f1, f2 ) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import ( f1, f2, ) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import (\nf1,\nf2,\n) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import ( f1, f2 ) \n "
         "   f1() \n f2() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\nf1\nf2\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \n \":tests/lang/modules/funcs.cap\" import ( f1, f2 ) \n "
         "   f1() \n f2() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found path in compile from import statement"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found path in compile from import statement"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" \n import ( f1, f2 ) \n "
         "   f1() \n f2() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found import in compile from import statement"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found import in compile from import statement"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import \n ( f1, f2 ) \n "
         "   f1() \n f2() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found import variables in compile from import statement"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found import variables in compile from import statement"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -19946,16 +19946,16 @@ static void
 test_trv_import_stmt_1(void) {
     trv_ready;
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ import \":tests/lang/modules/count.cap\" as count \n"
         "@}{: count.n :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "45"));
     }
 
@@ -19966,23 +19966,23 @@ static void
 test_trv_import_stmt_2(void) {
     trv_ready;
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "   if 1:\n"
         "       import \":tests/lang/modules/count.cap\" as count\n"
         "   end"
         "@}{: count.n :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "45"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "   if 0:\n"
         "   else:\n"
@@ -19990,16 +19990,16 @@ test_trv_import_stmt_2(void) {
         "   end"
         "@}{: count.n :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "45"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "   if 0:\n"
         "   elif 1:\n"
@@ -20007,16 +20007,16 @@ test_trv_import_stmt_2(void) {
         "   end"
         "@}{: count.n :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "45"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "   for i = 0; i < 2; i += 1:\n"
         "       import \":tests/lang/modules/count.cap\" as count\n"
@@ -20024,16 +20024,16 @@ test_trv_import_stmt_2(void) {
         "   end"
         "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "45\n45\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "   def func():\n"
         "       import \":tests/lang/modules/count.cap\" as count\n"
@@ -20042,16 +20042,16 @@ test_trv_import_stmt_2(void) {
         "   func()\n"
         "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "45\n"));
     }
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@\n"
         "   def func():\n"
         "       import \":tests/lang/modules/count.cap\" as count\n"
@@ -20059,13 +20059,13 @@ test_trv_import_stmt_2(void) {
         "   func()\n"
         "@}{: count :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"count\" is not defined in ref block"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"count\" is not defined in ref block"));
     }
 
     trv_cleanup;
@@ -20075,13 +20075,13 @@ static void
 test_trv_import_stmt_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ import \":tests/lang/modules/hello.cap\" as hello @}");
+    PadTkr_Parse(tkr, "{@ import \":tests/lang/modules/hello.cap\" as hello @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\n"));
     }
 
@@ -20092,17 +20092,17 @@ static void
 test_trv_import_stmt_4(void) {
     trv_ready;
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ import \":tests/lang/modules/hello.cap\" as hello \n"
         "hello.world() @}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\nhello, world\n"));
     }
 
@@ -20113,27 +20113,27 @@ static void
 test_trv_from_import_stmt_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import f1 \n f1() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\nf1\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -20141,29 +20141,29 @@ static void
 test_trv_from_import_stmt_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ import \":tests/lang/modules/hello.cap\" as hello \n"
         "hello.world() @}"
     );
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\nhello, world\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -20171,28 +20171,28 @@ static void
 test_trv_from_import_stmt_3(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr,
+    PadTkr_Parse(tkr,
         "{@ from \":tests/lang/modules/funcs.cap\" import ( f1, f2 ) \n "
         "   f1() \n f2() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\nf1\nf2\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -20200,95 +20200,95 @@ static void
 test_trv_if_stmt_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ if 1: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 1: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 1:\n puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 1:\n puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 1: puts(1) \nend @}");
+    PadTkr_Parse(tkr, "{@ if 1: puts(1) \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 1:\n\n puts(1) \n\nend @}");
+    PadTkr_Parse(tkr, "{@ if 1:\n\n puts(1) \n\nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if \n1: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if \n1: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 1\n: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 1\n: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ \n if 1: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ \n if 1: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 1: puts(1) end \n @}");
+    PadTkr_Parse(tkr, "{@ if 1: puts(1) end \n @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -20296,65 +20296,65 @@ static void
 test_trv_if_stmt_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ if 1: @}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: \n@}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: \n@}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: \n\n@}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: \n\n@}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}1{@ \nend @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}1{@ \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}1{@ \n\nend @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}1{@ \n\nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -20362,64 +20362,64 @@ static void
 test_trv_if_stmt_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ if 1: if 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 1: if 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 1: \nif 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 1: \nif 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 1: if 1: \nputs(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 1: if 1: \nputs(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 1: if 1: puts(1) \nend end @}");
+    PadTkr_Parse(tkr, "{@ if 1: if 1: puts(1) \nend end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 1: if 1: puts(1) end \nend @}");
+    PadTkr_Parse(tkr, "{@ if 1: if 1: puts(1) end \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -20427,105 +20427,105 @@ static void
 test_trv_if_stmt_3(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ \nif 1: @}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ \nif 1: @}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: \n@}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: \n@}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ \nif 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ \nif 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ if 1: \n@}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ if 1: \n@}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ \nend @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ \nend @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ end \n@}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ end \n@}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ end @}{@ \nend @}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ end @}{@ \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ end @}{@ end \n@}");
+    PadTkr_Parse(tkr, "{@ if 1: @}{@ if 1: @}1{@ end @}{@ end \n@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -20533,32 +20533,32 @@ static void
 test_trv_if_stmt_4(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ i = 1 \n if i: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ i = 1 \n if i: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ i = 1 @}{@ if i: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ i = 1 @}{@ if i: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       i = 1\n"
     "       if i:\n"
@@ -20568,15 +20568,15 @@ test_trv_if_stmt_4(void) {
     "   f()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 1\n"
     "   def f():\n"
     "       if i:\n"
@@ -20586,18 +20586,18 @@ test_trv_if_stmt_4(void) {
     "   f()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -20605,30 +20605,30 @@ static void
 test_trv_if_stmt_5(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/if.cap\" as mod \n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -20639,16 +20639,16 @@ test_trv_if_stmt_6(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   from \"/tests/lang/modules/if-2.cap\" import f1 \n"
     "   f1()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -20662,16 +20662,16 @@ test_trv_if_stmt_7(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   from \"/tests/lang/modules/if-2.cap\" import f2\n"
     "   f2()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -20685,15 +20685,15 @@ test_trv_if_stmt_8(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/if-3.cap\" as if3\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -20704,7 +20704,7 @@ static void
 test_trv_if_stmt_9(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(n):\n"
     "       puts(n)\n"
     "       return n\n"
@@ -20714,29 +20714,29 @@ test_trv_if_stmt_9(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n2\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 2 * 3 + 1:\n"
     "       puts(1)\n"
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 2\n"
     "   if i:\n"
     "       j = 3\n"
@@ -20746,15 +20746,15 @@ test_trv_if_stmt_9(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "6\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 2\n"
     "   if i:\n"
     "       j = 3\n"
@@ -20771,15 +20771,15 @@ test_trv_if_stmt_9(void) {
     "   puts(i * j * k)\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "24\n2000\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 2\n"
     "   if i:\n"
     "       j = 3\n"
@@ -20800,15 +20800,15 @@ test_trv_if_stmt_9(void) {
     "   f(i * j * k)\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2000\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 2\n"
     "   if i:\n"
     "       j = 3"
@@ -20829,15 +20829,15 @@ test_trv_if_stmt_9(void) {
     "   f(i * j * k)\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2000\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 2\n"
     "   if i:\n"
     "       j = 3"
@@ -20863,15 +20863,15 @@ test_trv_if_stmt_9(void) {
     "   f(i * j * k)\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "20\n2000\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 1:\n"
     "       i = 10\n"
     "       j = i * 20\n"
@@ -20904,11 +20904,11 @@ test_trv_if_stmt_9(void) {
     "   f(i * j * k)\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "200\n20\n2000\n"));
     }
 
@@ -20919,13 +20919,13 @@ static void
 test_trv_if_stmt_10(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ \nif\n0\n:\nend\n @}");
+    PadTkr_Parse(tkr, "{@ \nif\n0\n:\nend\n @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
@@ -20936,7 +20936,7 @@ static void
 test_trv_if_stmt_11(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 1:\n"
     "       i = 0\n"
     "@}{: i :}{@"
@@ -20947,11 +20947,11 @@ test_trv_if_stmt_11(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "012"));
     }
 
@@ -20962,73 +20962,73 @@ static void
 test_trv_elif_stmt_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ if 0: elif 1: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: \nelif 1: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 0: \nelif 1: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 1:\n puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1:\n puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 1: puts(1) \nend @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1: puts(1) \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 1: puts(1) end \n@}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1: puts(1) end \n@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif \n1: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif \n1: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 1\n: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1\n: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -21039,83 +21039,83 @@ static void
 test_trv_elif_stmt_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ if 0: @}{@ elif 1: @}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ elif 1: @}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ \nif 0: @}{@ elif 1: @}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ \nif 0: @}{@ elif 1: @}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0:\n @}{@ elif 1: @}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0:\n @}{@ elif 1: @}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ \nelif 1: @}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ \nelif 1: @}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ elif 1: \n@}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ elif 1: \n@}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ elif 1: @}1{@ \nend @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ elif 1: @}1{@ \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ elif 1: @}1{@ end \n@}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ elif 1: @}1{@ end \n@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ \nif 0: @}{@ elif 1: @}1{@ end \n@}");
+    PadTkr_Parse(tkr, "{@ \nif 0: @}{@ elif 1: @}1{@ end \n@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -21126,95 +21126,95 @@ static void
 test_trv_elif_stmt_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ if 0: elif 1: if 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1: if 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ \nif 0: elif 1: if 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ \nif 0: elif 1: if 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: \nelif 1: if 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: \nelif 1: if 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 1:\n if 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1:\n if 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 1: if 1:\n puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1: if 1:\n puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 1: if 1: puts(1)\n end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1: if 1: puts(1)\n end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 1: if 1: puts(1) end\n end @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1: if 1: puts(1) end\n end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: elif 1: if 1: puts(1) end end\n @}");
+    PadTkr_Parse(tkr, "{@ if 0: elif 1: if 1: puts(1) end end\n @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -21222,85 +21222,85 @@ static void
 test_trv_elif_stmt_3(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ \nelif 1: @}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ \nelif 1: @}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ elif 1:\n @}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ elif 1:\n @}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ \nif 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ \nif 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ if 1:\n @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ if 1:\n @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ if 1: @}1{@ \nend @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ if 1: @}1{@ \nend @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ if 1: @}1{@ end \n@}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ elif 1: @}{@ if 1: @}1{@ end \n@}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -21308,7 +21308,7 @@ static void
 test_trv_elif_stmt_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "       i = 2 * 3\n"
     "       if 1:\n"
@@ -21322,15 +21322,15 @@ test_trv_elif_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "       i = 2 * 3\n"
     "       if 1:\n"
@@ -21345,15 +21345,15 @@ test_trv_elif_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"i\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"i\" is not defined"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "       i = 2 * 3\n"
     "       if 1:\n"
@@ -21368,15 +21368,15 @@ test_trv_elif_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 3\n"
     "   j = 2\n"
     "   if 0:\n"
@@ -21393,15 +21393,15 @@ test_trv_elif_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "6\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 3\n"
     "   j = 2\n"
     "   if 0:\n"
@@ -21416,15 +21416,15 @@ test_trv_elif_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 3\n"
     "   j = 2\n"
     "   if 0:\n"
@@ -21444,15 +21444,15 @@ test_trv_elif_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "6\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 0\n"
     "   j = 0\n"
     "   if 0:\n"
@@ -21478,11 +21478,11 @@ test_trv_elif_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1230\n"));
     }
 
@@ -21493,7 +21493,7 @@ static void
 test_trv_elif_stmt_5(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "       i = 2 * 3\n"
     "       if 1:\n"
@@ -21508,12 +21508,12 @@ test_trv_elif_stmt_5(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"i\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"i\" is not defined"));
     }
 
     trv_cleanup;
@@ -21523,7 +21523,7 @@ static void
 test_trv_elif_stmt_6(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "       puts(1)\n"
     "   elif 1:\n"
@@ -21533,15 +21533,15 @@ test_trv_elif_stmt_6(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "       puts(1)\n"
     "   elif 1:\n"
@@ -21557,15 +21557,15 @@ test_trv_elif_stmt_6(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "23\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "       puts(1)\n"
     "   elif 1:\n"
@@ -21584,11 +21584,11 @@ test_trv_elif_stmt_6(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "31\n"));
     }
 
@@ -21599,7 +21599,7 @@ static void
 test_trv_elif_stmt_7(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "       puts(1)\n"
     "   elif 1:\n"
@@ -21609,15 +21609,15 @@ test_trv_elif_stmt_7(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "123"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "       puts(1)\n"
     "   elif 1:\n"
@@ -21630,15 +21630,15 @@ test_trv_elif_stmt_7(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "123"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "       puts(1)\n"
     "   elif 1:\n"
@@ -21654,11 +21654,11 @@ test_trv_elif_stmt_7(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "123456"));
     }
 
@@ -21669,85 +21669,85 @@ static void
 test_trv_else_stmt_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ if 0: else: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 0: else: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ \nif 0: else: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ \nif 0: else: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: \nelse: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 0: \nelse: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: else:\n puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 0: else:\n puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: else: puts(1) \nend @}");
+    PadTkr_Parse(tkr, "{@ if 0: else: puts(1) \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: else: puts(1) end \n@}");
+    PadTkr_Parse(tkr, "{@ if 0: else: puts(1) end \n@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: else\n: puts(1) end @}");
+    PadTkr_Parse(tkr, "{@ if 0: else\n: puts(1) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -21755,95 +21755,95 @@ static void
 test_trv_else_stmt_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: @}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: @}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ \nif 0: @}{@ else: @}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ \nif 0: @}{@ else: @}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0:\n @}{@ else: @}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0:\n @}{@ else: @}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ \nelse: @}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ \nelse: @}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else\n: @}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else\n: @}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: \n@}1{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: \n@}1{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: @}1{@ \nend @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: @}1{@ \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: @}1{@ end \n@}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: @}1{@ end \n@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -21851,105 +21851,105 @@ static void
 test_trv_else_stmt_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ if 0: else: if 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: else: if 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ \nif 0: else: if 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ \nif 0: else: if 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: \nelse: if 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: \nelse: if 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: else\n: if 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: else\n: if 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: else: \nif 1: puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: else: \nif 1: puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: else: if 1:\n puts(1) end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: else: if 1:\n puts(1) end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: else: if 1: puts(1)\n end end @}");
+    PadTkr_Parse(tkr, "{@ if 0: else: if 1: puts(1)\n end end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: else: if 1: puts(1) end \nend @}");
+    PadTkr_Parse(tkr, "{@ if 0: else: if 1: puts(1) end \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    tkr_parse(tkr, "{@ if 0: else: if 1: puts(1) end end \n@}");
+    PadTkr_Parse(tkr, "{@ if 0: else: if 1: puts(1) end end \n@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -21957,113 +21957,113 @@ static void
 test_trv_else_stmt_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ \nif 0: @}{@ else: @}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ \nif 0: @}{@ else: @}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: \n@}{@ else: @}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: \n@}{@ else: @}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ \nelse: @}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ \nelse: @}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: \n@}{@ if 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: \n@}{@ if 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: @}{@ \nif 1: @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: @}{@ \nif 1: @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1:\n @}1{@ end @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1:\n @}1{@ end @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1: @}1{@ \nend @}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1: @}1{@ \nend @}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1: @}1{@ end \n@}{@ end @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1: @}1{@ end \n@}{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1: @}1{@ end @}{@ \nend @}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1: @}1{@ end @}{@ \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1: @}1{@ end @}{@ end \n@}");
+    PadTkr_Parse(tkr, "{@ if 0: @}{@ else: @}{@ if 1: @}1{@ end @}{@ end \n@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -22074,7 +22074,7 @@ static void
 test_trv_else_stmt_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@"
+    PadTkr_Parse(tkr, "{@"
     "   if 0:\n"
     "   else:\n"
     "@}1{@\n"
@@ -22083,11 +22083,11 @@ test_trv_else_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "123"));
     }
 
@@ -22097,135 +22097,135 @@ static void
 test_trv_for_stmt_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ for i=0; i<2; i +=1: puts(i) end @}");
+    PadTkr_Parse(tkr, "{@ for i=0; i<2; i +=1: puts(i) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ size=0 for i=size; i<2; i += 1: puts(i) end @}");
+    PadTkr_Parse(tkr, "{@ size=0 for i=size; i<2; i += 1: puts(i) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ \nfor i=0; i<2; i +=1: puts(i) end @}");
+    PadTkr_Parse(tkr, "{@ \nfor i=0; i<2; i +=1: puts(i) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ for i=0; i<2; i +=1: \nputs(i) end @}");
+    PadTkr_Parse(tkr, "{@ for i=0; i<2; i +=1: \nputs(i) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ for i=0; i<2; i +=1: puts(i)\n end @}");
+    PadTkr_Parse(tkr, "{@ for i=0; i<2; i +=1: puts(i)\n end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ for i=0; i<2; i +=1: puts(i) end \n@}");
+    PadTkr_Parse(tkr, "{@ for i=0; i<2; i +=1: puts(i) end \n@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ for \ni=0; i<2; i +=1: puts(i) end @}");
+    PadTkr_Parse(tkr, "{@ for \ni=0; i<2; i +=1: puts(i) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ for i=0\n; i<2; i +=1: puts(i) end @}");
+    PadTkr_Parse(tkr, "{@ for i=0\n; i<2; i +=1: puts(i) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ for i=0; \ni<2; i +=1: puts(i) end @}");
+    PadTkr_Parse(tkr, "{@ for i=0; \ni<2; i +=1: puts(i) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ for i=0; i<2\n; i +=1: puts(i) end @}");
+    PadTkr_Parse(tkr, "{@ for i=0; i<2\n; i +=1: puts(i) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ for i=0; i<2; \ni +=1: puts(i) end @}");
+    PadTkr_Parse(tkr, "{@ for i=0; i<2; \ni +=1: puts(i) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ for i=0; i<2; i +=1\n: puts(i) end @}");
+    PadTkr_Parse(tkr, "{@ for i=0; i<2; i +=1\n: puts(i) end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -22233,65 +22233,65 @@ static void
 test_trv_for_stmt_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ i=0 for i<2: puts(i)\ni+=1 end @}");
+    PadTkr_Parse(tkr, "{@ i=0 for i<2: puts(i)\ni+=1 end @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ i=0 for i<2: \nputs(i)\ni+=1 end @}");
+    PadTkr_Parse(tkr, "{@ i=0 for i<2: \nputs(i)\ni+=1 end @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ i=0 for i<2: puts(i)\ni+=1 \nend @}");
+    PadTkr_Parse(tkr, "{@ i=0 for i<2: puts(i)\ni+=1 \nend @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ i=0 for \ni<2: puts(i)\ni+=1 end @}");
+    PadTkr_Parse(tkr, "{@ i=0 for \ni<2: puts(i)\ni+=1 end @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@ i=0 for i<2\n: puts(i)\ni+=1 end @}");
+    PadTkr_Parse(tkr, "{@ i=0 for i<2\n: puts(i)\ni+=1 end @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -22299,25 +22299,25 @@ static void
 test_trv_for_stmt_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ for i, j = 0, 0; i != 4; i += 1, j += 2: end @}{: i :},{: j :}");
+    PadTkr_Parse(tkr, "{@ for i, j = 0, 0; i != 4; i += 1, j += 2: end @}{: i :},{: j :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4,8"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -22325,22 +22325,22 @@ static void
 test_trv_for_stmt_3(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ for i = 0; i < 2; i += 1: @}{: i :},{@ end @}");
+    PadTkr_Parse(tkr, "{@ for i = 0; i < 2; i += 1: @}{: i :},{@ end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0,1,"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "def func():\n"
     "   for i = 0; i < 2; i += 1: @}"
     "{: i :}\n"
@@ -22349,17 +22349,17 @@ test_trv_for_stmt_3(void) {
     "\n"
     " func() @}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -22367,7 +22367,7 @@ static void
 test_trv_for_stmt_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def hiphop(rap, n):\n"
     "       puts(rap * n)\n"
     "   end\n"
@@ -22377,15 +22377,15 @@ test_trv_for_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "\nyo\nyoyo\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 3; i += 1:\n"
     "       def hiphop(rap, n):\n"
     "           puts(rap * n)\n"
@@ -22395,15 +22395,15 @@ test_trv_for_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "\nyo\nyoyo\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def hiphop(rap, n):\n"
     "       for i = n-1; i >= 0; i -= 1:\n"
     "           puts(rap * i)\n"
@@ -22413,11 +22413,11 @@ test_trv_for_stmt_4(void) {
     "   hiphop(\"yo\", 3)"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "yoyo\nyo\n\n"));
     }
 
@@ -22428,18 +22428,18 @@ static void
 test_trv_for_stmt_5(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 3; i += 1:\n"
     "@}{: i :}{@\n"
     "   end\n"
     "\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "012"));
     }
 
@@ -22450,17 +22450,17 @@ static void
 test_trv_for_stmt_6(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "    i = 0\n"
     "    j = i\n"
     "    a = [j, j+1, j+2]\n"
     "@}{: a[0] :},{: a[1] :},{: a[2] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0,1,2"));
     }
 
@@ -22471,17 +22471,17 @@ static void
 test_trv_for_stmt_7(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "for i = 0; i < 4; i += 1:\n"
     "   j = i\n"
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
@@ -22492,7 +22492,7 @@ static void
 test_trv_for_stmt_8(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "for i = 0; i < 2; i += 1:\n"
     "   j = i\n"
     "   k = i\n"
@@ -22500,11 +22500,11 @@ test_trv_for_stmt_8(void) {
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0 0\n1 1\n"));
     }
 
@@ -22515,7 +22515,7 @@ static void
 test_trv_for_stmt_9(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "for i = 0; i < 2; i += 1:\n"
     "   j = i\n"
     "   k = i\n"
@@ -22525,15 +22525,15 @@ test_trv_for_stmt_9(void) {
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "01"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "for i = 0; i < 2; i += 1:\n"
     "   j = i\n"
     "@}{: j :}{@\n"
@@ -22544,11 +22544,11 @@ test_trv_for_stmt_9(void) {
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "000111"));
     }
 
@@ -22559,20 +22559,20 @@ static void
 test_trv_for_stmt_10(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "for \n i = 0 \n ; \n i < 2 \n ; \n i += 1 \n : \n"
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "i = 0\n"
     "for \n i < 2 \n : \n"
     "   puts(i)\n"
@@ -22580,11 +22580,11 @@ test_trv_for_stmt_10(void) {
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
@@ -22600,7 +22600,7 @@ static void
 test_trv_for_stmt_12(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def hiphop(rap, n):\n"
     "       puts(rap * n)\n"
     "   end\n"
@@ -22610,11 +22610,11 @@ test_trv_for_stmt_12(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "\nyo\nyoyo\n"));
     }
 
@@ -22625,33 +22625,33 @@ static void
 test_trv_break_stmt_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ for: break end @}");
+    PadTkr_Parse(tkr, "{@ for: break end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ for:\n break end @}");
+    PadTkr_Parse(tkr, "{@ for:\n break end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ for: break \nend @}");
+    PadTkr_Parse(tkr, "{@ for: break \nend @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
@@ -22662,7 +22662,7 @@ static void
 test_trv_break_stmt_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       puts(i)\n"
     "       break\n"
@@ -22670,15 +22670,15 @@ test_trv_break_stmt_1(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       puts(i)\n"
     "       for j = 4; j < 6; j += 1:\n"
@@ -22689,11 +22689,11 @@ test_trv_break_stmt_1(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n4\n10\n1\n4\n10\n"));
     }
 
@@ -22704,7 +22704,7 @@ static void
 test_trv_break_stmt_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       puts(i)\n"
     "       if 1:\n"
@@ -22714,15 +22714,15 @@ test_trv_break_stmt_2(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       puts(i)\n"
     "       if 0:\n"
@@ -22734,15 +22734,15 @@ test_trv_break_stmt_2(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       puts(i)\n"
     "       if 0:\n"
@@ -22756,11 +22756,11 @@ test_trv_break_stmt_2(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n"));
     }
 
@@ -22771,19 +22771,19 @@ static void
 test_trv_break_stmt_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   break\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid break statement. not in loop"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid break statement. not in loop"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       break\n"
     "   end\n"
@@ -22795,15 +22795,15 @@ test_trv_break_stmt_3(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid break statement. not in loop"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid break statement. not in loop"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       def f():\n"
     "           break\n"
@@ -22812,12 +22812,12 @@ test_trv_break_stmt_3(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid break statement. not in loop"));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid break statement. not in loop"));
     }
 
     trv_cleanup;
@@ -22827,13 +22827,13 @@ static void
 test_trv_continue_stmt_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ j=0 for i=0; i<2; i+=1: continue\n j=i end @}{: j :}");
+    PadTkr_Parse(tkr, "{@ j=0 for i=0; i<2; i+=1: continue\n j=i end @}{: j :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -22844,7 +22844,7 @@ static void
 test_trv_continue_stmt_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       puts(0)\n"
     "       continue\n"
@@ -22852,11 +22852,11 @@ test_trv_continue_stmt_1(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n0\n"));
     }
 
@@ -22867,7 +22867,7 @@ static void
 test_trv_continue_stmt_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       puts(0)\n"
     "       if 1:\n"
@@ -22877,15 +22877,15 @@ test_trv_continue_stmt_2(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n0\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       puts(0)\n"
     "       if 0:\n"
@@ -22896,15 +22896,15 @@ test_trv_continue_stmt_2(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n0\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       puts(0)\n"
     "       if 0:\n"
@@ -22915,11 +22915,11 @@ test_trv_continue_stmt_2(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n0\n"));
     }
 
@@ -22930,7 +22930,7 @@ static void
 test_trv_continue_stmt_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       puts(0)\n"
     "       for j = 0; j < 2; j += 1:\n"
@@ -22942,11 +22942,11 @@ test_trv_continue_stmt_3(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n10\n10\n1\n0\n10\n10\n1\n"));
     }
 
@@ -22957,7 +22957,7 @@ static void
 test_trv_continue_stmt_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       continue\n"
     "   end\n"
@@ -22973,12 +22973,12 @@ test_trv_continue_stmt_4(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid continue statement. not in loop"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid continue statement. not in loop"));
     }
 
     trv_cleanup;
@@ -22988,19 +22988,19 @@ static void
 test_trv_continue_stmt_5(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   continue\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid continue statement. not in loop"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid continue statement. not in loop"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       continue\n"
     "   end\n"
@@ -23012,15 +23012,15 @@ test_trv_continue_stmt_5(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid continue statement. not in loop"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid continue statement. not in loop"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       def f():\n"
     "           continue\n"
@@ -23029,12 +23029,12 @@ test_trv_continue_stmt_5(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid continue statement. not in loop"));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid continue statement. not in loop"));
     }
 
     trv_cleanup;
@@ -23044,25 +23044,25 @@ static void
 test_trv_return_stmt_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ def f(): return 1 end @}{: f() :}");
+    PadTkr_Parse(tkr, "{@ def f(): return 1 end @}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -23070,12 +23070,12 @@ static void
 test_trv_return_stmt_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       puts(1)\n"
     "       return 2\n"
@@ -23083,18 +23083,18 @@ test_trv_return_stmt_1(void) {
     "   end\n"
     "@}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n2"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -23102,7 +23102,7 @@ static void
 test_trv_return_stmt_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       for i = 0; i < 2; i += 1:\n"
     "           puts(i)\n"
@@ -23112,15 +23112,15 @@ test_trv_return_stmt_2(void) {
     "   end\n"
     "@}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       for i = 0; i < 2; i += 1:\n"
     "           puts(i)\n"
@@ -23132,11 +23132,11 @@ test_trv_return_stmt_2(void) {
     "   end\n"
     "@}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n0\n1"));
     }
 
@@ -23147,7 +23147,7 @@ static void
 test_trv_return_stmt_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       puts(0)\n"
     "       if 1:\n"
@@ -23159,15 +23159,15 @@ test_trv_return_stmt_3(void) {
     "   end\n"
     "@}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n2"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       puts(0)\n"
     "       if 0:\n"
@@ -23181,15 +23181,15 @@ test_trv_return_stmt_3(void) {
     "   end\n"
     "@}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n2"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f():\n"
     "       puts(0)\n"
     "       if 0:\n"
@@ -23205,11 +23205,11 @@ test_trv_return_stmt_3(void) {
     "   end\n"
     "@}{: f() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n2"));
     }
 
@@ -23220,74 +23220,74 @@ static void
 test_trv_return_stmt_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   return\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid return statement. not in function"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid return statement. not in function"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 1:\n"
     "       return\n"
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid return statement. not in function"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid return statement. not in function"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "   else:\n"
     "       return\n"
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid return statement. not in function"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid return statement. not in function"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   if 0:\n"
     "   elif 1:\n"
     "       return\n"
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid return statement. not in function"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid return statement. not in function"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       return\n"
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid return statement. not in function"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid return statement. not in function"));
     }
 
     trv_cleanup;
@@ -23297,7 +23297,7 @@ static void
 test_trv_return_stmt_5(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def func():\n"
     "       if 1:\n"
     "          return 1\n"
@@ -23306,11 +23306,11 @@ test_trv_return_stmt_5(void) {
     "   end\n"
     "@}{: func() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -23321,7 +23321,7 @@ static void
 test_trv_return_stmt_6(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def func():\n"
     "       if 1:\n"
     "          return\n"
@@ -23330,11 +23330,11 @@ test_trv_return_stmt_6(void) {
     "   end\n"
     "@}{: func() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         showbuf();
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
@@ -23346,15 +23346,15 @@ static void
 test_trv_block_stmt_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "block aaa:\n"
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "can't access to function node"));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "can't access to function node"));
     }
 
     trv_cleanup;
@@ -23364,15 +23364,15 @@ static void
 test_trv_block_stmt_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "block:\n"
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "can't access to function node"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "can't access to function node"));
     }
 
     trv_cleanup;
@@ -23382,17 +23382,17 @@ static void
 test_trv_block_stmt_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "def func():\n"
     "   block aaa:\n"
     "   end\n"
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
         showdetail();
-        assert(!ast_has_errors(ast));
+        assert(!PadAST_HasErrs(ast));
     }
 
     trv_cleanup;
@@ -23402,15 +23402,15 @@ static void
 test_trv_inject_stmt_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "inject aaa:\n"
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "inject statement needs function"));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "inject statement needs function"));
     }
 
     trv_cleanup;
@@ -23420,15 +23420,15 @@ static void
 test_trv_inject_stmt_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "inject:\n"
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found identifier in inject statement"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found identifier in inject statement"));
     }
 
     trv_cleanup;
@@ -23438,16 +23438,16 @@ static void
 test_trv_inject_stmt_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "def func():\n"
     "   inject aaa:\n"
     "   end\n"
     "end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(!PadAST_HasErrs(ast));
     }
 
     trv_cleanup;
@@ -23457,25 +23457,25 @@ static void
 test_trv_func_def_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ def f(): end @}");
+    PadTkr_Parse(tkr, "{@ def f(): end @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -23483,25 +23483,25 @@ static void
 test_trv_func_def_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ def f(a, b): puts(a, b) end f(1, 2) @}");
+    PadTkr_Parse(tkr, "{@ def f(a, b): puts(a, b) end f(1, 2) @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1 2\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -23509,28 +23509,28 @@ static void
 test_trv_func_def_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
         "def func(a, b):\n"
         "   c = a + b\n"
         "end\n"
         "@}{: c :}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        (PadTrv_Trav(ast, ctx));
         object_PadDict *varmap = ctx_get_varmap(ctx);
         assert(objdict_get(varmap, "func"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -23538,24 +23538,24 @@ static void
 test_trv_func_def_3(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ def f(): end \n a = not f @}");
+    PadTkr_Parse(tkr, "{@ def f(): end \n a = not f @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -23563,25 +23563,25 @@ static void
 test_trv_func_def_4(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ i = 1 \n def f(): puts(i) end \n f() @}");
+    PadTkr_Parse(tkr, "{@ i = 1 \n def f(): puts(i) end \n f() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ast->ref_context), "1\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -23589,25 +23589,25 @@ static void
 test_trv_func_def_5(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ def f(arg): end \n f() @}");
+    PadTkr_Parse(tkr, "{@ def f(arg): end \n f() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "arguments not same length"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "arguments not same length"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -23615,12 +23615,12 @@ static void
 test_trv_func_def_6(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(n, desc):\n"
     "       c = true\n"
     "       indent = n * \"    \""
@@ -23629,18 +23629,18 @@ test_trv_func_def_6(void) {
     "   f(1, \"desc\")\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "    abc"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -23648,31 +23648,31 @@ static void
 test_trv_func_def_7(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "from \"/tests/lang/modules/func-def.cap\" import draw\n"
     "draw(1, \"desc\")\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "    program\n\n    comment\n"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -23680,18 +23680,18 @@ static void
 test_trv_func_def_8(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arr):\n"
     "       puts(arr[0], arr[1], arr[2])\n"
     "   end\n"
     "   f([1, 2, 3])\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1 2 3\n"));
     }
 
@@ -23702,7 +23702,7 @@ static void
 test_trv_func_def_9(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arr):\n"
     "       puts(arr[0], arr[1], arr[2])\n"
     "   end\n"
@@ -23710,11 +23710,11 @@ test_trv_func_def_9(void) {
     "   f([i, i+1, i+2])\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0 1 2\n"));
     }
 
@@ -23725,7 +23725,7 @@ static void
 test_trv_func_def_10(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arr):\n"
     "       puts(arr[0], arr[1], arr[2])\n"
     "   end\n"
@@ -23734,11 +23734,11 @@ test_trv_func_def_10(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0 1 2\n1 2 3\n2 3 4\n"));
     }
 
@@ -23749,7 +23749,7 @@ static void
 test_trv_func_extends_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "   end\n"
     "   def f2() extends f1:\n"
@@ -23757,11 +23757,11 @@ test_trv_func_extends_0(void) {
     "   f2()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
     }
 
     trv_cleanup;
@@ -23771,15 +23771,15 @@ static void
 test_trv_func_extends_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f2() extends:\n"
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found identifier in function extends"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found identifier in function extends"));
     }
 
     trv_cleanup;
@@ -23789,7 +23789,7 @@ static void
 test_trv_func_super_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       puts(1)\n"
     "   end\n"
@@ -23800,11 +23800,11 @@ test_trv_func_super_0(void) {
     "   f2()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2\n1\n"));
     }
 
@@ -23815,7 +23815,7 @@ static void
 test_trv_func_super_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       puts(1)\n"
     "   end\n"
@@ -23831,11 +23831,11 @@ test_trv_func_super_1(void) {
     "   f3()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2\n1\n3\n1\n"));
     }
 
@@ -23846,7 +23846,7 @@ static void
 test_trv_func_super_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       puts(1)\n"
     "   end\n"
@@ -23861,11 +23861,11 @@ test_trv_func_super_2(void) {
     "   f3()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3\n2\n1\n"));
     }
 
@@ -23876,7 +23876,7 @@ static void
 test_trv_block_stmt_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       puts(1)\n"
     "       block content:\n"
@@ -23887,11 +23887,11 @@ test_trv_block_stmt_3(void) {
     "   f1()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n2\n3\n"));
     }
 
@@ -23902,7 +23902,7 @@ static void
 test_trv_block_stmt_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       block content:\n"
     "           puts(1)\n"
@@ -23914,11 +23914,11 @@ test_trv_block_stmt_4(void) {
     "   f1()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -23929,7 +23929,7 @@ static void
 test_trv_inject_stmt_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       block content:\n"
     "           puts(1)\n"
@@ -23944,11 +23944,11 @@ test_trv_inject_stmt_3(void) {
     "   f2()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2\n"));
     }
 
@@ -23959,7 +23959,7 @@ static void
 test_trv_inject_stmt_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       block content:\n"
     "           puts(1)\n"
@@ -23976,11 +23976,11 @@ test_trv_inject_stmt_4(void) {
     "   f1()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n2\n1\n"));
     }
 
@@ -23991,7 +23991,7 @@ static void
 test_trv_inject_stmt_5(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       block header:\n"
     "           puts(1)\n"
@@ -24012,11 +24012,11 @@ test_trv_inject_stmt_5(void) {
     "   f2()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3\n4\n"));
     }
 
@@ -24027,7 +24027,7 @@ static void
 test_trv_inject_stmt_6(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       block content:\n"
     "           puts(1)\n"
@@ -24045,11 +24045,11 @@ test_trv_inject_stmt_6(void) {
     "   f3()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2\n"));
     }
 
@@ -24060,7 +24060,7 @@ static void
 test_trv_inject_stmt_7(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       block header:\n"
     "           puts(1)\n"
@@ -24084,11 +24084,11 @@ test_trv_inject_stmt_7(void) {
     "   f3()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3\n4\n"));
     }
 
@@ -24099,7 +24099,7 @@ static void
 test_trv_inject_stmt_8(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       block content:\n"
     "           puts(0)\n"
@@ -24126,11 +24126,11 @@ test_trv_inject_stmt_8(void) {
     "   f3()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n2\n3\n"));
     }
 
@@ -24141,7 +24141,7 @@ static void
 test_trv_inject_stmt_9(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1(k):\n"
     "       block content:\n"
     "           puts(k[\"b\"])\n"
@@ -24156,11 +24156,11 @@ test_trv_inject_stmt_9(void) {
     "   f2({ \"a\": 1, \"b\": 2 })\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n2\n"));
     }
 
@@ -24171,7 +24171,7 @@ static void
 test_trv_inject_stmt_10(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       block content:\n"
     "       end\n"
@@ -24184,12 +24184,12 @@ test_trv_inject_stmt_10(void) {
     "   f2()\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "can't inject. not found extended function"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "can't inject. not found extended function"));
     }
 
     trv_cleanup;
@@ -24199,7 +24199,7 @@ static void
 test_trv_inject_stmt_11(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       puts(a)\n"
     "   end\n"
@@ -24209,11 +24209,11 @@ test_trv_inject_stmt_11(void) {
     "   f2(1)\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -24224,7 +24224,7 @@ static void
 test_trv_inject_stmt_12(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1(b):\n"
     "       block content:\n"
     "           puts(2)\n"
@@ -24240,11 +24240,11 @@ test_trv_inject_stmt_12(void) {
     "   f2(1)\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n3\n"));
     }
 
@@ -24255,7 +24255,7 @@ static void
 test_trv_inject_stmt_13(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def base():\n"
     "       block header:\n"
     "           @}<h1>Title</h1>{@\n"
@@ -24270,11 +24270,11 @@ test_trv_inject_stmt_13(void) {
     "   index()\n"
     "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "<h1>The title</h1>"));
     }
 
@@ -24285,7 +24285,7 @@ static void
 test_trv_inject_stmt_14(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def base(a):\n"
     "       block header:\n"
     "           puts(a)"
@@ -24300,11 +24300,11 @@ test_trv_inject_stmt_14(void) {
     "   index(1)\n"
     "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -24315,7 +24315,7 @@ static void
 test_trv_inject_stmt_15(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def base(a, b):\n"
     "       block header:\n"
     "       end\n"
@@ -24329,11 +24329,11 @@ test_trv_inject_stmt_15(void) {
     "   index(1)\n"
     "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1 3\n"));
     }
 
@@ -24344,7 +24344,7 @@ static void
 test_trv_inject_stmt_16(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def base():\n"
     "       block header:\n"
     "       end\n"
@@ -24359,11 +24359,11 @@ test_trv_inject_stmt_16(void) {
     "   index()\n"
     "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -24374,7 +24374,7 @@ static void
 test_trv_inject_stmt_17(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def base():\n"
     "       block header:\n"
     "       end\n"
@@ -24387,11 +24387,11 @@ test_trv_inject_stmt_17(void) {
     "   index()\n"
     "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -24402,7 +24402,7 @@ static void
 test_trv_inject_stmt_18(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   from \":tests/lang/modules/base.cap\" import base\n"
     "\n"
     "   def index() extends base:\n"
@@ -24416,11 +24416,11 @@ test_trv_inject_stmt_18(void) {
     "   index()\n"
     "@}");
     {
-        ast_clear(ast);
-        (cc_compile(ast, tkr_get_tokens(tkr)));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -24431,7 +24431,7 @@ static void
 test_trv_inject_stmt_19(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1():\n"
     "       block content:\n"
     "           puts(2)\n"
@@ -24446,11 +24446,11 @@ test_trv_inject_stmt_19(void) {
     "   f2(1)\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n"));
     }
 
@@ -24461,25 +24461,25 @@ static void
 test_trv_assign_list_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24487,25 +24487,25 @@ static void
 test_trv_assign_list_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = 1, b = 2 @}{: a :},{: b :}");
+    PadTkr_Parse(tkr, "{@ a = 1, b = 2 @}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24513,25 +24513,25 @@ static void
 test_trv_assign_list_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = b = 1 @}{: a :},{: b :}");
+    PadTkr_Parse(tkr, "{@ a = b = 1 @}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24539,25 +24539,25 @@ static void
 test_trv_assign_list_3(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = b = 1, c = 2 @}{: a :},{: b :},{: c :}");
+    PadTkr_Parse(tkr, "{@ a = b = 1, c = 2 @}{: a :},{: b :},{: c :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,1,2"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24565,25 +24565,25 @@ static void
 test_trv_multi_assign_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a, b = 1, 2 @}{: a :},{: b :}");
+    PadTkr_Parse(tkr, "{@ a, b = 1, 2 @}{: a :},{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24591,25 +24591,25 @@ static void
 test_trv_or_test_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 or 0 :}");
+    PadTkr_Parse(tkr, "{: 1 or 0 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24617,25 +24617,25 @@ static void
 test_trv_and_test_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 and 1 :}");
+    PadTkr_Parse(tkr, "{: 1 and 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24643,25 +24643,25 @@ static void
 test_trv_not_test_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: not 0 :}");
+    PadTkr_Parse(tkr, "{: not 0 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24669,25 +24669,25 @@ static void
 test_trv_comparison_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 == 1 :}");
+    PadTkr_Parse(tkr, "{: 1 == 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24695,25 +24695,25 @@ static void
 test_trv_comparison_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 != 1 :}");
+    PadTkr_Parse(tkr, "{: 1 != 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24721,25 +24721,25 @@ static void
 test_trv_comparison_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 < 2 :}");
+    PadTkr_Parse(tkr, "{: 1 < 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24747,25 +24747,25 @@ static void
 test_trv_comparison_3(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 2 > 1 :}");
+    PadTkr_Parse(tkr, "{: 2 > 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24773,25 +24773,25 @@ static void
 test_trv_comparison_4(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 <= 2 :}");
+    PadTkr_Parse(tkr, "{: 1 <= 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24799,25 +24799,25 @@ static void
 test_trv_comparison_5(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 2 >= 1 :}");
+    PadTkr_Parse(tkr, "{: 2 >= 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24825,52 +24825,52 @@ static void
 test_trv_asscalc_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     /*****
     * ok *
     *****/
 
-    tkr_parse(tkr, "{@ a = 0 \n a += 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a += 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n b = 1 \n a += b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n b = 1 \n a += b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n a += true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a += true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n a += false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a += false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -24878,40 +24878,40 @@ test_trv_asscalc_0(void) {
     * fail *
     *******/
 
-    tkr_parse(tkr, "{@ 0 += 1 @}");
+    PadTkr_Parse(tkr, "{@ 0 += 1 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid left hand operand (1)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid left hand operand (1)"));
     }
 
-    tkr_parse(tkr, "{@ true += 1 @}");
+    PadTkr_Parse(tkr, "{@ true += 1 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid left hand operand (3)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid left hand operand (3)"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n a += \"b\" @}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a += \"b\" @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid right hand operand (5)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid right hand operand (5)"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -24919,52 +24919,52 @@ static void
 test_trv_asscalc_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     /*****
     * ok *
     *****/
 
-    tkr_parse(tkr, "{@ a = 0 \n a -= 1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a -= 1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "-1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n b = 1 \n a -= b @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n b = 1 \n a -= b @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "-1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n a -= true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a -= true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "-1"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n a -= false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a -= false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -24972,40 +24972,40 @@ test_trv_asscalc_1(void) {
     * fail *
     *******/
 
-    tkr_parse(tkr, "{@ 1 -= 1 @}");
+    PadTkr_Parse(tkr, "{@ 1 -= 1 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid left hand operand type (1)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid left hand operand type (1)"));
     }
 
-    tkr_parse(tkr, "{@ true -= 1 @}");
+    PadTkr_Parse(tkr, "{@ true -= 1 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid left hand operand type (3)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid left hand operand type (3)"));
     }
 
-    tkr_parse(tkr, "{@ a = 0 \n a -= \"c\" @}");
+    PadTkr_Parse(tkr, "{@ a = 0 \n a -= \"c\" @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid right hand operand type (5)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid right hand operand type (5)"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -25013,92 +25013,92 @@ static void
 test_trv_asscalc_2(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     /*****
     * ok *
     *****/
 
-    tkr_parse(tkr, "{@ a = 2 \n a *= 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 \n a *= 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 @}{: (a *= 2) :}");
+    PadTkr_Parse(tkr, "{@ a = 2 @}{: (a *= 2) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 \n a *= true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 \n a *= true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 \n a *= false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 2 \n a *= false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{@ a = \"ab\" \n a *= 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"ab\" \n a *= 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abab"));
     }
 
-    tkr_parse(tkr, "{@ a = \"ab\" \n a *= 0 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"ab\" \n a *= 0 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{@ a = \"ab\" \n a *= true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"ab\" \n a *= true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "ab"));
     }
 
-    tkr_parse(tkr, "{@ a = \"ab\" \n a *= false @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"ab\" \n a *= false @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
@@ -25106,50 +25106,50 @@ test_trv_asscalc_2(void) {
     * fail *
     *******/
 
-    tkr_parse(tkr, "{@ a = \"ab\" \n a *= -1 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = \"ab\" \n a *= -1 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "can't mul by negative value"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "can't mul by negative value"));
     }
 
-    tkr_parse(tkr, "{@ 1 *= 2 @}");
+    PadTkr_Parse(tkr, "{@ 1 *= 2 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid left hand operand (1)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid left hand operand (1)"));
     }
 
-    tkr_parse(tkr, "{@ true *= 2 @}");
+    PadTkr_Parse(tkr, "{@ true *= 2 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid left hand operand (3)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid left hand operand (3)"));
     }
 
-    tkr_parse(tkr, "{@ a = 2 \n a *= \"b\" @}");
+    PadTkr_Parse(tkr, "{@ a = 2 \n a *= \"b\" @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid right hand operand (5)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid right hand operand (5)"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -25157,62 +25157,62 @@ static void
 test_trv_asscalc_3(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
     /*****
     * ok *
     *****/
 
-    tkr_parse(tkr, "{@ a = 4 \n a /= 2 @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 4 \n a /= 2 @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 4  @}{: (a /= 2) :}");
+    PadTkr_Parse(tkr, "{@ a = 4  @}{: (a /= 2) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 4 \n a /= true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = 4 \n a /= true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4"));
     }
 
-    tkr_parse(tkr, "{@ a = true \n a /= true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = true \n a /= true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = false \n a /= true @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = false \n a /= true @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -25220,60 +25220,60 @@ test_trv_asscalc_3(void) {
     * fail *
     *******/
 
-    tkr_parse(tkr, "{@ 4 /= 2 @}");
+    PadTkr_Parse(tkr, "{@ 4 /= 2 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid left hand operand (1)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid left hand operand (1)"));
     }
 
-    tkr_parse(tkr, "{@ true /= 2 @}");
+    PadTkr_Parse(tkr, "{@ true /= 2 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid left hand operand (3)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid left hand operand (3)"));
     }
 
-    tkr_parse(tkr, "{@ a = 4 \n a /= false @}");
+    PadTkr_Parse(tkr, "{@ a = 4 \n a /= false @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "zero division error"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "zero division error"));
     }
 
-    tkr_parse(tkr, "{@ a = 4 \n a /= 0 @}");
+    PadTkr_Parse(tkr, "{@ a = 4 \n a /= 0 @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "zero division error"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "zero division error"));
     }
 
-    tkr_parse(tkr, "{@ a = 4 \n a /= \"b\" @}");
+    PadTkr_Parse(tkr, "{@ a = 4 \n a /= \"b\" @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid right hand operand (5)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid right hand operand (5)"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -25281,16 +25281,16 @@ static void
 test_trv_asscalc_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [1, 2]\n"
     "   a[0] += 1\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
@@ -25307,16 +25307,16 @@ test_trv_asscalc_5(void) {
     * ok *
     *****/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [1, 2]\n"
     "   a[0] += a[0] += 1\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4"));
     }
 
@@ -25327,16 +25327,16 @@ static void
 test_trv_asscalc_6(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [\"aaa\", 2]\n"
     "   a[0] += \"bbb\"\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "aaabbb"));
     }
 
@@ -25347,16 +25347,16 @@ static void
 test_trv_asscalc_7(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [true, 2]\n"
     "   a[0] += 1\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
@@ -25367,16 +25367,16 @@ static void
 test_trv_asscalc_8(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [true, 2]\n"
     "   a[0] += true\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
@@ -25387,16 +25387,16 @@ static void
 test_trv_asscalc_9(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [1, 2]\n"
     "   a[0] -= 1\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -25407,16 +25407,16 @@ static void
 test_trv_asscalc_10(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [true, 2]\n"
     "   a[0] -= true\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -25427,16 +25427,16 @@ static void
 test_trv_asscalc_11(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [1, 2]\n"
     "   a[0] *= 2\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
@@ -25447,16 +25447,16 @@ static void
 test_trv_asscalc_12(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [\"abc\", 2]\n"
     "   a[0] *= 2\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         showbuf();
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abcabc"));
     }
@@ -25468,16 +25468,16 @@ static void
 test_trv_asscalc_13(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [true, 2]\n"
     "   a[0] *= 2\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
@@ -25488,16 +25488,16 @@ static void
 test_trv_asscalc_14(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [true, 2]\n"
     "   a[0] *= true\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -25508,16 +25508,16 @@ static void
 test_trv_asscalc_15(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [4, 2]\n"
     "   a[0] /= 2\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
@@ -25528,17 +25528,17 @@ static void
 test_trv_asscalc_16(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [4, 2]\n"
     "   a[0] /= 0\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "zero division error"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "zero division error"));
     }
 
     trv_cleanup;
@@ -25548,17 +25548,17 @@ static void
 test_trv_asscalc_17(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [4, 2]\n"
     "   a[0] /= false\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "zero division error"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "zero division error"));
     }
 
     trv_cleanup;
@@ -25568,16 +25568,16 @@ static void
 test_trv_asscalc_18(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [1, 2]\n"
     "   a[0] /= true\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -25588,16 +25588,16 @@ static void
 test_trv_asscalc_19(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [2, 2]\n"
     "   a[0] %= 2\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -25608,16 +25608,16 @@ static void
 test_trv_asscalc_20(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [2, 2]\n"
     "   a[0] %= true\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -25628,17 +25628,17 @@ static void
 test_trv_asscalc_21(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [2, 2]\n"
     "   a[0] %= 0\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "zero division error"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "zero division error"));
     }
 
     trv_cleanup;
@@ -25648,17 +25648,17 @@ static void
 test_trv_asscalc_22(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [2, 2]\n"
     "   a[0] %= false\n"
     "@}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "zero division error"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "zero division error"));
     }
 
     trv_cleanup;
@@ -25668,35 +25668,35 @@ static void
 test_trv_expr_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 + 1 :}");
+    PadTkr_Parse(tkr, "{: 1 + 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = 1 b = a @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = 1 b = a @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -25704,25 +25704,25 @@ static void
 test_trv_expr_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 - 1 :}");
+    PadTkr_Parse(tkr, "{: 1 - 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -25730,13 +25730,13 @@ static void
 test_trv_expr_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ a = 1 \n b = a - 1 @}{: b :}");
+    PadTkr_Parse(tkr, "{@ a = 1 \n b = a - 1 @}{: b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -25747,7 +25747,7 @@ static void
 test_trv_expr_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "a = [1, 2, 3]\n"
     "def f(arg):\n"
     "   return arg\n"
@@ -25755,11 +25755,11 @@ test_trv_expr_3(void) {
     "r = f(a)\n"
     "@}{: r :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
@@ -25770,7 +25770,7 @@ static void
 test_trv_expr_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "a = [1, 2, 3]\n"
     "def f(arg):\n"
     "   return arg\n"
@@ -25778,11 +25778,11 @@ test_trv_expr_4(void) {
     "r = f(a)[0]\n"
     "@}{: r :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -25793,7 +25793,7 @@ static void
 test_trv_expr_4a(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "def f(arg):\n"
     "   return arg\n"
     "end\n"
@@ -25801,11 +25801,11 @@ test_trv_expr_4a(void) {
     "r = a[0](1)\n"
     "@}{: r :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -25824,7 +25824,7 @@ test_trv_expr_4b(void) {
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "import \"/tests/lang/modules/func.cap\" as mod\n"
     "def f(arg):\n"
     "   return arg\n"
@@ -25833,11 +25833,11 @@ test_trv_expr_4b(void) {
     "r = a[0].arrMod.array[0]\n"
     "@}{: r :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -25850,7 +25850,7 @@ test_trv_expr_4c(void) {
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "import \"/tests/lang/modules/func.cap\" as mod\n"
     "def f(arg):\n"
     "   return arg\n"
@@ -25859,11 +25859,11 @@ test_trv_expr_4c(void) {
     "r = a[0].arrMod.funcArray[0](0)\n"
     "@}{: r :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -25874,7 +25874,7 @@ static void
 test_trv_expr_5(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "a = [1, 2, 3]\n"
     "d = { \"a\": 1, \"b\": 2 }\n"
     "def f(arg):\n"
@@ -25883,15 +25883,15 @@ test_trv_expr_5(void) {
     "r = a[f(a)[0]]\n"
     "@}{: r :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "a = [1, 2, 3]\n"
     "d = { \"a\": 1, \"b\": 2 }\n"
     "def f(arg):\n"
@@ -25900,11 +25900,11 @@ test_trv_expr_5(void) {
     "r = a[f(a)[0] * 2] * 3 + f(10)\n"
     "@}{: r :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "19"));
     }
 
@@ -25917,17 +25917,17 @@ test_trv_expr_6(void) {
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "import \"/tests/lang/modules/array.cap\" as mod\n"
     "\n"
     "r = mod.array[0]\n"
     "@}{: r :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -25940,17 +25940,17 @@ test_trv_expr_7(void) {
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "import \"/tests/lang/modules/func.cap\" as mod\n"
     "\n"
     "r = mod.func(1)\n"
     "@}{: r :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -25963,17 +25963,17 @@ test_trv_expr_8(void) {
 
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "import \"/tests/lang/modules/func.cap\" as mod\n"
     "\n"
     "r = mod.arrMod.array[0]\n"
     "@}{: r :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -25988,30 +25988,30 @@ test_trv_expr_9(void) {
     * theme: list and expr *
     ***********************/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   l = [1, 2]\n"
     "   l2 = l + l\n"
     "@}{: l2[0] :},{: l2[1] :},{: l2[2] :},{: l2[3] :},{: id(l2[0]) == id(l2[2]) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2,1,2,true"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   l1 = [1, 2]\n"
     "   l2 = [3, 4]\n"
     "   l3 = l1 + l2\n"
     "@}{: l3[0] :},{: l3[1] :},{: l3[2] :},{: l3[3] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2,3,4"));
     }
 
@@ -26022,65 +26022,65 @@ static void
 test_trv_term_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 2 * 2 :}");
+    PadTkr_Parse(tkr, "{: 2 * 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "4"));
     }
 
-    tkr_parse(tkr, "{: 2 * \"abc\" :}");
+    PadTkr_Parse(tkr, "{: 2 * \"abc\" :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abcabc"));
     }
 
-    tkr_parse(tkr, "{: \"abc\" * 2 :}");
+    PadTkr_Parse(tkr, "{: \"abc\" * 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abcabc"));
     }
 
-    tkr_parse(tkr, "{: 0 * \"abc\" :}");
+    PadTkr_Parse(tkr, "{: 0 * \"abc\" :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    tkr_parse(tkr, "{: -1 * \"abc\" :}");
+    PadTkr_Parse(tkr, "{: -1 * \"abc\" :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "can't mul string by negative value"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "can't mul string by negative value"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -26088,23 +26088,23 @@ static void
 test_trv_term_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{: 4 / 2 :}");
+    PadTkr_Parse(tkr, "{: 4 / 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 /*
-    tkr_parse(tkr, "{: 3 / 2 :}");
+    PadTkr_Parse(tkr, "{: 3 / 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));  // TODO: imp float!
     }
 */
@@ -26119,23 +26119,23 @@ test_trv_term_2(void) {
     * ok *
     *****/
 
-    tkr_parse(tkr, "{: 4 % 2 :}");
+    PadTkr_Parse(tkr, "{: 4 % 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{: 3 % 2 :}");
+    PadTkr_Parse(tkr, "{: 3 % 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -26143,24 +26143,24 @@ test_trv_term_2(void) {
     * fail *
     *******/
 
-    tkr_parse(tkr, "{: 4 % nil :}");
+    PadTkr_Parse(tkr, "{: 4 % nil :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid right hand operand (0)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid right hand operand (0)"));
     }
 
-    tkr_parse(tkr, "{: nil % 2 :}");
+    PadTkr_Parse(tkr, "{: nil % 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid left hand operand (0)"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid left hand operand (0)"));
     }
 
     trv_cleanup;
@@ -26170,73 +26170,73 @@ static void
 test_trv_term_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{: 2 * 2 / 4 % 2 :}");
+    PadTkr_Parse(tkr, "{: 2 * 2 / 4 % 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{: 4 / 2 * 2 % 2 :}");
+    PadTkr_Parse(tkr, "{: 4 / 2 * 2 % 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{: 3 % 2 * 3 / 3 :}");
+    PadTkr_Parse(tkr, "{: 3 % 2 * 3 / 3 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{: 3 * 2 / 3 * 3 :}");
+    PadTkr_Parse(tkr, "{: 3 * 2 / 3 * 3 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "6"));
     }
 
-    tkr_parse(tkr, "{: 4 / 2 * 2 / 2 :}");
+    PadTkr_Parse(tkr, "{: 4 / 2 * 2 / 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{: 3 % 2 * 2 % 2 :}");
+    PadTkr_Parse(tkr, "{: 3 % 2 * 2 % 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    tkr_parse(tkr, "{: 3 * 2 % 2 * 2 :}");
+    PadTkr_Parse(tkr, "{: 3 * 2 % 2 * 2 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -26247,25 +26247,25 @@ static void
 test_trv_call_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ def f(): end f() @}");
+    PadTkr_Parse(tkr, "{@ def f(): end f() @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -26273,7 +26273,7 @@ static void
 test_trv_call_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(a):\n"
     "       puts(a[0], a[1])\n"
     "   end\n"
@@ -26281,11 +26281,11 @@ test_trv_call_1(void) {
     "   f(a)\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1 2\n"));
     }
 
@@ -26296,7 +26296,7 @@ static void
 test_trv_call_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(a):\n"
     "       puts(a[0], a[1])\n"
     "   end\n"
@@ -26306,11 +26306,11 @@ test_trv_call_2(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0 1\n1 2\n"));
     }
 
@@ -26321,7 +26321,7 @@ static void
 test_trv_call_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(a):\n"
     "       puts(a[0], a[1], a[2])\n"
     "   end\n"
@@ -26333,11 +26333,11 @@ test_trv_call_3(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0 1 2\n1 2 3\n"));
     }
 
@@ -26351,7 +26351,7 @@ test_trv_call_4(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "    from \"/tests/lang/modules/list.cap\" import arrayToUl\n"
     "\n"
     "    for i = 0; i < 4; i += 1:\n"
@@ -26361,11 +26361,11 @@ test_trv_call_4(void) {
     "    end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx),
             "<ul>\n"
             "    <li>0</li>\n"
@@ -26397,7 +26397,7 @@ static void
 test_trv_call_5(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f1(a):\n"
     "       puts(a)\n"
     "       return a * 2\n"
@@ -26413,11 +26413,11 @@ test_trv_call_5(void) {
     "   end\n"
     "@}{: f4(2) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2\n4"));
     }
 
@@ -26428,25 +26428,25 @@ static void
 test_trv_index_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = [0, 1] @}{: a[0] :},{: a[1] :}");
+    PadTkr_Parse(tkr, "{@ a = [0, 1] @}{: a[0] :},{: a[1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0,1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -26454,25 +26454,25 @@ static void
 test_trv_index_1(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ a = [0, 1] @}{: a[0] :}");
+    PadTkr_Parse(tkr, "{@ a = [0, 1] @}{: a[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -26480,13 +26480,13 @@ static void
 test_trv_array_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ a = [0, 1] @}");
+    PadTkr_Parse(tkr, "{@ a = [0, 1] @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
@@ -26500,18 +26500,18 @@ test_trv_array_1(void) {
 
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 0\n"
     "   a = [i, 1]\n"
     "   a[0] += 1\n"
     "   puts(i)\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0"));
     }
 
@@ -26522,7 +26522,7 @@ static void
 test_trv_array_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 0\n"
     "   a = [i, 1]\n"
     "   puts(i)\n"
@@ -26530,11 +26530,11 @@ test_trv_array_2(void) {
     "   puts(id(i) != id(a[0]))"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n0\nfalse\n"));
     }
 
@@ -26545,7 +26545,7 @@ static void
 test_trv_array_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   i = 0\n"
     "   s = \"abc\"\n"
     "   n = nil\n"
@@ -26564,11 +26564,11 @@ test_trv_array_3(void) {
     "   puts(d[\"a\"] == a[4][\"a\"])\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0 abc nil 0 1\nfalse\nfalse\nfalse\ntrue\ntrue\ntrue\ntrue\n"));
     }
 
@@ -26579,7 +26579,7 @@ static void
 test_trv_array_4(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   a = [\n"
     "       1,\n"
     "       2, 3,\n"
@@ -26587,11 +26587,11 @@ test_trv_array_4(void) {
     "   ]\n"
     "@}{: a[0] :}{: a[1] :}{: a[2] :}{: a[3] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1234"));
     }
 
@@ -26602,25 +26602,25 @@ static void
 test_trv_nil(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: nil :}");
+    PadTkr_Parse(tkr, "{: nil :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -26628,25 +26628,25 @@ static void
 test_trv_false(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: false :}");
+    PadTkr_Parse(tkr, "{: false :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "false"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -26654,25 +26654,25 @@ static void
 test_trv_true(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: true :}");
+    PadTkr_Parse(tkr, "{: true :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -26680,25 +26680,25 @@ static void
 test_trv_digit(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: 1 :}");
+    PadTkr_Parse(tkr, "{: 1 :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -26706,25 +26706,25 @@ static void
 test_trv_string(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{: \"abc\" :}");
+    PadTkr_Parse(tkr, "{: \"abc\" :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "abc"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -26732,13 +26732,13 @@ static void
 test_trv_dict_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@ d = {\"a\":1, \"b\":2} @}");
+    PadTkr_Parse(tkr, "{@ d = {\"a\":1, \"b\":2} @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), ""));
     }
 
@@ -26749,18 +26749,18 @@ static void
 test_trv_dict_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   d = {\n"
     "       \"a\" \n : \n 1 \n, \n"
     "       \"b\" \n : \n 2 \n, \n"
     "   }\n"
     "@}{: d[\"a\"] :}{: d[\"b\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "12"));
     }
 
@@ -26775,16 +26775,16 @@ test_trv_dict_2(void) {
     * fail *
     *******/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   d = {\"a\": 1}\n"
     "@}{: d[\"b\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "not found key \"b\""));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "not found key \"b\""));
     }
 
     trv_cleanup;
@@ -26798,107 +26798,107 @@ test_trv_dict_3(void) {
     * fail *
     *******/
 
-    tkr_parse(tkr, "{@ a = { 1: 1 } @}");
+    PadTkr_Parse(tkr, "{@ a = { 1: 1 } @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "key is not string in dict elem"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "key is not string in dict elem"));
     }
 
-    tkr_parse(tkr, "{@ a = { \"k\": 1 } \n a[0] @}");
+    PadTkr_Parse(tkr, "{@ a = { \"k\": 1 } \n a[0] @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "index isn't string"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "index isn't string"));
     }
 
-    tkr_parse(tkr, "{@ k = 1 \n a = { k: 1 } @}");
+    PadTkr_Parse(tkr, "{@ k = 1 \n a = { k: 1 } @}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid key type in variable of dict"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid key type in variable of dict"));
     }
 
     // success
 
-    tkr_parse(tkr, "{@ a = { \"key\": 1 } @}{: a :}");
+    PadTkr_Parse(tkr, "{@ a = { \"key\": 1 } @}{: a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(dict)"));
     }
 
-    tkr_parse(tkr, "{@ a = { \"key\": 1 } @}{: a[\"key\"] :}");
+    PadTkr_Parse(tkr, "{@ a = { \"key\": 1 } @}{: a[\"key\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ a = { \"key\": \"val\" } @}{: a[\"key\"] :}");
+    PadTkr_Parse(tkr, "{@ a = { \"key\": \"val\" } @}{: a[\"key\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "val"));
     }
 
-    tkr_parse(tkr, "{@ a = { \"key\": [1, 2] } @}{: a[\"key\"] :}");
+    PadTkr_Parse(tkr, "{@ a = { \"key\": [1, 2] } @}{: a[\"key\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(array)"));
     }
 
-    // tkr_parse(tkr, "{@ a = { \"key\": 1 }[\"key\"] @}{: a :}");
+    // PadTkr_Parse(tkr, "{@ a = { \"key\": 1 }[\"key\"] @}{: a :}");
     // {
-    ast_clear(ast);
-    //     cc_compile(ast, tkr_get_tokens(tkr));
-    //     ctx_clear(ctx);
-    //     trv_traverse(ast, ctx);
+    PadAST_Clear(ast);
+    //     PadCC_Compile(ast, PadTkr_GetToks(tkr));
+    //     PadCtx_Clear(ctx);
+    //     PadTrv_Trav(ast, ctx);
     //     assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     // }
 
-    tkr_parse(tkr, "{@ a = { \"k1\": 1, \"k2\": 2 } @}{: a[\"k1\"] :},{: a[\"k2\"] :}");
+    PadTkr_Parse(tkr, "{@ a = { \"k1\": 1, \"k2\": 2 } @}{: a[\"k1\"] :},{: a[\"k2\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1,2"));
     }
 
-    tkr_parse(tkr, "{@ a = { \"k1\": { \"k2\": 1 } } @}{: a[\"k1\"][\"k2\"] :}");
+    PadTkr_Parse(tkr, "{@ a = { \"k1\": { \"k2\": 1 } } @}{: a[\"k1\"][\"k2\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ k = \"key\" \n a = { k: 1 } @}{: a[k] :}");
+    PadTkr_Parse(tkr, "{@ k = \"key\" \n a = { k: 1 } @}{: a[k] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -26909,25 +26909,25 @@ static void
 test_trv_identifier(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ i = 1 @}{: i :}");
+    PadTkr_Parse(tkr, "{@ i = 1 @}{: i :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -26935,65 +26935,65 @@ static void
 test_trv_builtin_array_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ arr = [1, 2] \n arr.push(3) @}{: len(arr) :}");
+    PadTkr_Parse(tkr, "{@ arr = [1, 2] \n arr.push(3) @}{: len(arr) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{: len([1, 2].push(3)) :}");
+    PadTkr_Parse(tkr, "{: len([1, 2].push(3)) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@ a = [1, 2] @}{: a.pop() :}");
+    PadTkr_Parse(tkr, "{@ a = [1, 2] @}{: a.pop() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@ a = [] @}{: a.pop() :}");
+    PadTkr_Parse(tkr, "{@ a = [] @}{: a.pop() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    tkr_parse(tkr, "{: [1, 2].pop() :}");
+    PadTkr_Parse(tkr, "{: [1, 2].pop() :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -27001,45 +27001,45 @@ static void
 test_trv_builtin_dict_0(void) {
     CapConfig *config = config_new();
     tokenizer_option_t *opt = tkropt_new();
-    tokenizer_t *tkr = tkr_new(mem_move(opt));
-    ast_t *ast = ast_new(config);
-    gc_t *gc = gc_new();
-    PadCtx *ctx = ctx_new(gc);
+    tokenizer_t *tkr = PadTkr_New(mem_move(opt));
+    ast_t *ast = PadAST_New(config);
+    gc_t *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
 
-    tkr_parse(tkr, "{@ d = {\"a\": 1} @}{: d.get(1) :}");
+    PadTkr_Parse(tkr, "{@ d = {\"a\": 1} @}{: d.get(1) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "invalid index type (1) of dict"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "invalid index type (1) of dict"));
     }
 
-    tkr_parse(tkr, "{@ d = {\"a\": 1} @}{: d.get(\"a\") :}");
+    PadTkr_Parse(tkr, "{@ d = {\"a\": 1} @}{: d.get(\"a\") :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
-    tkr_parse(tkr, "{@ d = {\"a\": 1} @}{: d.get(\"b\") :}");
+    PadTkr_Parse(tkr, "{@ d = {\"a\": 1} @}{: d.get(\"b\") :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nil"));
     }
 
-    ctx_del(ctx);
-    gc_del(gc);
-    ast_del(ast);
-    tkr_del(tkr);
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
     config_del(config);
 }
 
@@ -27050,16 +27050,16 @@ test_trv_module_0(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "."));
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/module.cap\" as mod\n"
     "   puts(\"done\")\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "imported\nimported module.cap\ndone\n"));
     }
 
@@ -27077,16 +27077,16 @@ test_trv_chain_object(void) {
     * ok *
     *****/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "   string.a = 1\n"
     "@}{: string.a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1"));
     }
 
@@ -27094,80 +27094,80 @@ test_trv_chain_object(void) {
     * fail *
     *******/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "   string.a\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "@}{: string.a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "   string.a.b = 1\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "   string.a.b = 1\n"
     "@}{: string.a :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "   string.a.b = 1\n"
     "@}{: string.a.b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   import \"/tests/lang/modules/string.cap\" as string\n"
     "@}{: string.a.b :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        (trv_traverse(ast, ctx));
-        assert(ast_has_errors(ast));
-        assert(!strcmp(ast_getc_first_error_message(ast), "\"a\" is not defined"));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        (PadTrv_Trav(ast, ctx));
+        assert(PadAST_HasErrs(ast));
+        assert(!strcmp(PadAST_GetcFirstErrMsg(ast), "\"a\" is not defined"));
     }
 
     trv_cleanup;
@@ -27177,7 +27177,7 @@ static void
 test_trv_etc_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def decolate(s):\n"
     "       return \"***\" + s + \"***\"\n"
     "   end\n"
@@ -27188,11 +27188,11 @@ test_trv_etc_0(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "***i love life***\n*\n*\n*\ni\n \nl\no\nv\ne\n \nl\ni\nf\ne\n*\n*\n*\n"));
     }
 
@@ -27203,7 +27203,7 @@ static void
 test_trv_etc_1(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def slice(arr, n):\n"
     "       mat = []\n"
     "       for i = 0; i < len(arr); i += n:\n"
@@ -27226,11 +27226,11 @@ test_trv_etc_1(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1\n2\n,\n3\n4\n,\n"));
     }
 
@@ -27241,7 +27241,7 @@ static void
 test_trv_etc_2(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def header(title):\n"
     "@}<html>\n"
     "<head>\n"
@@ -27277,11 +27277,11 @@ test_trv_etc_2(void) {
     "   })\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "<html>\n"
             "<head>\n"
             "<title>Good will hunting</title>\n"
@@ -27301,17 +27301,17 @@ static void
 test_trv_etc_3(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   d = {\"a\": 1}"
     "   a = [d, 2]\n"
     "   a[0][\"a\"] += 1\n"
     "@}{: a[0][\"a\"] :},{: d[\"a\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2,2"));
     }
 
@@ -27326,22 +27326,22 @@ test_trv_etc_4(void) {
     * theme: dict and function *
     ***************************/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(a):\n"
     "       return a\n"
     "   end\n"
     "   a = f(f)\n"
     "@}{: id(a) == id(f) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "true"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arg):\n"
     "       return arg[\"a\"]\n"
     "   end\n"
@@ -27349,11 +27349,11 @@ test_trv_etc_4(void) {
     "   a = d[\"a\"](d)"
     "@}{: a :},{: id(a) == id(f) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "(function),true"));
     }
 
@@ -27369,7 +27369,7 @@ test_trv_etc_5(void) {
 
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arg):\n"
     "       return arg[\"a\"] + arg[\"b\"]\n"
     "   end\n"
@@ -27377,15 +27377,15 @@ test_trv_etc_5(void) {
     "   c = f({ \"a\" : a, \"b\": b })"
     "@}{: c :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arg):\n"
     "       return arg[\"d\"][\"a\"] + arg[\"c\"][\"b\"]\n"
     "   end\n"
@@ -27393,15 +27393,15 @@ test_trv_etc_5(void) {
     "   c = f({ \"d\" : d, \"c\": d })\n"
     "@}{: c :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arg):\n"
     "       arg[\"d\"][\"a\"] += 1\n"
     "       arg[\"c\"][\"b\"] += 1\n"
@@ -27410,15 +27410,15 @@ test_trv_etc_5(void) {
     "   c = f({ \"d\" : d, \"c\": d })\n"
     "@}{: d[\"a\"] :},{: d[\"b\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2,3"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arg):\n"
     "       e = arg[\"d\"]\n"
     "       e[\"a\"] += 1\n"
@@ -27427,15 +27427,15 @@ test_trv_etc_5(void) {
     "   c = f({ \"d\" : d })\n"
     "@}{: d[\"a\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arg):\n"
     "       e = arg[\"d\"]\n"
     "       e[\"a\"] += 1\n"
@@ -27444,15 +27444,15 @@ test_trv_etc_5(void) {
     "   c = f({ \"d\" : d })\n"
     "@}{: d[\"a\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arg):\n"
     "       d = arg[\"d\"]\n"
     "       l = d[\"a\"]\n"
@@ -27463,15 +27463,15 @@ test_trv_etc_5(void) {
     "   c = f({ \"d\" : d })\n"
     "@}{: l[0] :},{: l[1] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2,2"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(arg):\n"
     "       d = arg[\"d\"]\n"
     "       l = d[\"a\"]\n"
@@ -27482,11 +27482,11 @@ test_trv_etc_5(void) {
     "   c = f({ \"d\" : d })\n"
     "@}{: c[\"a\"] :},{: c[\"b\"] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2,3"));
     }
 
@@ -27501,7 +27501,7 @@ test_trv_etc_6(void) {
     * theme: list and function *
     ***************************/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(l):\n"
     "       l.push(3)\n"
     "   end\n"
@@ -27509,15 +27509,15 @@ test_trv_etc_6(void) {
     "   f(l)\n"
     "@}{: l[2] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(l):\n"
     "       l.push([3, 4])\n"
     "       return l"
@@ -27526,15 +27526,15 @@ test_trv_etc_6(void) {
     "   l2 = f(l)\n"
     "@}{: l2[2][0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   g = 3"
     "   def f(l):\n"
     "       l.push(g)\n"
@@ -27543,11 +27543,11 @@ test_trv_etc_6(void) {
     "   f(l)\n"
     "@}{: l[2] :},{: id(l[2]) != id(g) :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "3,true"));
     }
 
@@ -27562,7 +27562,7 @@ test_trv_etc_7(void) {
     * theme: for and if statements *
     *******************************/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 4; i += 1:\n"
     "       if i % 2 == 0:\n"
     "           puts(\"nyan\")\n"
@@ -27570,15 +27570,15 @@ test_trv_etc_7(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "nyan\nnyan\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 4; i += 1:\n"
     "       if i % 2 == 0:\n"
     "           for j = 0; j < 2; j += 1:\n"
@@ -27588,15 +27588,15 @@ test_trv_etc_7(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   m = 2\n"
     "   if m == 2:\n"
     "       for i = 0; i < 2; i += 1:\n"
@@ -27605,15 +27605,15 @@ test_trv_etc_7(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   m = 3\n"
     "   if m == 2:\n"
     "   elif m == 3:\n"
@@ -27623,15 +27623,15 @@ test_trv_etc_7(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   m = 4\n"
     "   if m == 2:\n"
     "   elif m == 3:\n"
@@ -27642,11 +27642,11 @@ test_trv_etc_7(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n1\n"));
     }
 
@@ -27661,7 +27661,7 @@ test_trv_etc_8(void) {
     * theme: function and for *
     **************************/
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   def f(n):\n"
     "       for i = 0; i < n; i += 1:\n"
     "           puts(i)\n"
@@ -27673,15 +27673,15 @@ test_trv_etc_8(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n0\n1\n"));
     }
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   for i = 0; i < 2; i += 1:\n"
     "       def f(n):\n"
     "           for i = 0; i < n; i += 1:\n"
@@ -27692,11 +27692,11 @@ test_trv_etc_8(void) {
     "   end\n"
     "@}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        ctx_clear(ctx);
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "0\n0\n1\n"));
     }
 
@@ -27721,12 +27721,12 @@ test_trv_etc_9(void) {
 "puts(arr[0], arr[1], arr[2], arr[3])\n"
 "@}";
 
-    tkr_parse(tkr, s);
+    PadTkr_Parse(tkr, s);
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "1 2 3 4\n"));
     }
 
@@ -27758,12 +27758,12 @@ test_trv_etc_10(void) {
 "puts(arr[0], arr[1], arr[2], arr[3])\n"
 "@}";
 
-    tkr_parse(tkr, s);
+    PadTkr_Parse(tkr, s);
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "2 1 3 4\n"));
     }
 
@@ -27774,14 +27774,14 @@ static void
 test_trv_unicode_0(void) {
     trv_ready;
 
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   s = \"abc\""
     "@}{: s[0] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "a"));
     }
 
@@ -27792,14 +27792,14 @@ static void
 test_trv_unicode_1(void) {
     trv_ready;
 /*
-    tkr_parse(tkr, "{@\n"
+    PadTkr_Parse(tkr, "{@\n"
     "   s = \"??????\""
     "@}{: s[0] :}{: s[2] :}");
     {
-        ast_clear(ast);
-        cc_compile(ast, tkr_get_tokens(tkr));
-        trv_traverse(ast, ctx);
-        assert(!ast_has_errors(ast));
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
         assert(!strcmp(ctx_getc_stdout_buf(ctx), "??????"));
     }
 */
@@ -28010,7 +28010,7 @@ traverser_tests[] = {
     {"trv_dict_2", test_trv_dict_2},
     {"trv_dict_3", test_trv_dict_3},
     {"trv_identifier", test_trv_identifier},
-    {"trv_traverse", test_trv_traverse},
+    {"PadTrv_Trav", test_PadTrv_Trav},
     {"trv_comparison", test_trv_comparison},
     {"trv_array_index", test_trv_array_index},
     {"trv_text_block_old", test_trv_text_block_old},
@@ -28431,15 +28431,15 @@ PadErrStackests[] = {
 **********/
 
 static void
-test_lang_gc_new(void) {
-    gc_t *gc = gc_new();
+test_lang_PadGC_New(void) {
+    gc_t *gc = PadGC_New();
     assert(gc);
-    gc_del(gc);
+    PadGC_Del(gc);
 }
 
 static void
 test_lang_gc_alloc(void) {
-    gc_t *gc = gc_new();
+    gc_t *gc = PadGC_New();
     assert(gc);
 
     gc_item_t item = {0};
@@ -28465,12 +28465,12 @@ test_lang_gc_alloc(void) {
     assert(item.ptr == NULL);
     assert(item.ref_counts == 0);
 
-    gc_del(gc);
+    PadGC_Del(gc);
 }
 
 static const struct testcase
 lang_gc_tests[] = {
-    {"gc_new", test_lang_gc_new},
+    {"PadGC_New", test_lang_PadGC_New},
     {"gc_alloc", test_lang_gc_alloc},
     {0},
 };
@@ -28481,7 +28481,7 @@ lang_gc_tests[] = {
 
 static void
 test_lang_objdict_move(void) {
-    gc_t *gc = gc_new();
+    gc_t *gc = PadGC_New();
     object_PadDict *d = objdict_new(gc);
 
     object_t *obj1 = obj_new_int(gc, 1);
@@ -28501,12 +28501,12 @@ test_lang_objdict_move(void) {
     assert(obj2 == item2->value);
 
     objdict_del(d);
-    gc_del(gc);
+    PadGC_Del(gc);
 }
 
 static void
 test_lang_objdict_set(void) {
-    gc_t *gc = gc_new();
+    gc_t *gc = PadGC_New();
     object_PadDict *d = objdict_new(gc);
 
     object_t *obj1 = obj_new_int(gc, 1);
@@ -28526,7 +28526,7 @@ test_lang_objdict_set(void) {
     assert(obj2 == item2->value);
 
     objdict_del(d);
-    gc_del(gc);
+    PadGC_Del(gc);
 }
 
 static void
@@ -28535,7 +28535,7 @@ test_lang_objdict_pop(void) {
     * pop one *
     **********/
 
-    gc_t *gc = gc_new();
+    gc_t *gc = PadGC_New();
     object_PadDict *d = objdict_new(gc);
     object_t *obj = obj_new_int(gc, 0);
 
@@ -28548,13 +28548,13 @@ test_lang_objdict_pop(void) {
     assert(obj == popped);
 
     objdict_del(d);
-    gc_del(gc);
+    PadGC_Del(gc);
 
     /***********
     * pop many *
     ***********/
 
-    gc = gc_new();
+    gc = PadGC_New();
     d = objdict_new(gc);
 
     for (int32_t i = 0; i < 10; ++i) {
@@ -28575,7 +28575,7 @@ test_lang_objdict_pop(void) {
     assert(objPadDict_Len(d) == 0);
 
     objdict_del(d);
-    gc_del(gc);
+    PadGC_Del(gc);
 }
 
 static const struct testcase
@@ -28980,7 +28980,7 @@ test_makecmd_default(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "./tests/make"));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/make"));
 
@@ -29012,7 +29012,7 @@ test_makecmd_options(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "./tests/make"));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/make"));
 
@@ -29174,7 +29174,7 @@ test_mkdircmd_default(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mkdir"));
 
@@ -29217,7 +29217,7 @@ test_rmcmd_default(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
@@ -29258,7 +29258,7 @@ test_rmcmd_multi(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
@@ -29288,7 +29288,7 @@ test_rmcmd_dir(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
@@ -29316,7 +29316,7 @@ test_rmcmd_dir_multi(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
@@ -29347,7 +29347,7 @@ test_rmcmd_dir_r(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
@@ -29386,7 +29386,7 @@ test_rmcmd_dir_r_multi(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
@@ -29456,7 +29456,7 @@ test_mvcmd_default(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
@@ -29496,7 +29496,7 @@ test_mvcmd_dir(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
@@ -29530,7 +29530,7 @@ test_mvcmd_file_to_dir(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
@@ -29569,7 +29569,7 @@ test_mvcmd_files_to_dir(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
@@ -29612,7 +29612,7 @@ test_mvcmd_err_1(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
@@ -29663,7 +29663,7 @@ test_cpcmd_default(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
@@ -29695,7 +29695,7 @@ test_cpcmd_dir(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
@@ -29731,7 +29731,7 @@ test_cpcmd_files_to_dir(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
@@ -29773,7 +29773,7 @@ test_cpcmd_dir_r(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
@@ -29810,7 +29810,7 @@ test_cpcmd_dirs_r(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
@@ -29867,7 +29867,7 @@ test_touchcmd_default(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/touch"));
 
@@ -29896,7 +29896,7 @@ test_touchcmd_multi(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/touch"));
 
@@ -30003,7 +30003,7 @@ test_linkcmd_default(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/link"));
 
@@ -30032,7 +30032,7 @@ test_linkcmd_unlink(void) {
         NULL,
     };
 
-    config->scope = CAP_SCOPE_LOCAL;
+    config->scope = CAP_SCOPE__LOCAL;
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/link"));
 

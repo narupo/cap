@@ -121,14 +121,14 @@ CapAlCmd_New(const CapConfig *config, int argc, char **argv) {
 static CapAlCmd *
 load_alias_list_by_opts(CapAlCmd* self) {
     if (self->opts.is_global) {
-        if (!CapAlMgr_LoadAliasList(self->almgr, CAP_SCOPE_GLOBAL)) {
+        if (!CapAlMgr_LoadAliasList(self->almgr, CAP_SCOPE__GLOBAL)) {
             if (CapAlMgr_HasErr(self->almgr)) {
                 PadErr_Err(CapAlMgr_GetErrDetail(self->almgr));
             }
             return NULL;
         }
     } else {
-        if (!CapAlMgr_LoadAliasList(self->almgr, CAP_SCOPE_LOCAL)) {
+        if (!CapAlMgr_LoadAliasList(self->almgr, CAP_SCOPE__LOCAL)) {
             if (CapAlMgr_HasErr(self->almgr)) {
                 PadErr_Err(CapAlMgr_GetErrDetail(self->almgr));
             }

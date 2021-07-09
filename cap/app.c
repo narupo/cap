@@ -489,9 +489,9 @@ app_execute_alias_by_name(app_t *self, bool *found, const char *name) {
     // find first from local scope
     // not found to find from global scope
     char val[1024];
-    if (CapAliasMgr_FindAliasValue(almgr, val, sizeof val, name, CAP_SCOPE_LOCAL) == NULL) {
+    if (CapAliasMgr_FindAliasValue(almgr, val, sizeof val, name, CAP_SCOPE__LOCAL) == NULL) {
         CapAliasMgr_ClearError(almgr);
-        if (CapAliasMgr_FindAliasValue(almgr, val, sizeof val, name, CAP_SCOPE_GLOBAL) == NULL) {
+        if (CapAliasMgr_FindAliasValue(almgr, val, sizeof val, name, CAP_SCOPE__GLOBAL) == NULL) {
             *found = false;
             return 1;
         }

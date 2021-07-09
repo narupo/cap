@@ -62,7 +62,7 @@ CapConfig_Init(CapConfig *self) {
         return NULL;
     }
 
-    self->scope = CAP_SCOPE_LOCAL;
+    self->scope = CAP_SCOPE__LOCAL;
     self->recursion_count = 0;
 
     strcpy(self->line_encoding, "lf");

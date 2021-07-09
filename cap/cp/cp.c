@@ -180,9 +180,9 @@ solve_path(CapCpCmd *self, char *dst, size_t dstsz, const char *path) {
 
     if (src_path[0] == '/') {
         org = self->config->home_path;
-    } else if (self->config->scope == CAP_SCOPE_LOCAL) {
+    } else if (self->config->scope == CAP_SCOPE__LOCAL) {
         org = self->config->cd_path;
-    } else if (self->config->scope == CAP_SCOPE_GLOBAL) {
+    } else if (self->config->scope == CAP_SCOPE__GLOBAL) {
         org = self->config->home_path;
     } else {
         PadErr_Die("impossible. invalid state in solve path");

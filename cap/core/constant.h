@@ -8,5 +8,5 @@
 # undef CAP__WINDOWS
 #endif
 
-static const int CAP_SCOPE_LOCAL = 1;
-static const int CAP_SCOPE_GLOBAL = 2;
+static const int CAP_SCOPE__LOCAL = 1;
+static const int CAP_SCOPE__GLOBAL = 2;

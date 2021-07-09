@@ -132,9 +132,9 @@ Cap_GetOrigin(const CapConfig *config, const char *cap_path) {
 
     if (cap_path[0] == '/') {
         return config->home_path;
-    } else if (config->scope == CAP_SCOPE_LOCAL) {
+    } else if (config->scope == CAP_SCOPE__LOCAL) {
         return config->cd_path;
-    } else if (config->scope == CAP_SCOPE_GLOBAL) {
+    } else if (config->scope == CAP_SCOPE__GLOBAL) {
         return config->home_path;
     }
 
