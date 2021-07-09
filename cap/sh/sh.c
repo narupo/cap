@@ -1,4 +1,4 @@
-#include <sh/sh.h>
+#include <cap/sh/sh.h>
 
 enum {
     LINE_BUFFER_SIZE = 1024 * 10,
@@ -14,7 +14,7 @@ struct Opts {
 /**
  * Structure of command
  */
-struct sh {
+struct CapShCmd {
     CapConfig *config;
     int argc;
     int optind;
@@ -42,7 +42,7 @@ exec_cmd(CapShCmd *self, int argc, char **argv);
  *
  * @param[in] self pointer to CapShCmd
  */
-static void
+static int
 usage(CapShCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -56,7 +56,7 @@ usage(CapShCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 /**
@@ -72,7 +72,6 @@ parse_opts(CapShCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
-        {"fname", required_argument, 0, 'f'},
         {0},
     };
 
@@ -85,7 +84,7 @@ parse_opts(CapShCmd *self) {
 
     for (;;) {
         int optsindex;
-        int cur = getopt_long(self->argc, self->argv, "hf:", longopts, &optsindex);
+        int cur = getopt_long(self->argc, self->argv, "h", longopts, &optsindex);
         if (cur == -1) {
             break;
         }
@@ -93,7 +92,6 @@ parse_opts(CapShCmd *self) {
         switch (cur) {
         case 0: /* long option only */ break;
         case 'h': self->opts.is_help = true; break;
-        case 'f': printf("%s\n", optarg); break;
         case '?':
         default:
             PadErr_Die("unknown option");
@@ -138,7 +136,7 @@ CapShCmd_New(CapConfig *config, int argc, char **argv) {
         goto error;
     }
 
-    self->kit = PadKit_New(config);
+    self->kit = PadKit_New(config->pad_config);
     if (self->kit == NULL) {
         goto error;
     }
@@ -183,9 +181,9 @@ shcmd_input(CapShCmd *self) {
     char prompt[PAD_FILE__NPATH];
     create_prompt(self, prompt, sizeof prompt);
 
-    PadTerm_CFPrintf(stderr, PAD_TERM__CYAN, TERM_DEFAULT, PAD_TERM__BRIGHT, "(cap) ");
-    PadTerm_CFPrintf(stderr, PAD_TERM__GREEN, TERM_DEFAULT, PAD_TERM__BRIGHT, "%s", prompt);
-    PadTerm_CFPrintf(stderr, TERM_BLUE, TERM_DEFAULT, PAD_TERM__BRIGHT, "$ ");
+    PadTerm_CFPrintf(stderr, PAD_TERM__CYAN, PAD_TERM__DEFAULT, PAD_TERM__BRIGHT, "(cap) ");
+    PadTerm_CFPrintf(stderr, PAD_TERM__GREEN, PAD_TERM__DEFAULT, PAD_TERM__BRIGHT, "%s", prompt);
+    PadTerm_CFPrintf(stderr, PAD_TERM__BLUE, PAD_TERM__DEFAULT, PAD_TERM__BRIGHT, "$ ");
     fflush(stderr);
 
     self->line_buf[0] = '\0';
@@ -274,13 +272,13 @@ int
 exec_cmd(CapShCmd *self, int argc, char **argv) {
     int result = 0;
 
-#define routine(cmd) { \
-        Cap##cmd *cmd = Cap##cmd##_New(self->config, argc, argv); \
+#define routine(Cmd) { \
+        Cmd *cmd = Cmd##_New(self->config, argc, argv); \
         if (!cmd) { \
             return 0; \
         } \
-        result = Cap##cmd##_Run(cmd); \
-        Cap##cmd##_Del(cmd); \
+        result = Cmd##_Run(cmd); \
+        Cmd##_Del(cmd); \
     } \
 
     const char *cmdname = argv[0];
@@ -292,29 +290,29 @@ exec_cmd(CapShCmd *self, int argc, char **argv) {
     } else if (argc >= 2 && PadCStr_Eq(cmdname, "echo") && PadCStr_Eq(argv[1], "$?")) {
         printf("%d\n", self->last_exit_code);
     } else if (PadCStr_Eq(cmdname, "home")) {
-        routine(homecmd);
+        routine(CapHomeCmd);
         CapConfig_Init(self->config);
     } else if (PadCStr_Eq(cmdname, "cd")) {
-        routine(cdcmd);
+        routine(CapCdCmd);
         CapConfig_Init(self->config);
     } else if (PadCStr_Eq(cmdname, "pwd")) {
-        routine(pwdcmd);
+        routine(CapPwdCmd);
     } else if (PadCStr_Eq(cmdname, "ls")) {
-        routine(lscmd);
+        routine(CapLsCmd);
     } else if (PadCStr_Eq(cmdname, "cat")) {
-        routine(catcmd);
+        routine(CapCatCmd);
     } else if (PadCStr_Eq(cmdname, "run")) {
-        routine(runcmd);
+        routine(CapRunCmd);
     } else if (PadCStr_Eq(cmdname, "exec")) {
-        routine(execcmd);
+        routine(CapExecCmd);
     } else if (PadCStr_Eq(cmdname, "alias")) {
-        routine(alcmd);
+        routine(CapAlCmd);
     } else if (PadCStr_Eq(cmdname, "edit")) {
-        routine(editcmd);
+        routine(CapEditCmd);
     } else if (PadCStr_Eq(cmdname, "editor")) {
-        routine(editorcmd);
+        routine(CapEditorCmd);
     } else if (PadCStr_Eq(cmdname, "mkdir")) {
-        routine(mkdircmd);
+        routine(CapMkdirCmd);
     } else if (PadCStr_Eq(cmdname, "rm")) {
         CapRmCmd *cmd = CapRmCmd_New(self->config, argc, argv);
         result = CapRmCmd_Run(cmd);
@@ -324,19 +322,19 @@ exec_cmd(CapShCmd *self, int argc, char **argv) {
         }
         CapRmCmd_Del(cmd);
     } else if (PadCStr_Eq(cmdname, "mv")) {
-        routine(mvcmd);
+        routine(CapMvCmd);
     } else if (PadCStr_Eq(cmdname, "cp")) {
-        routine(cpcmd);
+        routine(CapCpCmd);
     } else if (PadCStr_Eq(cmdname, "snippet")) {
-        routine(snptcmd);
+        routine(CapSnptCmd);
     } else if (PadCStr_Eq(cmdname, "link")) {
-        routine(linkcmd);
+        routine(CapLinkCmd);
     } else if (PadCStr_Eq(cmdname, "make")) {
-        routine(makecmd);
+        routine(CapMakeCmd);
     } else if (PadCStr_Eq(cmdname, "cook")) {
-        routine(cookcmd);
+        routine(CapCookCmd);
     } else if (PadCStr_Eq(cmdname, "find")) {
-        routine(findcmd);
+        routine(CapFindCmd);
     } else {
         result = execute_all(self, argc, argv);
     }
@@ -350,7 +348,7 @@ shcmd_update(CapShCmd *self) {
     if (strstr(self->line_buf, "{@")) {
         PadKit_ClearCtxBuf(self->kit);
         if (!PadKit_CompileFromStr(self->kit, self->line_buf)) {
-            PadKitrace_error(self->kit, stderr);
+            PadKit_TraceErr(self->kit, stderr);
             return 1;
         }
         const char *result = PadKit_GetcStdoutBuf(self->kit);
@@ -368,8 +366,8 @@ shcmd_update(CapShCmd *self) {
         return 0;
     }
 
-    const cmdline_object_t *obj = PadCmdline_Getc(self->cmdline, 0);
-    if (obj->type != CMDLINE_OBJECT_TYPE_CMD) {
+    const PadCmdlineObj *obj = PadCmdline_Getc(self->cmdline, 0);
+    if (obj->type != PAD_CMDLINE_OBJ_TYPE__CMD) {
         return 0;
     }
 
@@ -381,6 +379,10 @@ shcmd_update(CapShCmd *self) {
 
 int
 CapShCmd_Run(CapShCmd *self) {
+    if (self->opts.is_help) {
+        return usage(self);
+    }
+    
     for (;;) {
         if (shcmd_input(self) != 0) {
             break;

@@ -71,7 +71,7 @@ CapMvCmd_New(CapConfig *config, int argc, char **argv) {
     return self;
 }
 
-static void
+static int
 usage(CapMvCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -87,7 +87,7 @@ usage(CapMvCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 static bool
@@ -221,11 +221,11 @@ _mv(CapMvCmd *self) {
 int
 CapMvCmd_Run(CapMvCmd *self) {
     if (self->argc < self->optind+2) {
-        usage(self);
+        return usage(self);
     }
 
     if (self->opts.is_help) {
-        usage(self);
+        return usage(self);
     }
 
     return _mv(self);

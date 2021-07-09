@@ -1,4 +1,4 @@
-#include <exec/exec.h>
+#include <cap/exec/exec.h>
 
 static const int32_t READ = 0;
 static const int32_t WRITE = 1;
@@ -32,7 +32,7 @@ struct CapExecCmd {
  *
  * @param[in] self pointer to CapExecCmd
  */
-static void
+static int
 usage(CapExecCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -46,7 +46,7 @@ usage(CapExecCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 /**
@@ -150,9 +150,9 @@ has_err(const CapExecCmd *self) {
 
 static CapExecCmd *
 exec_first(CapExecCmd *self) {
-    const cmdline_object_t *first = PadCmdline_Getc(self->cmdline, 0);
+    const PadCmdlineObj *first = PadCmdline_Getc(self->cmdline, 0);
     const char *cmd = PadStr_Getc(first->command);
-    Pad_SafeSystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
+    Pad_SafeSystem(cmd, PAD_SAFESYSTEM__UNSAFE_UNIX_ONLY);
     return self;
 }
 
@@ -224,7 +224,7 @@ create_write_pipe(CapExecCmd *self, HANDLE process, HANDLE *read_handle, HANDLE 
 }
 
 static CapExecCmd *
-execcmd_pipe(CapExecCmd *self, const cmdline_object_t *obj, const cmdline_object_t *ope) {
+execcmd_pipe(CapExecCmd *self, const PadCmdlineObj *obj, const PadCmdlineObj *ope) {
     HANDLE hs1[2] = {0};
     HANDLE hs2[2] = {0};
     HANDLE process = GetCurrentProcess();
@@ -355,7 +355,7 @@ execcmd_pipe(CapExecCmd *self, const cmdline_object_t *obj, const cmdline_object
 }
 
 static CapExecCmd *
-execcmd_redirect(CapExecCmd *self, const cmdline_object_t *obj, const cmdline_object_t *fileobj) {
+execcmd_redirect(CapExecCmd *self, const PadCmdlineObj *obj, const PadCmdlineObj *fileobj) {
     HANDLE hs1[2] = {0};
     HANDLE hs2[2] = {0};
     HANDLE process = GetCurrentProcess();
@@ -501,16 +501,16 @@ execcmd_redirect(CapExecCmd *self, const cmdline_object_t *obj, const cmdline_ob
 static CapExecCmd *
 exec_all_win(CapExecCmd *self) {
     for (int32_t i = 0; i < PadCmdline_Len(self->cmdline); i += 2) {
-        const cmdline_object_t *obj = PadCmdline_Getc(self->cmdline, i);
-        const cmdline_object_t *ope = PadCmdline_Getc(self->cmdline, i+1);
+        const PadCmdlineObj *obj = PadCmdline_Getc(self->cmdline, i);
+        const PadCmdlineObj *ope = PadCmdline_Getc(self->cmdline, i+1);
 
-        if (ope && ope->type == CMDLINE_OBJECT_TYPE_AND) {
-            int exit_code = Pad_SafeSystem(PadStr_Getc(obj->command), SAFESYSTEM_UNSAFE_UNIX_ONLY);
+        if (ope && ope->type == PAD_CMDLINE_OBJ_TYPE__AND) {
+            int exit_code = Pad_SafeSystem(PadStr_Getc(obj->command), PAD_SAFESYSTEM__UNSAFE_UNIX_ONLY);
             if (exit_code != 0) {
                 break;
             }
-        } else if (ope && ope->type == CMDLINE_OBJECT_TYPE_REDIRECT) {
-            const cmdline_object_t *fileobj = PadCmdline_Getc(self->cmdline, i+2);
+        } else if (ope && ope->type == PAD_CMDLINE_OBJ_TYPE__REDIRECT) {
+            const PadCmdlineObj *fileobj = PadCmdline_Getc(self->cmdline, i+2);
             if (!execcmd_redirect(self, obj, fileobj)) {
                 return NULL;
             }
@@ -533,20 +533,20 @@ exec_all_unix(CapExecCmd *self) {
     int exit_code = 0;
 
     for (int32_t i = 0; i < PadCmdline_Len(self->cmdline); i += 2) {
-        const cmdline_object_t *obj = PadCmdline_Getc(self->cmdline, i);
-        const cmdline_object_t *ope = PadCmdline_Getc(self->cmdline, i+1);
+        const PadCmdlineObj *obj = PadCmdline_Getc(self->cmdline, i);
+        const PadCmdlineObj *ope = PadCmdline_Getc(self->cmdline, i+1);
 
-        if (ope && ope->type == CMDLINE_OBJECT_TYPE_AND) {
+        if (ope && ope->type == PAD_CMDLINE_OBJ_TYPE__AND) {
             // AND
             const char *cmd = PadStr_Getc(obj->command);
-            int status = Pad_SafeSystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
+            int status = Pad_SafeSystem(cmd, PAD_SAFESYSTEM__UNSAFE_UNIX_ONLY);
             exit_code = WEXITSTATUS(status);
             if (exit_code != 0) {
                 break;
             }
-        } else if (ope && ope->type == CMDLINE_OBJECT_TYPE_REDIRECT) {
+        } else if (ope && ope->type == PAD_CMDLINE_OBJ_TYPE__REDIRECT) {
             // REDIRECT
-            const cmdline_object_t *fileobj = PadCmdline_Getc(self->cmdline, i+2);
+            const PadCmdlineObj *fileobj = PadCmdline_Getc(self->cmdline, i+2);
             if (!fileobj) {
                 set_err(self, "not found file object in redirect");
                 break;
@@ -567,7 +567,7 @@ exec_all_unix(CapExecCmd *self) {
                 close(fd[WRITE]);
 
                 const char *cmd = PadStr_Getc(obj->command);
-                int status = Pad_SafeSystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
+                int status = Pad_SafeSystem(cmd, PAD_SAFESYSTEM__UNSAFE_UNIX_ONLY);
                 exit_code = WEXITSTATUS(status);
                 (void) &exit_code;
 
@@ -646,7 +646,7 @@ exec_all_unix(CapExecCmd *self) {
                 }
 
                 const char *cmd = PadStr_Getc(obj->command);
-                int status = Pad_SafeSystem(cmd, SAFESYSTEM_UNSAFE_UNIX_ONLY);
+                int status = Pad_SafeSystem(cmd, PAD_SAFESYSTEM__UNSAFE_UNIX_ONLY);
                 exit_code = WEXITSTATUS(status);
                 (void) &exit_code;
 
@@ -728,7 +728,7 @@ int
 CapExecCmd_Run(CapExecCmd *self) {
     if (self->argc - self->optind == 0 ||
         self->opts.is_help) {
-        usage(self);
+        return usage(self);
     }
 
     for (int32_t i = self->optind; i < self->argc; ++i) {

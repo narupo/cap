@@ -8,7 +8,7 @@
 #pragma once
 
 #if defined(_WIN32) || defined(_WIN64)
-# define _TESTS_WINDOWS
+# define CAP_TESTS__WINDOWS
 #endif
 
 #define _SVID_SOURCE 1 /* cap: tests: strdup */
@@ -26,48 +26,49 @@
 #include <ctype.h>
 #include <time.h>
 
-#include <lib/cstring_array.h>
-#include <lib/string.h>
-#include <lib/cstring.h>
-#include <lib/file.h>
-#include <lib/cl.h>
-#include <lib/error.h>
-#include <lib/cmdline.h>
-#include <lib/unicode.h>
-#include <core/util.h>
-#include <core/symlink.h>
-#include <core/config.h>
-#include <core/alias_info.h>
-#include <core/error_stack.h>
-#include <home/home.h>
-#include <cd/cd.h>
-#include <pwd/pwd.h>
-#include <ls/ls.h>
-#include <cat/cat.h>
-#include <make/make.h>
-#include <alias/alias.h>
-#include <editor/editor.h>
-#include <mkdir/mkdir.h>
-#include <rm/rm.h>
-#include <mv/mv.h>
-#include <cp/cp.h>
-#include <touch/touch.h>
-#include <snippet/snippet.h>
-#include <link/link.h>
-#include <bake/bake.h>
-#include <replace/replace.h>
-#include <lang/types.h>
-#include <lang/tokens.h>
-#include <lang/tokenizer.h>
-#include <lang/nodes.h>
-#include <lang/ast.h>
-#include <lang/compiler.h>
-#include <lang/traverser.h>
-#include <lang/object.h>
-#include <lang/object_array.h>
-#include <lang/object_dict.h>
-#include <lang/opts.h>
-#include <lang/gc.h>
-#include <lang/builtin/function.h>
-#include <lang/builtin/modules/alias.h>
-#include <lang/builtin/modules/opts.h>
+#include <pad/lib/cstring_array.h>
+#include <pad/lib/string.h>
+#include <pad/lib/cstring.h>
+#include <pad/lib/file.h>
+#include <pad/lib/cl.h>
+#include <pad/lib/error.h>
+#include <pad/lib/cmdline.h>
+#include <pad/lib/unicode.h>
+#include <pad/core/error_stack.h>
+#include <pad/lang/types.h>
+#include <pad/lang/tokens.h>
+#include <pad/lang/tokenizer.h>
+#include <pad/lang/nodes.h>
+#include <pad/lang/ast.h>
+#include <pad/lang/compiler.h>
+#include <pad/lang/traverser.h>
+#include <pad/lang/object.h>
+#include <pad/lang/object_array.h>
+#include <pad/lang/object_dict.h>
+#include <pad/lang/opts.h>
+#include <pad/lang/gc.h>
+#include <pad/lang/builtin/function.h>
+#include <pad/lang/builtin/modules/alias.h>
+#include <pad/lang/builtin/modules/opts.h>
+
+#include <cap/core/util.h>
+#include <cap/core/symlink.h>
+#include <cap/core/config.h>
+#include <cap/core/alias_info.h>
+#include <cap/home/home.h>
+#include <cap/cd/cd.h>
+#include <cap/pwd/pwd.h>
+#include <cap/ls/ls.h>
+#include <cap/cat/cat.h>
+#include <cap/make/make.h>
+#include <cap/alias/alias.h>
+#include <cap/editor/editor.h>
+#include <cap/mkdir/mkdir.h>
+#include <cap/rm/rm.h>
+#include <cap/mv/mv.h>
+#include <cap/cp/cp.h>
+#include <cap/touch/touch.h>
+#include <cap/snippet/snippet.h>
+#include <cap/link/link.h>
+#include <cap/bake/bake.h>
+#include <cap/replace/replace.h>

@@ -1,4 +1,4 @@
-#include <alias/alias.h>
+#include <cap/alias/alias.h>
 
 struct Opts {
     bool is_help;
@@ -63,7 +63,7 @@ parse_opts(CapAlCmd *self) {
     return self;
 }
 
-static void
+static int
 usage(const CapAlCmd *self) {
     fprintf(stdout, "Usage:\n"
         "\n"
@@ -77,7 +77,7 @@ usage(const CapAlCmd *self) {
         "\n"
     );
     fflush(stdout);
-    exit(0);
+    return 0;
 }
 
 void
@@ -107,7 +107,7 @@ CapAlCmd_New(const CapConfig *config, int argc, char **argv) {
     self->value_colors[0] = PAD_TERM__CYAN;
     self->value_colors[1] = PAD_TERM__BLACK;
     self->value_colors[2] = PAD_TERM__BRIGHT;
-    self->desc_colors[0] = TERM_RED;
+    self->desc_colors[0] = PAD_TERM__RED;
     self->desc_colors[1] = PAD_TERM__BLACK;
     self->desc_colors[2] = PAD_TERM__BRIGHT;
 
@@ -143,7 +143,7 @@ static const char *
 getc_value(CapAlCmd *self, const char *key) {
     const PadCtx *ctx = CapAliasMgr_GetcCtx(self->almgr);
     const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
-    return PadAlInfo_GetcValue(alinfo, key);
+    return PadAliasInfo_GetcValue(alinfo, key);
 }
 
 static void
@@ -251,7 +251,7 @@ show_list(CapAlCmd *self) {
         const char *desc = PadAliasInfo_GetcDesc(alinfo, kv_item->key);
         if (self->opts.is_desc && desc) {
             char disp_desc[128] = {0};
-            trim_first_line(disp_desc, sizeof disp_desc, desc);
+            Pad_TrimFirstLine(disp_desc, sizeof disp_desc, desc);
 
             print_key_val_desc(
                 self,
@@ -311,9 +311,9 @@ CapAlCmd_ShowDescOfAlias(CapAlCmd *self) {
 }
 
 int
-alcmd_run(CapAlCmd *self) {
+CapAlCmd_Run(CapAlCmd *self) {
     if (self->opts.is_help) {
-        usage(self);
+        return usage(self);
     }
 
     if (!load_alias_list_by_opts(self)) {

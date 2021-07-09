@@ -15,7 +15,7 @@ struct CapSnptCmd {
  *
  * @param[in] self pointer to CapSnptCmd
  */
-static void
+static int
 usage(CapSnptCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -33,7 +33,7 @@ usage(CapSnptCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 void
@@ -146,7 +146,7 @@ snptcmd_show(CapSnptCmd *self) {
 
     PadErrStack *errstack = PadErrStack_New();
     char *compiled = Pad_CompileArgv(
-        self->config,
+        self->config->pad_config,
         errstack,
         self->argc-2,
         self->argv+2,
@@ -204,7 +204,7 @@ fail:
 int
 CapSnptCmd_Run(CapSnptCmd *self) {
     if (self->argc < 2) {
-        usage(self);
+        return usage(self);
     } else if (PadCStr_Eq(self->argv[1], "clear")) {
         return _clear(self);
     } else if (PadCStr_Eq(self->argv[1], "ls")) {

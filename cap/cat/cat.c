@@ -190,7 +190,7 @@ set_indent(CapCatCmd *self, char *buf, size_t bufsize) {
  *
  * @param[in] self
  */
-static void
+static int
 usage(const CapCatCmd *self) {
     fprintf(stderr,
         "Usage:\n"
@@ -211,7 +211,7 @@ usage(const CapCatCmd *self) {
         "    $ cap cat\n"
         "\n"
     );
-    exit(0);
+    return 0;
 }
 
 /**
@@ -350,7 +350,7 @@ CapCatCmd_SetDebug(CapCatCmd *self, bool debug) {
 int
 CapCatCmd_Run(CapCatCmd *self) {
     if (self->opts.is_help) {
-        usage(self);
+        return usage(self);
     }
 
     if (self->argc - self->optind + 1 < 2) {

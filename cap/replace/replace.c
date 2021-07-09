@@ -24,7 +24,7 @@ struct CapReplaceCmd {
  *
  * @param[in] self pointer to CapReplaceCmd
  */
-static void
+static int
 usage(CapReplaceCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -40,7 +40,7 @@ usage(CapReplaceCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 /**
@@ -153,7 +153,7 @@ sreplace(FILE *fout, const char *text, const char *target, const char *replaced)
 static int
 replace(CapReplaceCmd *self) {
     if (self->argc < 4) {
-        usage(self);
+        return usage(self);
     }
 
     const char *cap_fname = self->argv[optind];
@@ -167,19 +167,19 @@ replace(CapReplaceCmd *self) {
 
     char path[PAD_FILE__NPATH];
     if (!Cap_SolveCmdlineArgPath(self->config, path, sizeof path, cap_fname)) {
-        blush("failed to solve path %s", cap_fname);
+        Pad_PushErr("failed to solve path %s", cap_fname);
         goto error;
     }
 
     content = PadFile_ReadCopyFromPath(path);
     if (content == NULL) {
-        blush("failed to read content from %s", path);
+        Pad_PushErr("failed to read content from %s", path);
         goto error;
     }
 
     fout = PadFile_Open(path, "wb");
     if (fout == NULL) {
-        blush("failed to open file %s", path);
+        Pad_PushErr("failed to open file %s", path);
         goto error;
     }
 

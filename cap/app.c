@@ -253,7 +253,7 @@ _new(void) {
  *
  * @param[in] app
  */
-static void
+static int
 _usage(App *app) {
     static const char usage[] =
         "Cap is shell for snippet codes.\n"
@@ -321,7 +321,7 @@ _usage(App *app) {
         "Examples:\n\n"
         "%s\n"
     , usage, example);
-    exit(0);
+    return 0;
 }
 
 /**
@@ -630,7 +630,7 @@ _run(App *self, int argc, char *argv[]) {
     }
 
     if (self->opts.is_help) {
-        _usage(self);
+        return _usage(self);
     }
 
     if (self->opts.is_version) {
@@ -638,7 +638,7 @@ _run(App *self, int argc, char *argv[]) {
     }
 
     if (self->cmd_argc == 0) {
-        _usage(self);
+        return _usage(self);
     }
 
     return _run_cmd_name(self);

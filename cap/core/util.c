@@ -72,7 +72,7 @@ read_path_var_from_resource(const CapConfig *config, const char *rcpath) {
 
 static PadCStrAry *
 split_path_var(const char *path) {
-    return Pad_SplitToAry(path, ',');
+    return Pad_SplitToArray(path, ',');
 }
 
 bool
@@ -108,7 +108,7 @@ Cap_SolveCmdlineArgPath(const CapConfig *config, char *dst, int32_t dstsz, const
         }
     } else {
         char tmp[PAD_FILE__NPATH*2];
-        const char *org = Pad_GetOrigin(config, caps_arg_path);
+        const char *org = Cap_GetOrigin(config, caps_arg_path);
 
         const char *path = caps_arg_path;
         if (caps_arg_path[0] == '/') {
@@ -116,7 +116,7 @@ Cap_SolveCmdlineArgPath(const CapConfig *config, char *dst, int32_t dstsz, const
         }
 
         snprintf(tmp, sizeof tmp, "%s/%s", org, path);
-        if (!Cap_SymlinkFollowPath(config, dst, dstsz, tmp)) {
+        if (!CapSymlink_FollowPath(config, dst, dstsz, tmp)) {
             return NULL;
         }
     }
@@ -172,7 +172,7 @@ show_snippet(const CapConfig *config, const char *fname, int argc, char **argv) 
     }
 
     PadErrStack *errstack = PadErrStack_New();
-    char *compiled = Pad_CompileArgv(config, errstack, argc, argv, content);
+    char *compiled = Pad_CompileArgv(config->pad_config, errstack, argc, argv, content);
     if (!compiled) {
         PadErrStack_TraceSimple(errstack, stderr);
         fflush(stderr);

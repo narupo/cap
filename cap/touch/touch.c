@@ -23,7 +23,7 @@ struct CapTouchCmd {
  *
  * @param[in] self pointer to CapTouchCmd
  */
-static void
+static int
 usage(CapTouchCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -37,7 +37,7 @@ usage(CapTouchCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 /**
@@ -157,11 +157,11 @@ _all_touch(CapTouchCmd *self) {
 int
 CapTouchCmd_Run(CapTouchCmd *self) {
     if (self->argc < self->optind+1) {
-        usage(self);
+        return usage(self);
     }
 
     if (self->opts.is_help) {
-        usage(self);
+        return usage(self);
     }
 
     return _all_touch(self);

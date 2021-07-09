@@ -3,10 +3,12 @@ ifeq ($(OS), Windows_NT)
 	RM := del
 	RMDIR := rmdir /s /q
 	SEP := \\
+	CPR := copy
 else
 	RM := rm
 	RMDIR := rm -rf
 	SEP := /
+	CPR := cp -r
 endif
 
 # windows's mkdir not has -p option :/
@@ -79,6 +81,7 @@ init:
 	build$(SEP)clone \
 	build$(SEP)replace \
 	build$(SEP)lang
+	$(CPR) tests_env build/tests_env
 
 .PHONY: cc
 cc:
@@ -107,7 +110,6 @@ SRCS := \
 	build/touch/touch.c \
 	build/snippet/snippet.c \
 	build/link/link.c \
-	build/hub/hub.c \
 	build/make/make.c \
 	build/cook/cook.c \
 	build/sh/sh.c \
@@ -129,8 +131,8 @@ build/$(LIBPAD):
 		cd pad && \
 		make init && \
 		make && \
-		cd .. && \
-		cp pad/build/$(LIBPAD) .
+	  cd ../.. && \
+	  cp build/pad/build/$(LIBPAD) ./build
 
 cap: build/app.o build/$(LIBPAD) $(OBJS)
 	$(CC) $(CFLAGS) -o build/cap build/app.o $(OBJS) -lpad

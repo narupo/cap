@@ -1,4 +1,4 @@
-#include <link/link.h>
+#include <cap/link/link.h>
 
 /**
  * Structure of options
@@ -100,7 +100,7 @@ CapLinkCmd_New(const CapConfig *config, int argc, char **argv) {
     return self;
 }
 
-static void
+static int
 usage(const CapLinkCmd *self) {
     fprintf(stderr,
         "Usage:\n"
@@ -119,13 +119,13 @@ usage(const CapLinkCmd *self) {
         "    $ cap link -u mylink\n"
         "\n"
     );
-    exit(0);
+    return 0;
 }
 
 static int
 _unlink(CapLinkCmd *self) {
     if (self->argc-self->optind < 1) {
-        usage(self);
+        return usage(self);
     }
 
     const char *linkname = self->argv[self->optind];
@@ -158,8 +158,7 @@ _unlink(CapLinkCmd *self) {
 static int
 _link(CapLinkCmd *self) {
     if (self->argc-self->optind < 2) {
-        usage(self);
-        return 1;
+        return usage(self);
     }
 
     const char *linkname = self->argv[self->optind];
@@ -195,8 +194,7 @@ _link(CapLinkCmd *self) {
 int
 CapLinkCmd_Run(CapLinkCmd *self) {
     if (self->opts.is_help) {
-        usage(self);
-        return 0;
+        return usage(self);
     }
 
     if (self->opts.is_unlink) {

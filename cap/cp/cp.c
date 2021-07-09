@@ -1,4 +1,4 @@
-#include <cp/cp.h>
+#include <cap/cp/cp.h>
 
 /**
  * Numbers
@@ -40,7 +40,7 @@ struct CapCpCmd {
  *
  * @param[in] self pointer to CapCpCmd
  */
-static void
+static int
 usage(CapCpCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -69,7 +69,7 @@ usage(CapCpCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 /**
@@ -223,13 +223,13 @@ copy_file(CapCpCmd *self, const char *dst_path, const char *src_path) {
 
 static bool
 copy_re(CapCpCmd *self, const char *dst_path, const char *src_path) {
-    PadDir *dir = PadFileDir_Open(src_path);
+    PadDir *dir = PadDir_Open(src_path);
     if (!dir) {
         set_err(self, CPCMD_ERR__OPENDIR, "failed to open directory \"%s\"", src_path);
         return false;
     }
 
-    for (PadDirNode *node; (node = PadFileDir_Read(dir)); ) {
+    for (PadDirNode *node; (node = PadDir_Read(dir)); ) {
         const char *fname = PadDirNode_Name(node);
         if (!strcmp(fname, ".") || !strcmp(fname, "..")) {
             continue;
@@ -265,10 +265,10 @@ copy_re(CapCpCmd *self, const char *dst_path, const char *src_path) {
         }
     }
 
-    PadFileDir_Close(dir);
+    PadDir_Close(dir);
     return true;
 fail:
-    PadFileDir_Close(dir);
+    PadDir_Close(dir);
     return false;
 }
 
@@ -290,7 +290,7 @@ cp_src2dst_r(CapCpCmd *self, const char *dst_path, const char *src_path) {
     if (PadFile_IsExists(dst_path)) {
         if (PadFile_IsDir(dst_path)) {
             char basename[PAD_FILE__NPATH];
-            file_basename(basename, sizeof basename, src_path);
+            PadFile_BaseName(basename, sizeof basename, src_path);
             char dstdirpath[PAD_FILE__NPATH];
             PadFile_SolveFmt(dstdirpath, sizeof dstdirpath, "%s/%s", dst_path, basename);
             if (!PadFile_IsExists(dstdirpath) && PadFile_MkdirQ(dstdirpath) != 0) {
@@ -324,7 +324,7 @@ cp_src2dst(CapCpCmd *self, const char *dst_path, const char *src_path) {
 
     if (PadFile_IsDir(dst_path)) {
         char basename[PAD_FILE__NPATH];
-        if (!file_basename(basename, sizeof basename, src_path)) {
+        if (!PadFile_BaseName(basename, sizeof basename, src_path)) {
             set_err(self, CPCMD_ERR__BASENAME, "failed to get basename from \"%s\"", src_path);
             return false;
         }
@@ -403,18 +403,16 @@ cp(CapCpCmd *self) {
 int
 CapCpCmd_Run(CapCpCmd *self) {
     if (self->argc < self->optind+2) {
-        usage(self);
-        return 1;
+        return usage(self);
     }
 
     if (self->opts.is_help) {
-        usage(self);
-        return 1;
+        return usage(self);
     }
 
     int ret = cp(self);
     if (ret != 0) {
-        PadErr_Error(self->what);
+        PadErr_Err(self->what);
     }
     return ret;
 }

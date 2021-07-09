@@ -33,7 +33,7 @@ struct CapFindCmd {
  *
  * @param[in] self pointer to CapFindCmd
  */
-static void
+static int
 usage(CapFindCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -51,7 +51,7 @@ usage(CapFindCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 /**
@@ -120,7 +120,7 @@ CapFindCmd_Del(CapFindCmd *self) {
     }
 
     CapArgsMgr_Del(self->argsmgr);
-    almgr_del(self->almgr);
+    CapAliasMgr_Del(self->almgr);
     free(self);
 }
 
@@ -262,7 +262,7 @@ find_aliases_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirp
         }
     }
 
-    const PadCtx *ctx = CapAliasMgr_GetcContext(self->almgr);
+    const PadCtx *ctx = CapAliasMgr_GetcCtx(self->almgr);
     const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
     const PadDict *alias_kvmap = PadAliasInfo_GetcKeyValueMap(alinfo);
     int32_t maxkeylen = 0;
@@ -353,7 +353,7 @@ CapFindCmd_Run(CapFindCmd *self) {
     int nargs = self->argc - self->optind;
 
     if (nargs == 0 || self->opts.is_help) {
-        usage(self);
+        return usage(self);
     }
 
     return find_start(self);

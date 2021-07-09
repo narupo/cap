@@ -37,7 +37,7 @@ CapCookCmd_New(const CapConfig *config, int argc, char **argv) {
 
 int
 CapCookCmd_Run(CapCookCmd *self) {
-    int result = CapMake_MakeFromArgs(
+    int result = CapMakeCmd_MakeFromArgs(
         self->config,
         self->errstack,
         self->argc,

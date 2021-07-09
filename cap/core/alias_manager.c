@@ -43,7 +43,7 @@ CapAliasMgr_New(const CapConfig *config) {
 
     PadTkrOpt *opt = PadTkrOpt_New();
     self->tkr = PadTkr_New(opt);
-    self->ast = PadAST_New(config);
+    self->ast = PadAST_New(config->pad_config);
     self->gc = PadGC_New();
     self->context = PadCtx_New(self->gc);
 
@@ -178,6 +178,6 @@ almgr_getc_alinfo(const CapAliasMgr *self) {
 }
 
 const PadCtx *
-CapAliasMgr_GetcContext(const CapAliasMgr *self) {
+CapAliasMgr_GetcCtx(const CapAliasMgr *self) {
     return self->context;
 }

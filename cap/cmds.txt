@@ -1,36 +1,35 @@
 core
 config *
-alias *
-app.c *
+alias **
+app.c **
 app.h *
-bake *
-cat *
-cd *
-clone *
+bake **
+cat **
+cd **
+clone **
 cmds.txt
-cook *
-cp *
-edit *
-editor *
-exec *
-find *
-home *
-hub *
-insert *
+cook **
+cp **
+edit **
+editor **
+exec **
+find **
+home **
+insert **
 labo -
 lang -
 lib -
-link *
-ls *
-make *
-mkdir *
-mv *
-pwd *
-replace *
-rm *
-run *
-sh *
-snippet 
+link **
+ls **
+make **
+mkdir **
+mv **
+pwd **
+replace **
+rm **
+run **
+sh **
+snippet ** 
 tests.c
 tests.h
-touch
+touch **

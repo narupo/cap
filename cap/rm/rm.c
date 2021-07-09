@@ -88,7 +88,7 @@ error:
     return NULL;
 }
 
-static void
+static int
 usage(CapRmCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -105,7 +105,7 @@ usage(CapRmCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 CapRmCmdErrno
@@ -272,11 +272,11 @@ _rm_all(CapRmCmd *self) {
 int
 CapRmCmd_Run(CapRmCmd *self) {
     if (self->argc < self->optind+1) {
-        usage(self);
+        return usage(self);
     }
 
     if (self->opts.is_help) {
-        usage(self);
+        return usage(self);
     }
 
     if (self->opts.is_recursive) {

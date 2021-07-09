@@ -5,6 +5,7 @@
 
 #include <pad/lib/memory.h>
 #include <pad/lib/cstring_array.h>
+#include <pad/core/util.h>
 
 struct CapArgsMgr;
 typedef struct CapArgsMgr CapArgsMgr;

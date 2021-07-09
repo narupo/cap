@@ -24,7 +24,7 @@ struct CapEditorCmd {
  *
  * @param[in] self pointer to CapEditorCmd
  */
-static void
+static int
 usage(CapEditorCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -38,7 +38,7 @@ usage(CapEditorCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 /**
@@ -144,7 +144,7 @@ set_editor(CapEditorCmd *self) {
 int
 CapEditorCmd_Run(CapEditorCmd *self) {
     if (self->opts.is_help) {
-        usage(self);
+        return usage(self);
     }
 
     if (self->argc < self->optind+1) {

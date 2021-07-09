@@ -32,7 +32,7 @@ struct CapInsertCmd {
  *
  * @param[in] self pointer to CapInsertCmd
  */
-static void
+static int
 usage(CapInsertCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -48,7 +48,7 @@ usage(CapInsertCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 /**
@@ -360,7 +360,7 @@ insert(CapInsertCmd *self) {
     int result = 0;
 
     if (self->argc < 3) {
-        usage(self);
+        return usage(self);
     } else {
         cap_path = self->argv[optind];
         if (!Cap_SolveCmdlineArgPath(self->config, path, sizeof path, cap_path)) {
@@ -389,7 +389,7 @@ error:
 int
 CapInsertCmd_Run(CapInsertCmd *self) {
     int result = insert(self);
-    if (errstack_len(self->errstack)) {
+    if (PadErrStack_Len(self->errstack)) {
         PadErrStack_TraceSimple(self->errstack, stderr);
         return result;
     }

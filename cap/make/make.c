@@ -90,7 +90,7 @@ CapMakeCmd_MakeFromArgs(
     }
 
     char *compiled = Pad_CompileArgv(
-        config,
+        config->pad_config,
         errstack,
         argc - 1,
         argv + 1,

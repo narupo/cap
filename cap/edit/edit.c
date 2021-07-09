@@ -1,4 +1,4 @@
-#include <edit/edit.h>
+#include <cap/edit/edit.h>
 
 struct Opts {
     bool is_global;

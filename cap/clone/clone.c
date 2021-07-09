@@ -1,4 +1,4 @@
-#include "clone/clone.h"
+#include <cap/clone/clone.h>
 
 /**
  * structure of options
@@ -23,7 +23,7 @@ struct CapCloneCmd {
  *
  * @param[in] self pointer to CapCloneCmd
  */
-static void
+static int
 usage(CapCloneCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -37,7 +37,7 @@ usage(CapCloneCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 /**
@@ -142,9 +142,9 @@ static void get_repo_name(char *dst, int32_t dstsz, const char *path) {
 }
 
 int
-clonecmd_run(CapCloneCmd *self) {
+CapCloneCmd_Run(CapCloneCmd *self) {
     if (self->argc < 2) {
-        usage(self);
+        return usage(self);
     }
 
     const char *src_path = self->argv[optind];

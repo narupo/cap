@@ -1,4 +1,4 @@
-#include <mkdir/mkdir.h>
+#include <cap/mkdir/mkdir.h>
 
 extern int opterr;
 extern int optind;
@@ -78,7 +78,7 @@ CapMkdirCmd_New(const CapConfig *config, int argc, char **argv) {
     return self;
 }
 
-void
+static int 
 usage(CapMkdirCmd *self) {
     fflush(stdout);
     fflush(stderr);
@@ -93,7 +93,7 @@ usage(CapMkdirCmd *self) {
         "\n"
     );
     fflush(stderr);
-    exit(0);
+    return 0;
 }
 
 static int
@@ -164,11 +164,11 @@ _mkdir(CapMkdirCmd *self) {
 int
 CapMkdirCmd_Run(CapMkdirCmd *self) {
     if (self->opts.is_help) {
-        usage(self);
+        return usage(self);
     }
 
     if (self->argc < self->optind+1) {
-        usage(self);
+        return usage(self);
     }
 
     if (self->opts.is_parents) {

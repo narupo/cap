@@ -125,4 +125,4 @@ CapAliasMgr_GetErrDetail(const CapAliasMgr *self);
  * @return pointer to PadCtx
  */
 const PadCtx *
-CapAliasMgr_GetcContext(const CapAliasMgr *self);
+CapAliasMgr_GetcCtx(const CapAliasMgr *self);

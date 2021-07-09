@@ -58,8 +58,8 @@ parse_opts(CapLsCmd *self) {
     return true;
 }
 
-static void
-lscmd_usage(const CapLsCmd *self) {
+static int
+usage(const CapLsCmd *self) {
     fprintf(stderr,
         "Usage:\n"
         "\n"
@@ -71,6 +71,7 @@ lscmd_usage(const CapLsCmd *self) {
         "    -a, --all     show all files.\n"
         "\n"
     );
+    return 0;
 }
 
 CapLsCmd *
@@ -187,8 +188,7 @@ _ls(const CapLsCmd *self, const char *path) {
 int
 CapLsCmd_Run(CapLsCmd *self) {
     if (self->opts.is_help) {
-        lscmd_usage(self);
-        return 0;
+        return usage(self);
     }
 
     char realpath[PAD_FILE__NPATH];

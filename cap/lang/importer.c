@@ -1,6 +1,6 @@
 #include <cap/lang/importer.h>
 
-static CapConfig *_cap_config;
+static const CapConfig *_cap_config;
 
 void
 CapImporter_SetCapConfig(const CapConfig *config) {
