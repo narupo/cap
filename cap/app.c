@@ -348,7 +348,7 @@ _version(App *self) {
  * @return If the cmdname not is the command name of Cap to false
  */
 static bool
-_is_cap_cmdname(const App *self, const char *cmdname) {
+_is_cap_cmd_name(const App *self, const char *cmdname) {
     static const char *capcmdnames[] = {
         "home",
         "cd",
@@ -560,7 +560,7 @@ _run_cmd_name(App *self) {
         return 1; // impossible
     }
 
-    if (_is_cap_cmdname(self, cmdname)) {
+    if (_is_cap_cmd_name(self, cmdname)) {
         return _exec_cmd_by_name(self, cmdname);
     }
 
