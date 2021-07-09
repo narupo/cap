@@ -489,14 +489,14 @@ app_execute_alias_by_name(app_t *self, bool *found, const char *name) {
     // find first from local scope
     // not found to find from global scope
     char val[1024];
-    if (almgr_find_alias_value(almgr, val, sizeof val, name, CAP_SCOPE_LOCAL) == NULL) {
-        CapAliasMgr_Clear_error(almgr);
-        if (almgr_find_alias_value(almgr, val, sizeof val, name, CAP_SCOPE_GLOBAL) == NULL) {
+    if (CapAliasMgr_FindAliasValue(almgr, val, sizeof val, name, CAP_SCOPE_LOCAL) == NULL) {
+        CapAliasMgr_ClearError(almgr);
+        if (CapAliasMgr_FindAliasValue(almgr, val, sizeof val, name, CAP_SCOPE_GLOBAL) == NULL) {
             *found = false;
             return 1;
         }
     }
-    almgr_del(almgr);
+    CapAliasMgr_Del(almgr);
     *found = true;
 
     // create cap's command line with alias value
@@ -575,7 +575,7 @@ app_run_cmdname(app_t *self) {
     }
 
     found = false;
-    result = execute_program(self->config, &found, self->cmd_argc, self->cmd_argv, cmdname);
+    result = Cap_ExecProg(self->config, &found, self->cmd_argc, self->cmd_argv, cmdname);
     if (found) {
         return result;
     }
@@ -583,12 +583,12 @@ app_run_cmdname(app_t *self) {
     PadCStrAry *new_argv = Pad_PushFrontArgv(self->cmd_argc, self->cmd_argv, "run");
     int argc = PadCStrAry_Len(new_argv);
     char **argv = PadCStrAry_EscDel(new_argv);
-    return execute_run(self->config, argc, argv);
+    return Cap_ExecRun(self->config, argc, argv);
 }
 
 static bool
 app_init(app_t *self, int argc, char *argv[]) {
-    if (!config_init(self->config)) {
+    if (!CapConfig_Init(self->config)) {
         PadErrStack *es = PadConfig_GetErrStack(self->config);
         errstack_extendb_other(self->errstack, es);
         Pad_PushErr("failed to configuration");

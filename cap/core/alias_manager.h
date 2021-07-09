@@ -27,7 +27,7 @@ typedef struct alias_manager CapAliasMgr;
  * @param[in] self pointer to dynamic allocate memory of CapAliasMgr
  */
 void
-almgr_del(CapAliasMgr *self);
+CapAliasMgr_Del(CapAliasMgr *self);
 
 /**
  * Construct module
@@ -53,7 +53,7 @@ CapAliasMgr_New(const CapConfig *config);
  * @return not found to pointer to NULL
  */
 CapAliasMgr *
-almgr_find_alias_value(CapAliasMgr *self, char *dst, uint32_t dstsz, const char *key, int scope);
+CapAliasMgr_FindAliasValue(CapAliasMgr *self, char *dst, uint32_t dstsz, const char *key, int scope);
 
 /**
  * Load alias list by scope
@@ -96,7 +96,7 @@ almgr_has_error(const CapAliasMgr *self);
  * @param[in] self pointer to dynamic allocate memory of CapAliasMgr
  */
 void
-CapAliasMgr_Clear_error(CapAliasMgr *self);
+CapAliasMgr_ClearError(CapAliasMgr *self);
 
 /**
  * Clear status

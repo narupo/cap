@@ -184,14 +184,14 @@ test_PadCStrAry_New(void) {
 }
 
 void
-test_cstrarr_escdel(void) {
+test_PadCStrAry_EscDel(void) {
     // test
     PadCStrAry *arr = PadCStrAry_New();
     assert(arr != NULL);
 
-    assert(cstrarr_escdel(NULL) == NULL);
+    assert(PadCStrAry_EscDel(NULL) == NULL);
 
-    char **escarr = cstrarr_escdel(arr);
+    char **escarr = PadCStrAry_EscDel(arr);
     assert(escarr != NULL);
 
     int i;
@@ -208,7 +208,7 @@ test_cstrarr_escdel(void) {
     assert(PadCStrAry_PushBack(arr, "1") != NULL);
     assert(PadCStrAry_PushBack(arr, "2") != NULL);
 
-    escarr = cstrarr_escdel(arr);
+    escarr = PadCStrAry_EscDel(arr);
     assert(_countescarr(escarr) == 3);
     assert(strcmp(escarr[0], "0") == 0);
     assert(strcmp(escarr[1], "1") == 0);
@@ -380,7 +380,7 @@ test_cstrarr_resize(void) {
 static const struct testcase
 cstrarr_tests[] = {
     {"PadCStrAry_New", test_PadCStrAry_New},
-    {"cstrarr_escdel", test_cstrarr_escdel},
+    {"PadCStrAry_EscDel", test_PadCStrAry_EscDel},
     {"PadCStrAry_PushBack", test_PadCStrAry_PushBack},
     {"PadCStrAry_PushBackb", test_PadCStrAry_PushBackb},
     {"cstrarr_pop_move", test_cstrarr_pop_move},
@@ -465,7 +465,7 @@ test_PadCmdline_Parse(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "abc"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
     obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_AND);
@@ -473,7 +473,7 @@ test_PadCmdline_Parse(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "def"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
     obj = PadCmdline_Getc(cmdline, 3);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_PIPE);
@@ -481,7 +481,7 @@ test_PadCmdline_Parse(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "ghi"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
     obj = PadCmdline_Getc(cmdline, 5);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_REDIRECT);
@@ -489,7 +489,7 @@ test_PadCmdline_Parse(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "jkl"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
 
     PadCmdline_Del(cmdline);
 }
@@ -507,7 +507,7 @@ test_PadCmdline_Parse_pipe(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "abc"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
 
     assert(PadCmdline_Parse(cmdline, "abc | def"));
     assert(PadCmdline_Len(cmdline) == 3);
@@ -515,7 +515,7 @@ test_PadCmdline_Parse_pipe(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "abc"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
     obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_PIPE);
@@ -523,7 +523,7 @@ test_PadCmdline_Parse_pipe(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "def"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
 
     assert(PadCmdline_Parse(cmdline, "abc -d efg | hij -d \"klm\""));
     assert(PadCmdline_Len(cmdline) == 3);
@@ -531,7 +531,7 @@ test_PadCmdline_Parse_pipe(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "abc -d efg"));
-    assert(cl_len(obj->cl) == 3);
+    assert(PadCL_Len(obj->cl) == 3);
     obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_PIPE);
@@ -539,7 +539,7 @@ test_PadCmdline_Parse_pipe(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "hij -d \"klm\""));
-    assert(cl_len(obj->cl) == 3);
+    assert(PadCL_Len(obj->cl) == 3);
 
     assert(PadCmdline_Parse(cmdline, "a | b | c | d | e"));
     assert(PadCmdline_Len(cmdline) == 9);
@@ -560,7 +560,7 @@ test_PadCmdline_Parse_and(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "abc"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
     obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_AND);
@@ -568,7 +568,7 @@ test_PadCmdline_Parse_and(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "def"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
 
     assert(PadCmdline_Parse(cmdline, "abc -d efg && hij -d \"klm\""));
     assert(PadCmdline_Len(cmdline) == 3);
@@ -576,7 +576,7 @@ test_PadCmdline_Parse_and(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "abc -d efg"));
-    assert(cl_len(obj->cl) == 3);
+    assert(PadCL_Len(obj->cl) == 3);
     obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_AND);
@@ -584,7 +584,7 @@ test_PadCmdline_Parse_and(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "hij -d \"klm\""));
-    assert(cl_len(obj->cl) == 3);
+    assert(PadCL_Len(obj->cl) == 3);
 
     assert(PadCmdline_Parse(cmdline, "a && b && c && d && e"));
     assert(PadCmdline_Len(cmdline) == 9);
@@ -605,7 +605,7 @@ test_PadCmdline_Parse_redirect(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "abc"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
     obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_REDIRECT);
@@ -613,7 +613,7 @@ test_PadCmdline_Parse_redirect(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "def"));
-    assert(cl_len(obj->cl) == 1);
+    assert(PadCL_Len(obj->cl) == 1);
 
     assert(PadCmdline_Parse(cmdline, "abc -d efg > hij -d \"klm\""));
     assert(PadCmdline_Len(cmdline) == 3);
@@ -621,7 +621,7 @@ test_PadCmdline_Parse_redirect(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "abc -d efg"));
-    assert(cl_len(obj->cl) == 3);
+    assert(PadCL_Len(obj->cl) == 3);
     obj = PadCmdline_Getc(cmdline, 1);
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_REDIRECT);
@@ -629,7 +629,7 @@ test_PadCmdline_Parse_redirect(void) {
     assert(obj);
     assert(obj->type == CMDLINE_OBJECT_TYPE_CMD);
     assert(!strcmp(PadStr_Getc(obj->command), "hij -d \"klm\""));
-    assert(cl_len(obj->cl) == 3);
+    assert(PadCL_Len(obj->cl) == 3);
 
     assert(PadCmdline_Parse(cmdline, "a > b > c > d > e"));
     assert(PadCmdline_Len(cmdline) == 9);
@@ -2939,29 +2939,29 @@ file_tests[] = {
 
 static void
 test_cl_del(void) {
-    cl_t *cl = cl_new();
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
     cl_del(cl);
 }
 
 static void
-test_cl_escdel(void) {
-    cl_t *cl = cl_new();
+test_PadCL_EscDel(void) {
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
-    size_t parrlen = cl_len(cl);
-    char **parr = cl_escdel(cl);
+    size_t parrlen = PadCL_Len(cl);
+    char **parr = PadCL_EscDel(cl);
     assert(parr != NULL);
-    freeargv(parrlen, parr);
+    Pad_FreeArgv(parrlen, parr);
 }
 
 static void
-test_cl_new(void) {
+test_PadCL_New(void) {
     // test_cl_del
 }
 
 static void
 test_cl_resize(void) {
-    cl_t *cl = cl_new();
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
     assert(cl_capa(cl) == 4);
     assert(cl_resize(cl, 8));
@@ -2971,20 +2971,20 @@ test_cl_resize(void) {
 
 static void
 test_cl_push(void) {
-    cl_t *cl = cl_new();
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
-    assert(cl_len(cl) == 0);
+    assert(PadCL_Len(cl) == 0);
     assert(cl_push(cl, "123"));
     assert(cl_push(cl, "223"));
     assert(cl_push(cl, "323"));
     assert(strcmp(cl_getc(cl, 1), "223") == 0);
-    assert(cl_len(cl) == 3);
+    assert(PadCL_Len(cl) == 3);
     cl_del(cl);
 }
 
 static void
 test_cl_getc(void) {
-    cl_t *cl = cl_new();
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
     assert(cl_push(cl, "123"));
     assert(strcmp(cl_getc(cl, 0), "123") == 0);
@@ -2993,22 +2993,22 @@ test_cl_getc(void) {
 
 static void
 test_cl_clear(void) {
-    cl_t *cl = cl_new();
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
     assert(cl_push(cl, "123"));
     assert(cl_push(cl, "223"));
-    assert(cl_len(cl) == 2);
+    assert(PadCL_Len(cl) == 2);
     cl_clear(cl);
-    assert(cl_len(cl) == 0);
+    assert(PadCL_Len(cl) == 0);
     cl_del(cl);
 }
 
 static void
-test_cl_parse_str_opts(void) {
-    cl_t *cl = cl_new();
+test_PadCL_ParseStr_opts(void) {
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
 
-    assert(cl_parse_str_opts(cl, "cmd -h -ab 123 --help 223", CL_WRAP));
+    assert(PadCL_ParseStr_opts(cl, "cmd -h -ab 123 --help 223", CL_WRAP));
     assert(strcmp(cl_getc(cl, 0), "'cmd'") == 0);
     assert(strcmp(cl_getc(cl, 1), "'-h'") == 0);
     assert(strcmp(cl_getc(cl, 2), "'-ab'") == 0);
@@ -3016,27 +3016,27 @@ test_cl_parse_str_opts(void) {
     assert(strcmp(cl_getc(cl, 4), "'--help'") == 0);
     assert(strcmp(cl_getc(cl, 5), "'223'") == 0);
 
-    assert(cl_parse_str_opts(cl, "cmd -a 123", CL_WRAP));
+    assert(PadCL_ParseStr_opts(cl, "cmd -a 123", CL_WRAP));
     assert(strcmp(cl_getc(cl, 0), "'cmd'") == 0);
     assert(strcmp(cl_getc(cl, 1), "'-a'") == 0);
     assert(strcmp(cl_getc(cl, 2), "'123'") == 0);
 
-    assert(cl_parse_str_opts(cl, "\"cmd\" \"-a\" \"123\"", CL_WRAP));
+    assert(PadCL_ParseStr_opts(cl, "\"cmd\" \"-a\" \"123\"", CL_WRAP));
     assert(strcmp(cl_getc(cl, 0), "'cmd'") == 0);
     assert(strcmp(cl_getc(cl, 1), "'-a'") == 0);
     assert(strcmp(cl_getc(cl, 2), "'123'") == 0);
 
-    assert(cl_parse_str_opts(cl, "\"cmd\" \"-a\" \"123\"", CL_WRAP));
+    assert(PadCL_ParseStr_opts(cl, "\"cmd\" \"-a\" \"123\"", CL_WRAP));
     assert(strcmp(cl_getc(cl, 0), "'cmd'") == 0);
     assert(strcmp(cl_getc(cl, 1), "'-a'") == 0);
     assert(strcmp(cl_getc(cl, 2), "'123'") == 0);
 
-    assert(cl_parse_str_opts(cl, "cmd -a 123", CL_ESCAPE));
+    assert(PadCL_ParseStr_opts(cl, "cmd -a 123", CL_ESCAPE));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "-a") == 0);
     assert(strcmp(cl_getc(cl, 2), "123") == 0);
 
-    assert(cl_parse_str_opts(cl, "cmd -a \"1'23\"", CL_ESCAPE));
+    assert(PadCL_ParseStr_opts(cl, "cmd -a \"1'23\"", CL_ESCAPE));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "-a") == 0);
     assert(strcmp(cl_getc(cl, 2), "1\\'23") == 0);
@@ -3045,11 +3045,11 @@ test_cl_parse_str_opts(void) {
 }
 
 static void
-test_cl_parse_str(void) {
-    cl_t *cl = cl_new();
+test_PadCL_ParseStr(void) {
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
 
-    assert(cl_parse_str(cl, "cmd -h -ab 123 --help 223"));
+    assert(PadCL_ParseStr(cl, "cmd -h -ab 123 --help 223"));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "-h") == 0);
     assert(strcmp(cl_getc(cl, 2), "-ab") == 0);
@@ -3057,62 +3057,62 @@ test_cl_parse_str(void) {
     assert(strcmp(cl_getc(cl, 4), "--help") == 0);
     assert(strcmp(cl_getc(cl, 5), "223") == 0);
 
-    assert(cl_parse_str(cl, "cmd -a \"abc\""));
+    assert(PadCL_ParseStr(cl, "cmd -a \"abc\""));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "-a") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
 
-    assert(cl_parse_str(cl, "cmd -a 'a\"bc'"));
+    assert(PadCL_ParseStr(cl, "cmd -a 'a\"bc'"));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "-a") == 0);
     assert(strcmp(cl_getc(cl, 2), "a\"bc") == 0);
 
-    assert(cl_parse_str(cl, "cmd -a=abc"));
+    assert(PadCL_ParseStr(cl, "cmd -a=abc"));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "-a") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
 
-    assert(cl_parse_str(cl, "cmd -a=\"abc\""));
+    assert(PadCL_ParseStr(cl, "cmd -a=\"abc\""));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "-a") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
 
-    assert(cl_parse_str(cl, "cmd -a='abc'"));
+    assert(PadCL_ParseStr(cl, "cmd -a='abc'"));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "-a") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
 
-    assert(cl_parse_str(cl, "cmd \"-a\"=\"abc\""));
+    assert(PadCL_ParseStr(cl, "cmd \"-a\"=\"abc\""));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "-a") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
 
-    assert(cl_parse_str(cl, "cmd '-a'='abc'"));
+    assert(PadCL_ParseStr(cl, "cmd '-a'='abc'"));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "-a") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
 
-    assert(cl_parse_str(cl, "cmd --abc=abc"));
+    assert(PadCL_ParseStr(cl, "cmd --abc=abc"));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "--abc") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
 
-    assert(cl_parse_str(cl, "cmd --abc=\"abc\""));
+    assert(PadCL_ParseStr(cl, "cmd --abc=\"abc\""));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "--abc") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
 
-    assert(cl_parse_str(cl, "cmd --abc='abc'"));
+    assert(PadCL_ParseStr(cl, "cmd --abc='abc'"));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "--abc") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
 
-    assert(cl_parse_str(cl, "cmd \"--abc\"=\"abc\""));
+    assert(PadCL_ParseStr(cl, "cmd \"--abc\"=\"abc\""));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "--abc") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
 
-    assert(cl_parse_str(cl, "cmd '--abc'='abc'"));
+    assert(PadCL_ParseStr(cl, "cmd '--abc'='abc'"));
     assert(strcmp(cl_getc(cl, 0), "cmd") == 0);
     assert(strcmp(cl_getc(cl, 1), "--abc") == 0);
     assert(strcmp(cl_getc(cl, 2), "abc") == 0);
@@ -3122,7 +3122,7 @@ test_cl_parse_str(void) {
 
 static void
 test_cl_parse_argv_opts(void) {
-    cl_t *cl = cl_new();
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
 
     cl_del(cl);
@@ -3130,7 +3130,7 @@ test_cl_parse_argv_opts(void) {
 
 static void
 test_cl_parse_argv(void) {
-    cl_t *cl = cl_new();
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
 
     cl_del(cl);
@@ -3138,15 +3138,15 @@ test_cl_parse_argv(void) {
 
 static void
 test_cl_show(void) {
-    cl_t *cl = cl_new();
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
 
     cl_del(cl);
 }
 
 static void
-test_cl_len(void) {
-    cl_t *cl = cl_new();
+test_PadCL_Len(void) {
+    PadCL *cl = PadCL_New();
     assert(cl != NULL);
 
     cl_del(cl);
@@ -3154,7 +3154,7 @@ test_cl_len(void) {
 
 static void
 test_cl_capa(void) {
-    cl_t *cl = cl_new();
+    PadCL *cl = PadCL_New();
     assert(cl);
 
     assert(cl_capa(cl) == 4);
@@ -3163,14 +3163,14 @@ test_cl_capa(void) {
 }
 
 static void
-test_cl_get_argv(void) {
-    cl_t *cl = cl_new();
+test_PadCL_GetArgv(void) {
+    PadCL *cl = PadCL_New();
     assert(cl);
 
     cl_push(cl, "abc");
     cl_push(cl, "def");
 
-    char **argv = cl_get_argv(cl);
+    char **argv = PadCL_GetArgv(cl);
     assert(!strcmp(argv[0], "abc"));
     assert(!strcmp(argv[1], "def"));
     assert(argv[2] == NULL);
@@ -3179,15 +3179,15 @@ test_cl_get_argv(void) {
 }
 
 static void
-test_cl_to_string(void) {
-    cl_t *cl = cl_new();
+test_PadCLo_string(void) {
+    PadCL *cl = PadCL_New();
     assert(cl);
 
     cl_push(cl, "abc");
     cl_push(cl, "def");
     cl_push(cl, "123");
 
-    char *s = cl_to_string(cl);
+    char *s = PadCLo_string(cl);
     assert(!strcmp(s, "\"abc\" \"def\" \"123\""));
 
     free(s);
@@ -3195,23 +3195,23 @@ test_cl_to_string(void) {
 }
 
 static const struct testcase
-cl_tests[] = {
+PadCLests[] = {
     {"cl_del", test_cl_del},
-    {"cl_escdel", test_cl_escdel},
-    {"cl_new", test_cl_new},
+    {"PadCL_EscDel", test_PadCL_EscDel},
+    {"PadCL_New", test_PadCL_New},
     {"cl_resize", test_cl_resize},
     {"cl_getc", test_cl_getc},
     {"cl_push", test_cl_push},
     {"cl_clear", test_cl_clear},
-    {"cl_parse_str_opts", test_cl_parse_str_opts},
-    {"cl_parse_str", test_cl_parse_str},
+    {"PadCL_ParseStr_opts", test_PadCL_ParseStr_opts},
+    {"PadCL_ParseStr", test_PadCL_ParseStr},
     {"cl_parseargvopts", test_cl_parse_argv_opts},
     {"cl_parseargv", test_cl_parse_argv},
     {"cl_show", test_cl_show},
-    {"cl_len", test_cl_len},
+    {"PadCL_Len", test_PadCL_Len},
     {"cl_capa", test_cl_capa},
-    {"cl_get_argv", test_cl_get_argv},
-    {"cl_to_string", test_cl_to_string},
+    {"PadCL_GetArgv", test_PadCL_GetArgv},
+    {"PadCLo_string", test_PadCLo_string},
     {0},
 };
 
@@ -3334,11 +3334,11 @@ __create_testargv(int argc) {
 }
 
 static void
-test_util_freeargv(void) {
+test_util_Pad_FreeArgv(void) {
     int argc = 2;
     char **argv = __create_testargv(argc);
     assert(argv != NULL);
-    freeargv(argc, argv);
+    Pad_FreeArgv(argc, argv);
 }
 
 static void
@@ -3359,7 +3359,7 @@ test_util_showargv(void) {
 
     assert(!strcmp(buf, "abc\nabc\n"));
 
-    freeargv(argc, argv);
+    Pad_FreeArgv(argc, argv);
 }
 
 static void
@@ -3578,7 +3578,7 @@ test_util_trim_first_line(void) {
 }
 
 static void
-test_util_clear_screen(void) {
+test_util_Pad_ClearScreen(void) {
     // nothing todo
 }
 
@@ -3676,12 +3676,12 @@ test_util_split_to_array(void) {
 }
 
 static void
-test_util_execute_run(void) {
+test_util_Cap_ExecRun(void) {
     // nothing todo
 }
 
 static void
-test_util_execute_program(void) {
+test_util_Cap_ExecProg(void) {
     CapConfig *config = config_new();
 
     config->scope = CAP_SCOPE_LOCAL;
@@ -3702,17 +3702,17 @@ test_util_execute_program(void) {
     bool found = false;
     int argc = 0;
     char *argv[] = {NULL};
-    assert(execute_program(config, &found, argc, argv, "nothing") == 1);
+    assert(Cap_ExecProg(config, &found, argc, argv, "nothing") == 1);
 
     config_del(config);
     PadFile_Remove("tests/util/.caprc");
 }
 
 static void
-test_util_pushf_argv(void) {
+test_util_Pad_PushFrontArgv(void) {
     int argc = 2;
     char *argv[] = {"aaa", "bbb", NULL};
-    PadCStrAry *arr = pushf_argv(argc, argv, "ccc");
+    PadCStrAry *arr = Pad_PushFrontArgv(argc, argv, "ccc");
     assert(PadCStrAry_Len(arr) == 3);
     assert(!strcmp(PadCStrAry_Getc(arr, 0), "ccc"));
     assert(!strcmp(PadCStrAry_Getc(arr, 1), "aaa"));
@@ -3727,7 +3727,7 @@ test_util_is_dot_file(void) {
 
 static const struct testcase
 utiltests[] = {
-    {"freeargv", test_util_freeargv},
+    {"Pad_FreeArgv", test_util_Pad_FreeArgv},
     {"showargv", test_util_showargv},
     {"Cap_IsOutOfHome", test_util_Cap_IsOutOfHome},
     {"Cap_IsOutOfHome", test_util_Cap_IsOutOfHome_2},
@@ -3740,13 +3740,13 @@ utiltests[] = {
     {"pop_tail_slash", test_util_pop_tail_slash},
     {"Cap_GetOrigin", test_util_Cap_GetOrigin},
     {"trim_first_line", test_util_trim_first_line},
-    {"clear_screen", test_util_clear_screen},
+    {"Pad_ClearScreen", test_util_Pad_ClearScreen},
     // {"show_snippet", test_util_show_snippet},
     {"execute_snippet", test_util_execute_snippet},
     {"split_to_array", test_util_split_to_array},
-    {"execute_run", test_util_execute_run},
-    {"execute_program", test_util_execute_program},
-    {"pushf_argv", test_util_pushf_argv},
+    {"Cap_ExecRun", test_util_Cap_ExecRun},
+    {"Cap_ExecProg", test_util_Cap_ExecProg},
+    {"Pad_PushFrontArgv", test_util_Pad_PushFrontArgv},
     {"is_dot_file", test_util_is_dot_file},
     {0},
 };
@@ -30255,7 +30255,7 @@ testmodules[] = {
     {"string", string_tests},
     {"unicode", unicode_tests},
     {"file", file_tests},
-    {"cl", cl_tests},
+    {"cl", PadCLests},
     {"cmdline", PadCmdlineests},
     {"error", error_tests},
     {"util", utiltests},

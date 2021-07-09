@@ -238,7 +238,7 @@ Cap_ExecRun(const CapConfig *config, int argc, char *argv[]) {
 }
 
 static int
-execute_program_by_dirname(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[], const char *cap_dirname) {
+Cap_ExecProg_by_dirname(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[], const char *cap_dirname) {
     *found = false;
 
     const char *cmdname = cmd_argv[0];
@@ -269,7 +269,7 @@ execute_program_by_dirname(const CapConfig *config, bool *found, int cmd_argc, c
 }
 
 static int
-execute_program_by_caprc(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[], const char *org) {
+Cap_ExecProg_by_caprc(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[], const char *org) {
     *found = false;
     char rcpath[FILE_NPATH];
 
@@ -296,7 +296,7 @@ execute_program_by_caprc(const CapConfig *config, bool *found, int cmd_argc, cha
         const char *cap_dirname = PadCStrAry_Getc(dirs, i);
 
         *found = false;
-        int result = execute_program_by_dirname(
+        int result = Cap_ExecProg_by_dirname(
             config,
             found,
             cmd_argc,
@@ -321,13 +321,13 @@ Cap_ExecProg(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[
     int result;
 
     *found = false;
-    result = execute_program_by_caprc(config, found, cmd_argc, cmd_argv, config->cd_path);
+    result = Cap_ExecProg_by_caprc(config, found, cmd_argc, cmd_argv, config->cd_path);
     if (*found) {
         return result;
     }
 
     *found = false;
-    result = execute_program_by_caprc(config, found, cmd_argc, cmd_argv, config->home_path);
+    result = Cap_ExecProg_by_caprc(config, found, cmd_argc, cmd_argv, config->home_path);
     if (*found) {
         return result;
     }

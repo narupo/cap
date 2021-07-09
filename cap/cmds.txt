@@ -29,8 +29,8 @@ pwd *
 replace *
 rm *
 run *
-sh
-snippet
+sh *
+snippet 
 tests.c
 tests.h
 touch

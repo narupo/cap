@@ -21,7 +21,7 @@ struct sh {
     char **argv;
     struct Opts opts;
     PadCmdline *cmdline;
-    kit_t *kit;
+    PadKit *kit;
     int last_exit_code;
     char line_buf[LINE_BUFFER_SIZE];
 };
@@ -30,8 +30,8 @@ struct sh {
 * prototypes *
 *************/
 
-int 
-shcmd_exec_command(shcmd_t *self, int argc, char **argv);
+static int 
+exec_cmd(CapShCmd *self, int argc, char **argv);
 
 /************
 * functions *
@@ -40,10 +40,10 @@ shcmd_exec_command(shcmd_t *self, int argc, char **argv);
 /**
  * Show usage of command
  *
- * @param[in] self pointer to shcmd_t
+ * @param[in] self pointer to CapShCmd
  */
 static void
-shcmd_show_usage(shcmd_t *self) {
+usage(CapShCmd *self) {
     fflush(stdout);
     fflush(stderr);
     fprintf(stderr, "Usage:\n"
@@ -56,18 +56,19 @@ shcmd_show_usage(shcmd_t *self) {
         "\n"
     );
     fflush(stderr);
+    exit(0);
 }
 
 /**
  * Parse options
  *
- * @param[in] self pointer to shcmd_t 
+ * @param[in] self pointer to CapShCmd 
  *
  * @return success to true
  * @return failed to false
  */
 static bool
-shcmd_parse_opts(shcmd_t *self) {
+parse_opts(CapShCmd *self) {
     // parse options
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
@@ -111,37 +112,49 @@ shcmd_parse_opts(shcmd_t *self) {
 }
 
 void
-shcmd_del(shcmd_t *self) {
+CapShCmd_Del(CapShCmd *self) {
     if (!self) {
         return;
     }
 
     // DO NOT DELETE config and argv
     PadCmdline_Del(self->cmdline);
-    kit_del(self->kit);
-    free(self);
+    PadKit_Del(self->kit);
+    Pad_SafeFree(self);
 }
 
-shcmd_t *
-shcmd_new(CapConfig *config, int argc, char **argv) {
-    shcmd_t *self = PadMem_ECalloc(1, sizeof(*self));
+CapShCmd *
+CapShCmd_New(CapConfig *config, int argc, char **argv) {
+    CapShCmd *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        goto error;
+    }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
     self->cmdline = PadCmdline_New();
-    self->kit = kit_new(config);
+    if (self->cmdline == NULL) {
+        goto error;
+    }
 
-    if (!shcmd_parse_opts(self)) {
-        shcmd_del(self);
-        return NULL;
+    self->kit = PadKit_New(config);
+    if (self->kit == NULL) {
+        goto error;
+    }
+
+    if (!parse_opts(self)) {
+        goto error;
     }
 
     return self;
+error:
+    CapShCmd_Del(self);
+    return NULL;
 }
 
-char *
-shcmd_create_prompt(shcmd_t *self, char *dst, int32_t dstsz) {
+static char *
+create_prompt(CapShCmd *self, char *dst, int32_t dstsz) {
     const char *home = self->config->home_path;
     const char *cd = self->config->cd_path;
     const char *b = cd;
@@ -166,9 +179,9 @@ shcmd_create_prompt(shcmd_t *self, char *dst, int32_t dstsz) {
 }
 
 int
-shcmd_input(shcmd_t *self) {
+shcmd_input(CapShCmd *self) {
     char prompt[FILE_NPATH];
-    shcmd_create_prompt(self, prompt, sizeof prompt);
+    create_prompt(self, prompt, sizeof prompt);
 
     PadTerm_CFPrintf(stderr, TERM_CYAN, TERM_DEFAULT, TERM_BRIGHT, "(cap) ");
     PadTerm_CFPrintf(stderr, TERM_GREEN, TERM_DEFAULT, TERM_BRIGHT, "%s", prompt);
@@ -183,8 +196,8 @@ shcmd_input(shcmd_t *self) {
     return 0;
 }
 
-int
-shcmd_exec_alias(shcmd_t *self, bool *found, int argc, char **argv) {
+static int
+exec_alias(CapShCmd *self, bool *found, int argc, char **argv) {
     *found = false;
     CapAliasMgr *almgr = CapAliasMgr_New(self->config);
 
@@ -193,14 +206,14 @@ shcmd_exec_alias(shcmd_t *self, bool *found, int argc, char **argv) {
     // not found to find from global scope
     const char *cmdname = argv[0];
     char alias_val[1024];
-    if (almgr_find_alias_value(almgr, alias_val, sizeof alias_val, cmdname, CAP_SCOPE_LOCAL) == NULL) {
-        CapAliasMgr_Clear_error(almgr);
-        if (almgr_find_alias_value(almgr, alias_val, sizeof alias_val, cmdname, CAP_SCOPE_GLOBAL) == NULL) {
+    if (CapAliasMgr_FindAliasValue(almgr, alias_val, sizeof alias_val, cmdname, CAP_SCOPE_LOCAL) == NULL) {
+        CapAliasMgr_ClearError(almgr);
+        if (CapAliasMgr_FindAliasValue(almgr, alias_val, sizeof alias_val, cmdname, CAP_SCOPE_GLOBAL) == NULL) {
             *found = false;
             return 1;
         }
     }
-    almgr_del(almgr);
+    CapAliasMgr_Del(almgr);
     *found = true;
 
     // create cap's command line with alias value
@@ -217,57 +230,57 @@ shcmd_exec_alias(shcmd_t *self, bool *found, int argc, char **argv) {
     PadStr_PopBack(cmdline);
 
     // convert command to application's arguments
-    cl_t *cl = cl_new();
-    cl_parse_str(cl, PadStr_Getc(cmdline));
+    PadCL *cl = PadCL_New();
+    PadCL_ParseStr(cl, PadStr_Getc(cmdline));
     PadStr_Del(cmdline);
 
-    int re_argc = cl_len(cl);
-    char **re_argv = cl_escdel(cl);
+    int re_argc = PadCL_Len(cl);
+    char **re_argv = PadCL_EscDel(cl);
 
-    shcmd_exec_command(self, re_argc, re_argv);
+    exec_cmd(self, re_argc, re_argv);
 
-    freeargv(re_argc, re_argv);
+    Pad_FreeArgv(re_argc, re_argv);
     return 0;
 }
 
 static int
-execute_all(shcmd_t *self, int argc, char *argv[]) {
+execute_all(CapShCmd *self, int argc, char *argv[]) {
     const char *cmdname = argv[0];
     bool found = false;
     int result;
 
-    result = shcmd_exec_alias(self, &found, argc, argv);
+    result = exec_alias(self, &found, argc, argv);
     if (found) {
         return result;
     }
     
-    result = execute_snippet(self->config, &found, argc, argv, cmdname);
+    result = Cap_ExecSnippet(self->config, &found, argc, argv, cmdname);
     if (found) {
         return result;
     }
     
-    result = execute_program(self->config, &found, argc, argv, cmdname);
+    result = Cap_ExecProg(self->config, &found, argc, argv, cmdname);
     if (found) {
         return result;
     }
 
-    PadCStrAry *args = pushf_argv(argc, argv, "run");
+    PadCStrAry *args = Pad_PushFrontArgv(argc, argv, "run");
     int run_argc = PadCStrAry_Len(args);
-    char **run_argv = cstrarr_escdel(args);
-    return execute_run(self->config, run_argc, run_argv);
+    char **run_argv = PadCStrAry_EscDel(args);
+    return Cap_ExecRun(self->config, run_argc, run_argv);
 }
 
 int 
-shcmd_exec_command(shcmd_t *self, int argc, char **argv) {
+exec_cmd(CapShCmd *self, int argc, char **argv) {
     int result = 0;
 
 #define routine(cmd) { \
-        cmd##_t *cmd = cmd##_new(self->config, argc, argv); \
+        Cap##cmd *cmd = Cap##cmd##_New(self->config, argc, argv); \
         if (!cmd) { \
             return 0; \
         } \
-        result = cmd##_run(cmd); \
-        cmd##_del(cmd); \
+        result = Cap##cmd##_Run(cmd); \
+        Cap##cmd##_Del(cmd); \
     } \
 
     const char *cmdname = argv[0];
@@ -275,15 +288,15 @@ shcmd_exec_command(shcmd_t *self, int argc, char **argv) {
     if (PadCStr_Eq(cmdname, "exit")) {
         return 1;
     } else if (PadCStr_Eq(cmdname, "clear")) {
-        clear_screen();
+        Pad_ClearScreen();
     } else if (argc >= 2 && PadCStr_Eq(cmdname, "echo") && PadCStr_Eq(argv[1], "$?")) {
         printf("%d\n", self->last_exit_code);
     } else if (PadCStr_Eq(cmdname, "home")) {
         routine(homecmd);
-        config_init(self->config);
+        CapConfig_Init(self->config);
     } else if (PadCStr_Eq(cmdname, "cd")) {
         routine(cdcmd);
-        config_init(self->config);
+        CapConfig_Init(self->config);
     } else if (PadCStr_Eq(cmdname, "pwd")) {
         routine(pwdcmd);
     } else if (PadCStr_Eq(cmdname, "ls")) {
@@ -333,14 +346,14 @@ shcmd_exec_command(shcmd_t *self, int argc, char **argv) {
 }
 
 int
-shcmd_update(shcmd_t *self) {
+shcmd_update(CapShCmd *self) {
     if (strstr(self->line_buf, "{@")) {
-        kit_clear_context_buffer(self->kit);
-        if (!kit_compile_from_string(self->kit, self->line_buf)) {
-            kit_trace_error(self->kit, stderr);
+        PadKit_ClearCtxBuf(self->kit);
+        if (!PadKit_CompileFromStr(self->kit, self->line_buf)) {
+            PadKitrace_error(self->kit, stderr);
             return 1;
         }
-        const char *result = kit_getc_stdout_buf(self->kit);
+        const char *result = PadKit_GetcStdoutBuf(self->kit);
         printf("%s", result);
         fflush(stdout);
         return 0;
@@ -360,14 +373,14 @@ shcmd_update(shcmd_t *self) {
         return 0;
     }
 
-    int argc = cl_len(obj->cl);
-    char **argv = cl_get_argv(obj->cl);
+    int argc = PadCL_Len(obj->cl);
+    char **argv = PadCL_GetArgv(obj->cl);
 
-    return shcmd_exec_command(self, argc, argv);
+    return exec_cmd(self, argc, argv);
 }
 
 int
-shcmd_run(shcmd_t *self) {
+CapShCmd_Run(CapShCmd *self) {
     for (;;) {
         if (shcmd_input(self) != 0) {
             break;

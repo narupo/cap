@@ -20,7 +20,7 @@ struct alias_manager {
 };
 
 void
-almgr_del(CapAliasMgr *self) {
+CapAliasMgr_Del(CapAliasMgr *self) {
     if (!self) {
         return;
     }
@@ -133,7 +133,7 @@ almgr_load_alias_list(CapAliasMgr *self, int scope) {
 }
 
 CapAliasMgr *
-almgr_find_alias_value(CapAliasMgr *self, char *dst, uint32_t dstsz, const char *key, int scope) {
+CapAliasMgr_FindAliasValue(CapAliasMgr *self, char *dst, uint32_t dstsz, const char *key, int scope) {
     if (!almgr_load_alias_list(self, scope)) {
         return NULL;
     }
@@ -156,11 +156,11 @@ almgr_has_error(const CapAliasMgr *self) {
 void
 CapAliasMgr_Clear(CapAliasMgr *self) {
     ctx_clear(self->context);
-    CapAliasMgr_Clear_error(self);
+    CapAliasMgr_ClearError(self);
 }
 
 void
-CapAliasMgr_Clear_error(CapAliasMgr *self) {
+CapAliasMgr_ClearError(CapAliasMgr *self) {
     self->error_detail[0] = '\0';
 }
 
