@@ -12,9 +12,9 @@ enum {
  */
 struct CapAliasMgr {
     const CapConfig *config;
-    tokenizer_t *tkr;
-    ast_t *ast;
-    gc_t *gc;
+    PadTkr *tkr;
+    PadAST *ast;
+    PadGC *gc;
     PadCtx *context;
     char error_detail[ERR_DETAIL_SIZE];
 };
@@ -41,7 +41,7 @@ CapAliasMgr_New(const CapConfig *config) {
 
     self->config = config;
 
-    tokenizer_option_t *opt = tkropt_new();
+    PadTkrOpt *opt = PadTkrOpt_New();
     self->tkr = PadTkr_New(opt);
     self->ast = PadAST_New(config);
     self->gc = PadGC_New();

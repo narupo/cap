@@ -1,4 +1,4 @@
-#include <core/alias_info.h>
+#include <cap/core/alias_info.h>
 
 struct CapAliasInfo {
     PadDict *key_val_map;
@@ -6,7 +6,7 @@ struct CapAliasInfo {
 };
 
 void
-CapAliasInfo_Del(PadAliasInfo *self) {
+CapAliasInfo_Del(CapAliasInfo *self) {
     if (!self) {
         return;
     }
@@ -16,9 +16,9 @@ CapAliasInfo_Del(PadAliasInfo *self) {
     free(self);
 }
 
-PadAliasInfo *
+CapAliasInfo *
 CapAliasInfo_New(void) {
-    PadAliasInfo *self = PadMem_Calloc(1, sizeof(*self));
+    CapAliasInfo *self = PadMem_Calloc(1, sizeof(*self));
     if (!self) {
         return NULL;
     }
@@ -38,13 +38,13 @@ CapAliasInfo_New(void) {
     return self;
 }
 
-PadAliasInfo *
-CapAliasInfo_DeepCopy(const PadAliasInfo *other) {
+CapAliasInfo *
+CapAliasInfo_DeepCopy(const CapAliasInfo *other) {
     if (!other) {
         return NULL;
     }
 
-    PadAliasInfo *self = PadMem_Calloc(1, sizeof(*self));
+    CapAliasInfo *self = PadMem_Calloc(1, sizeof(*self));
     if (!self) {
         return NULL;
     }
@@ -64,13 +64,13 @@ CapAliasInfo_DeepCopy(const PadAliasInfo *other) {
     return self;
 }
 
-PadAliasInfo *
-CapAliasInfo_ShallowCopy(const PadAliasInfo *other) {
+CapAliasInfo *
+CapAliasInfo_ShallowCopy(const CapAliasInfo *other) {
     if (!other) {
         return NULL;
     }
 
-    PadAliasInfo *self = PadMem_Calloc(1, sizeof(*self));
+    CapAliasInfo *self = PadMem_Calloc(1, sizeof(*self));
     if (!self) {
         return NULL;
     }
@@ -91,7 +91,7 @@ CapAliasInfo_ShallowCopy(const PadAliasInfo *other) {
 }
 
 const char *
-CapAliasInfo_GetcValue(const PadAliasInfo *self, const char *key) {
+CapAliasInfo_GetcValue(const CapAliasInfo *self, const char *key) {
    const PadDictItem *item = PadDict_Getc(self->key_val_map, key);
    if (!item) {
        return NULL;
@@ -101,7 +101,7 @@ CapAliasInfo_GetcValue(const PadAliasInfo *self, const char *key) {
 }
 
 const char *
-CapAliasInfo_GetcDesc(const PadAliasInfo *self, const char *key) {
+CapAliasInfo_GetcDesc(const CapAliasInfo *self, const char *key) {
    const PadDictItem *item = PadDict_Getc(self->key_desc_map, key);
    if (!item) {
        return NULL;
@@ -110,8 +110,8 @@ CapAliasInfo_GetcDesc(const PadAliasInfo *self, const char *key) {
    return item->value;
 }
 
-PadAliasInfo *
-CapAliasInfo_SetValue(PadAliasInfo *self, const char *key, const char *value) {
+CapAliasInfo *
+CapAliasInfo_SetValue(CapAliasInfo *self, const char *key, const char *value) {
     PadDict *result = PadDict_Set(self->key_val_map, key, value);
     if (!result) {
         return NULL;
@@ -120,8 +120,8 @@ CapAliasInfo_SetValue(PadAliasInfo *self, const char *key, const char *value) {
     return self;
 }
 
-PadAliasInfo *
-CapAliasInfo_SetDesc(PadAliasInfo *self, const char *key, const char *desc) {
+CapAliasInfo *
+CapAliasInfo_SetDesc(CapAliasInfo *self, const char *key, const char *desc) {
     PadDict *result = PadDict_Set(self->key_desc_map, key, desc);
     if (!result) {
         return NULL;
@@ -131,17 +131,17 @@ CapAliasInfo_SetDesc(PadAliasInfo *self, const char *key, const char *desc) {
 }
 
 void
-CapAliasInfo_Clear(PadAliasInfo *self) {
+CapAliasInfo_Clear(CapAliasInfo *self) {
     PadDict_Clear(self->key_val_map);
     PadDict_Clear(self->key_desc_map);
 }
 
 const PadDict *
-PadAliasInfo_GetcKeyValueMap(const PadAliasInfo *self) {
+PadAliasInfo_GetcKeyValueMap(const CapAliasInfo *self) {
     return self->key_val_map;
 }
 
 const PadDict *
-CapAliasInfo_GetcKeyDescMap(const PadAliasInfo *self) {
+CapAliasInfo_GetcKeyDescMap(const CapAliasInfo *self) {
     return self->key_desc_map;
 }
