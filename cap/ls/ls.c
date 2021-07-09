@@ -135,7 +135,7 @@ is_dot_file(const CapLsCmd *_, const char *fname) {
 }
 
 static PadCStrAry *
-dir_to_ary(const CapLsCmd *self, file_dir_t *dir) {
+dir_to_ary(const CapLsCmd *self, PadDir *dir) {
     PadCStrAry *ary = PadCStrAry_New();
     if (!ary) {
         return NULL;
@@ -160,7 +160,7 @@ _ls(const CapLsCmd *self, const char *path) {
         return 1;
     }
 
-    file_dir_t *dir = PadDir_Open(path);
+    PadDir *dir = PadDir_Open(path);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", path);
         return 2;

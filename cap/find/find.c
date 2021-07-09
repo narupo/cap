@@ -171,7 +171,7 @@ find_files_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirpat
         return 1;
     }
 
-    file_dir_t *dir = PadDir_Open(dirpath);
+    PadDir *dir = PadDir_Open(dirpath);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", dirpath);
         return 1;
@@ -286,7 +286,7 @@ find_aliases_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirp
         printf("\n");
     }
 
-    file_dir_t *dir = PadDir_Open(dirpath);
+    PadDir *dir = PadDir_Open(dirpath);
     if (!dir) {
         PadErr_Err("failed to open directory \"%s\"", dirpath);
         return 1;

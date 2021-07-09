@@ -2600,15 +2600,15 @@ test_PadFile_MkdirQ(void) {
 }
 
 static void
-test_file_trunc(void) {
+test_PadFile_Trunc(void) {
     char path[FILE_NPATH];
     char userhome[FILE_NPATH];
     assert(file_get_user_home(userhome, sizeof userhome) != NULL);
     assert(PadFile_Solvefmt(path, sizeof path, "%s/cap.ftrunc", userhome) != NULL);
 
     assert(!PadFile_IsExists(path));
-    assert(!file_trunc(NULL));
-    assert(file_trunc(path));
+    assert(!PadFile_Trunc(NULL));
+    assert(PadFile_Trunc(path));
     assert(PadFile_IsExists(path));
     assert(PadFile_Remove(path) == 0);
 }
@@ -2852,7 +2852,7 @@ test_PadFile_Remove(void) {
     if (!PadFile_IsExists("tests/file/")) {
         PadFile_MkdirQ("tests/file/");
     }
-    file_trunc("tests/file/remove.txt");
+    PadFile_Trunc("tests/file/remove.txt");
     assert(PadFile_IsExists("tests/file/remove.txt"));
     PadFile_Remove("tests/file/remove.txt");
     assert(!PadFile_IsExists("tests/file/remove.txt"));
@@ -2863,7 +2863,7 @@ test_PadFile_Rename(void) {
     if (!PadFile_IsExists("tests/file/")) {
         PadFile_MkdirQ("tests/file/");
     }
-    file_trunc("tests/file/rename.txt");
+    PadFile_Trunc("tests/file/rename.txt");
     assert(PadFile_IsExists("tests/file/rename.txt"));
     PadFile_Rename("tests/file/rename.txt", "tests/file/renamed.txt");
     assert(PadFile_IsExists("tests/file/renamed.txt"));
@@ -2907,7 +2907,7 @@ file_tests[] = {
     {"PadFile_IsExists", test_PadFile_IsExists},
     {"file_mkdirmode", test_file_mkdirmode},
     {"PadFile_MkdirQ", test_PadFile_MkdirQ},
-    {"file_trunc", test_file_trunc},
+    {"PadFile_Trunc", test_PadFile_Trunc},
     {"PadFile_Solve", test_PadFile_Solve},
     {"PadFile_Solvecp", test_PadFile_Solvecp},
     {"PadFile_Solvefmt", test_PadFile_Solvefmt},
@@ -29221,7 +29221,7 @@ test_rmcmd_default(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
-    file_trunc("./tests/rm/file1");
+    PadFile_Trunc("./tests/rm/file1");
     assert(PadFile_IsExists("./tests/rm/file1"));
 
     CapRmCmd *rmcmd = CapRmCmd_New(config, argc, argv);
@@ -29262,8 +29262,8 @@ test_rmcmd_multi(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/rm"));
 
-    file_trunc("./tests/rm/file1");
-    file_trunc("./tests/rm/file2");
+    PadFile_Trunc("./tests/rm/file1");
+    PadFile_Trunc("./tests/rm/file2");
     assert(PadFile_IsExists("./tests/rm/file1"));
     assert(PadFile_IsExists("./tests/rm/file2"));
 
@@ -29355,10 +29355,10 @@ test_rmcmd_dir_r(void) {
         PadFile_MkdirQ("./tests/rm/dir1");
     }
     if (!PadFile_IsExists("./tests/rm/dir1/file1")) {
-        file_trunc("./tests/rm/dir1/file1");
+        PadFile_Trunc("./tests/rm/dir1/file1");
     }
     if (!PadFile_IsExists("./tests/rm/dir1/file2")) {
-        file_trunc("./tests/rm/dir1/file2");
+        PadFile_Trunc("./tests/rm/dir1/file2");
     }
     assert(PadFile_IsExists("./tests/rm/dir1"));
     assert(PadFile_IsExists("./tests/rm/dir1/file1"));
@@ -29394,10 +29394,10 @@ test_rmcmd_dir_r_multi(void) {
         PadFile_MkdirQ("./tests/rm/dir1");
     }
     if (!PadFile_IsExists("./tests/rm/dir1/file1")) {
-        file_trunc("./tests/rm/dir1/file1");
+        PadFile_Trunc("./tests/rm/dir1/file1");
     }
     if (!PadFile_IsExists("./tests/rm/dir1/file2")) {
-        file_trunc("./tests/rm/dir1/file2");
+        PadFile_Trunc("./tests/rm/dir1/file2");
     }
     assert(PadFile_IsExists("./tests/rm/dir1"));
     assert(PadFile_IsExists("./tests/rm/dir1/file1"));
@@ -29407,10 +29407,10 @@ test_rmcmd_dir_r_multi(void) {
         PadFile_MkdirQ("./tests/rm/dir2");
     }
     if (!PadFile_IsExists("./tests/rm/dir2/file1")) {
-        file_trunc("./tests/rm/dir2/file1");
+        PadFile_Trunc("./tests/rm/dir2/file1");
     }
     if (!PadFile_IsExists("./tests/rm/dir2/file2")) {
-        file_trunc("./tests/rm/dir2/file2");
+        PadFile_Trunc("./tests/rm/dir2/file2");
     }
     assert(PadFile_IsExists("./tests/rm/dir2"));
     assert(PadFile_IsExists("./tests/rm/dir2/file1"));
@@ -29460,7 +29460,7 @@ test_mvcmd_default(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
-    file_trunc("./tests/mv/file1");
+    PadFile_Trunc("./tests/mv/file1");
     assert(PadFile_IsExists("./tests/mv/file1"));
     assert(!PadFile_IsExists("./tests/mv/file2"));
 
@@ -29534,7 +29534,7 @@ test_mvcmd_file_to_dir(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
-    file_trunc("./tests/mv/file1");
+    PadFile_Trunc("./tests/mv/file1");
     PadFile_MkdirQ("./tests/mv/dir1");
     assert(PadFile_IsExists("./tests/mv/file1"));
     assert(PadFile_IsExists("./tests/mv/dir1"));
@@ -29573,8 +29573,8 @@ test_mvcmd_files_to_dir(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
-    file_trunc("./tests/mv/file1");
-    file_trunc("./tests/mv/file2");
+    PadFile_Trunc("./tests/mv/file1");
+    PadFile_Trunc("./tests/mv/file2");
     PadFile_MkdirQ("./tests/mv/dir1");
     assert(PadFile_IsExists("./tests/mv/file1"));
     assert(PadFile_IsExists("./tests/mv/file2"));
@@ -29617,7 +29617,7 @@ test_mvcmd_err_1(void) {
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/mv"));
 
     PadFile_MkdirQ("./tests/mv/dir1");
-    file_trunc("./tests/mv/file1");
+    PadFile_Trunc("./tests/mv/file1");
     assert(PadFile_IsExists("./tests/mv/dir1"));
     assert(PadFile_IsExists("./tests/mv/file1"));
 
@@ -29667,7 +29667,7 @@ test_cpcmd_default(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
-    file_trunc("./tests/cp/file1");
+    PadFile_Trunc("./tests/cp/file1");
     assert(PadFile_IsExists("./tests/cp/file1"));
 
     CapCpCmd *cpcmd = CapCpCmd_New(config, argc, argv);
@@ -29699,7 +29699,7 @@ test_cpcmd_dir(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
-    file_trunc("./tests/cp/file1");
+    PadFile_Trunc("./tests/cp/file1");
     PadFile_MkdirQ("./tests/cp/dir1");
     assert(PadFile_IsExists("./tests/cp/file1"));
     assert(PadFile_IsExists("./tests/cp/dir1"));
@@ -29735,8 +29735,8 @@ test_cpcmd_files_to_dir(void) {
     assert(solve_path(config->home_path, sizeof config->home_path, "."));
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
-    file_trunc("./tests/cp/file1");
-    file_trunc("./tests/cp/file2");
+    PadFile_Trunc("./tests/cp/file1");
+    PadFile_Trunc("./tests/cp/file2");
     PadFile_MkdirQ("./tests/cp/dir1");
     assert(PadFile_IsExists("./tests/cp/file1"));
     assert(PadFile_IsExists("./tests/cp/file2"));
@@ -29778,7 +29778,7 @@ test_cpcmd_dir_r(void) {
     assert(solve_path(config->cd_path, sizeof config->cd_path, "./tests/cp"));
 
     PadFile_MkdirQ("./tests/cp/dir1");
-    file_trunc("./tests/cp/dir1/file1");
+    PadFile_Trunc("./tests/cp/dir1/file1");
     assert(PadFile_IsExists("./tests/cp/dir1/file1"));
 
     CapCpCmd *cpcmd = CapCpCmd_New(config, argc, argv);
@@ -29816,8 +29816,8 @@ test_cpcmd_dirs_r(void) {
 
     PadFile_MkdirQ("./tests/cp/dir1");
     PadFile_MkdirQ("./tests/cp/dir2");
-    file_trunc("./tests/cp/dir1/file1");
-    file_trunc("./tests/cp/dir2/file1");
+    PadFile_Trunc("./tests/cp/dir1/file1");
+    PadFile_Trunc("./tests/cp/dir2/file1");
     assert(PadFile_IsExists("./tests/cp/dir1/file1"));
     assert(PadFile_IsExists("./tests/cp/dir2/file1"));
 
@@ -29873,9 +29873,9 @@ test_touchcmd_default(void) {
 
     assert(!PadFile_IsExists("./tests/touch/file1"));
 
-    touchcmd_t *touchcmd = touchcmd_new(config, argc, argv);
-    touchcmd_run(touchcmd);
-    touchcmd_del(touchcmd);
+    CapTouchCmd *touchcmd = CapTouchCmd_New(config, argc, argv);
+    CapTouchCmd_Run(touchcmd);
+    CapTouchCmd_Del(touchcmd);
 
     assert(PadFile_IsExists("./tests/touch/file1"));
 
@@ -29903,9 +29903,9 @@ test_touchcmd_multi(void) {
     assert(!PadFile_IsExists("./tests/touch/file1"));
     assert(!PadFile_IsExists("./tests/touch/file2"));
 
-    touchcmd_t *touchcmd = touchcmd_new(config, argc, argv);
-    touchcmd_run(touchcmd);
-    touchcmd_del(touchcmd);
+    CapTouchCmd *touchcmd = CapTouchCmd_New(config, argc, argv);
+    CapTouchCmd_Run(touchcmd);
+    CapTouchCmd_Del(touchcmd);
 
     assert(PadFile_IsExists("./tests/touch/file1"));
     assert(PadFile_IsExists("./tests/touch/file2"));
@@ -29917,7 +29917,7 @@ test_touchcmd_multi(void) {
 }
 
 static const struct testcase
-touchcmd_tests[] = {
+CapTouchCmdests[] = {
     {"default", test_touchcmd_default},
     {"multi", test_touchcmd_multi},
     {0},
@@ -29937,9 +29937,9 @@ test_snippetcmd_default(void) {
         NULL,
     };
 
-    snptcmd_t *snptcmd = snptcmd_new(config, argc, argv);
-    int result = snptcmd_run(snptcmd);
-    snptcmd_del(snptcmd);
+    CapSnptCmd *snptcmd = CapSnptCmd_New(config, argc, argv);
+    int result = CapSnptCmd_Run(snptcmd);
+    CapSnptCmd_Del(snptcmd);
 
     assert(result == 0);
 
@@ -29970,9 +29970,9 @@ test_snippetcmd_add(void) {
     setbuf(stdin, buf);
 
     assert(solve_path(config->codes_dir_path, sizeof config->codes_dir_path, "./tests/snippet"));
-    snptcmd_t *snptcmd = snptcmd_new(config, argc, argv);
-    int result = snptcmd_run(snptcmd);
-    snptcmd_del(snptcmd);
+    CapSnptCmd *snptcmd = CapSnptCmd_New(config, argc, argv);
+    int result = CapSnptCmd_Run(snptcmd);
+    CapSnptCmd_Del(snptcmd);
 
     assert(result == 0);
 
@@ -30243,7 +30243,7 @@ testmodules[] = {
     {"rm", CapRmCmdests},
     {"mv", CapMvCmdests},
     {"cp", CapCpCmdests},
-    {"touch", touchcmd_tests},
+    {"touch", CapTouchCmdests},
     {"snippet", snippetcmd_tests},
     {"link", CapLinkCmdests},
     {"bake", bakecmd_tests},

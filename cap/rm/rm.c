@@ -132,7 +132,7 @@ remove_re(CapRmCmd *self, const char *dirpath) {
         return false;
     }
 
-    file_dir_t *dir = PadDir_Open(dirpath);
+    PadDir *dir = PadDir_Open(dirpath);
     if (!dir) {
         PadCStr_AppFmt(self->what, sizeof self->what, "failed to open directory \"%s\".", dirpath);
         self->errno_ = CAP_RMCMD_ERR__OPENDIR;

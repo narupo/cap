@@ -223,7 +223,7 @@ copy_file(CapCpCmd *self, const char *dst_path, const char *src_path) {
 
 static bool
 copy_re(CapCpCmd *self, const char *dst_path, const char *src_path) {
-    file_dir_t *dir = PadFileDir_Open(src_path);
+    PadDir *dir = PadFileDir_Open(src_path);
     if (!dir) {
         set_err(self, CPCMD_ERR__OPENDIR, "failed to open directory \"%s\"", src_path);
         return false;
