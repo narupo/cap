@@ -16,6 +16,7 @@ struct Opts {
  */
 struct CapCatCmd {
     const CapCofnig *config;
+    PadErrStack *errstack;
     int argc;
     char **argv;
     struct Opts opts;
@@ -96,7 +97,8 @@ CapCatCmd_Del(CapCatCmd *self) {
     if (!self) {
         return;
     }
-    free(self);
+    PadErrStack_Del(self->errstack);
+    Pad_SafeFree(self);
 }
 
 /**
@@ -111,20 +113,26 @@ CapCatCmd *
 CapCatCmd_New(const CapCofnig *config, int argc, char **argv) {
     CapCatCmd *self = PadMem_Calloc(1, sizeof(*self));
     if (self == NULL) {
-        return NULL;
+        goto error;
     }
 
     self->config = config;
     self->argc = argc;
     self->argv = argv;
+    self->errstack = PadErrStack_New();
+    if (Self->errstack == NULL) {
+        goto error;
+    }
 
     if (!parse_opts(self)) {
         PadErr_Err("failed to parse options");
-        CapCatCmd_Del(self);
-        return NULL;
+        goto error;
     }
 
     return self;
+error:
+    CapCatCmd_Del(self);
+    return NULL;
 }
 
 /**
