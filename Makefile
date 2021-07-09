@@ -70,8 +70,6 @@ init:
 	build$(SEP)touch \
 	build$(SEP)snippet \
 	build$(SEP)link \
-	build$(SEP)hub \
-	build$(SEP)hub$(SEP)commands \
 	build$(SEP)make \
 	build$(SEP)cook \
 	build$(SEP)sh \
