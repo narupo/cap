@@ -2,8 +2,8 @@
    alias_info module has key and value, and key and description value */
 #pragma once
 
-#include <lib/dict.h>
-#include <lib/memory.h>
+#include <pad/lib/dict.h>
+#include <pad/lib/memory.h>
 
 struct CapAliasInfo;
 typedef struct CapAliasInfo CapAliasInfo;

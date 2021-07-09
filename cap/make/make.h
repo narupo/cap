@@ -3,6 +3,7 @@
 #include <pad/lib/error.h>
 #include <pad/lib/string.h>
 #include <pad/lib/file.h>
+#include <pad/core/error_stack.h>
 #include <pad/lang/tokenizer.h>
 #include <pad/lang/ast.h>
 #include <pad/lang/compiler.h>
@@ -13,7 +14,6 @@
 #include <cap/core/config.h>
 #include <cap/core/util.h>
 #include <cap/core/symlink.h>
-#include <cap/core/error_stack.h>
 
 struct CapMakeCmd;
 typedef struct CapMakeCmd CapMakeCmd;

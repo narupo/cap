@@ -119,7 +119,7 @@ CapFindCmd_Del(CapFindCmd *self) {
         return;
     }
 
-    argsmgr_del(self->argsmgr);
+    CapArgsMgr_Del(self->argsmgr);
     almgr_del(self->almgr);
     free(self);
 }
@@ -142,7 +142,7 @@ CapFindCmd_New(const CapConfig *config, int argc, char **argv) {
         return NULL;
     }
 
-    self->argsmgr = argsmgr_new(self->argv + self->optind);
+    self->argsmgr = CapArgsMgr_New(self->argv + self->optind);
 
     return self;
 }

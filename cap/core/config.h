@@ -14,14 +14,14 @@ typedef struct CapConfig {
     int scope;  // @see constant.h for CAP_SCOPE_*
     int recursion_count;  // count of recursion of call to app
     char line_encoding[32+1];  // line encoding "cr" | "crlf" | "lf"
-    char var_cd_path[FILE_NPATH];  // path of variable of cd on file system
-    char var_home_path[FILE_NPATH];  // path of variable of home on file system
-    char var_editor_path[FILE_NPATH];  // path of variable of editor on file system
-    char cd_path[FILE_NPATH];  // value of cd
-    char home_path[FILE_NPATH];  // value of home
-    char editor[FILE_NPATH];  // value of editor
-    char codes_dir_path[FILE_NPATH];  // snippet codes directory path
-    char std_lib_dir_path[FILE_NPATH];  // standard libraries directory path
+    char var_cd_path[PAD_FILE__NPATH];  // path of variable of cd on file system
+    char var_home_path[PAD_FILE__NPATH];  // path of variable of home on file system
+    char var_editor_path[PAD_FILE__NPATH];  // path of variable of editor on file system
+    char cd_path[PAD_FILE__NPATH];  // value of cd
+    char home_path[PAD_FILE__NPATH];  // value of home
+    char editor[PAD_FILE__NPATH];  // value of editor
+    char codes_dir_path[PAD_FILE__NPATH];  // snippet codes directory path
+    char std_lib_dir_path[PAD_FILE__NPATH];  // standard libraries directory path
 } CapConfig;
 
 /**

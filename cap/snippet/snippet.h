@@ -5,6 +5,7 @@
 #include <pad/lib/file.h>
 #include <pad/lib/cstring.h>
 #include <pad/lib/string.h>
+#include <pad/core/error_stack.h>
 #include <pad/lang/tokenizer.h>
 #include <pad/lang/ast.h>
 #include <pad/lang/compiler.h>
@@ -15,7 +16,6 @@
 #include <cap/core/constant.h>
 #include <cap/core/util.h>
 #include <cap/core/config.h>
-#include <cap/core/error_stack.h>
 
 /**
  * Structure and type of command

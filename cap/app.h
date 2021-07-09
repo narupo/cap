@@ -13,6 +13,7 @@
 #include <pad/lib/cl.h>
 #include <pad/lib/cstring.h>
 #include <pad/core/error_stack.h>
+#include <pad/core/args.h>
 #include <pad/lang/ast.h>
 #include <pad/lang/compiler.h>
 #include <pad/lang/traverser.h>
@@ -21,7 +22,6 @@
 #include <cap/core/config.h>
 #include <cap/core/util.h>
 #include <cap/core/alias_manager.h>
-#include <cap/core/args.h>
 
 #include <cap/home/home.h>
 #include <cap/cd/cd.h>

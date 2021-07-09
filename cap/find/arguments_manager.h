@@ -3,20 +3,20 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "lib/memory.h"
-#include "lib/cstring_array.h"
+#include <pad/lib/memory.h>
+#include <pad/lib/cstring_array.h>
 
-struct arguments_manager;
-typedef struct arguments_manager CapArgsMgr;
+struct CapArgsMgr;
+typedef struct CapArgsMgr CapArgsMgr;
 
 void
-argsmgr_del(CapArgsMgr *self);
+CapArgsMgr_Del(CapArgsMgr *self);
 
 CapArgsMgr *
-argsmgr_new(char *argv[]);
+CapArgsMgr_New(char *argv[]);
 
 const char *
-argsmgr_getc(const CapArgsMgr *self, int32_t idx);
+CapArgsMgr_Getc(const CapArgsMgr *self, int32_t idx);
 
 bool
 CapArgsMgr_ContainsAll(const CapArgsMgr *self, const char *target);

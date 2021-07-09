@@ -11,23 +11,24 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include <lib/file.h>
-#include <lib/error.h>
-#include <lib/cl.h>
-#include <lib/cstring_array.h>
-#include <lib/unicode.h>
-#include <lib/path.h>
-#include <core/types.h>
-#include <core/constant.h>
-#include <core/config.h>
-#include <core/error_stack.h>
-#include <lang/gc.h>
-#include <lang/tokenizer.h>
-#include <lang/ast.h>
-#include <lang/compiler.h>
-#include <lang/traverser.h>
-#include <lang/context.h>
-#include <run/run.h>
+#include <pad/lib/file.h>
+#include <pad/lib/error.h>
+#include <pad/lib/cl.h>
+#include <pad/lib/cstring_array.h>
+#include <pad/lib/unicode.h>
+#include <pad/lib/path.h>
+#include <pad/core/error_stack.h>
+#include <pad/lang/gc.h>
+#include <pad/lang/tokenizer.h>
+#include <pad/lang/ast.h>
+#include <pad/lang/compiler.h>
+#include <pad/lang/traverser.h>
+#include <pad/lang/context.h>
+
+#include <cap/core/types.h>
+#include <cap/core/constant.h>
+#include <cap/core/config.h>
+#include <cap/run/run.h>
 
 #ifdef PAD__WINDOWS
 # include <windows.h>

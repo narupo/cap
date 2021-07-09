@@ -1,9 +1,9 @@
 #pragma once
 
-#include <lib/memory.h>
-#include <lib/file.h>
-#include <core/util.h>
-#include <core/config.h>
+#include <pad/lib/memory.h>
+#include <pad/lib/file.h>
+#include <cap/core/util.h>
+#include <cap/core/config.h>
 
 struct CapHomeCmd;
 typedef struct CapHomeCmd CapHomeCmd;

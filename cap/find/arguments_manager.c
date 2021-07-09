@@ -1,34 +1,37 @@
 #include "find/arguments_manager.h"
 
-struct arguments_manager {
+struct CapArgsMgr {
     PadCStrAry *args;
 };
 
 void
-argsmgr_del(CapArgsMgr *self) {
+CapArgsMgr_Del(CapArgsMgr *self) {
     if (!self) {
         return;
     }
 
     PadCStrAry_Del(self->args);
-    free(self);
+    Pad_SafeFree(self);
 }
 
 CapArgsMgr *
-argsmgr_new(char *argv[]) {
-    CapArgsMgr *self = PadMem_ECalloc(1, sizeof(*self));
+CapArgsMgr_New(char *argv[]) {
+    CapArgsMgr *self = PadMem_Calloc(1, sizeof(*self));
+    if (self == NULL) {
+        return NULL;
+    }
 
     self->args = PadCStrAry_New();
 
     for (char **ap = argv; *ap; ++ap) {
-        PadCStrAry_PushBackb(self->args, *ap);
+        PadCStrAry_PushBack(self->args, *ap);
     }
 
     return self; 
 }
 
 const char *
-argsmgr_getc(const CapArgsMgr *self, int32_t idx) {
+CapArgsMgr_Getc(const CapArgsMgr *self, int32_t idx) {
     return PadCStrAry_Getc(self->args, idx);
 }
 
