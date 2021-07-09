@@ -124,7 +124,10 @@ SRCS := \
 	build/clone/clone.c \
 	build/replace/replace.c \
 	build/lang/importer.c \
-	build/lang/builtin/functions.c
+	build/lang/opts.c \
+	build/lang/builtin/functions.c \
+	build/lang/builtin/modules/opts.c \
+	build/lang/builtin/modules/alias.c
 
 OBJS := $(SRCS:.c=.o)
 
@@ -219,5 +222,11 @@ build/find/arguments_manager.o: cap/find/arguments_manager.c cap/find/arguments_
 	$(CC) $(CFLAGS) -c $< -o $@
 build/lang/importer.o: cap/lang/importer.c cap/lang/importer.h
 	$(CC) $(CFLAGS) -c $< -o $@
+build/lang/opts.o: cap/lang/opts.c cap/lang/opts.h
+	$(CC) $(CFLAGS) -c $< -o $@
 build/lang/builtin/functions.o: cap/lang/builtin/functions.c cap/lang/builtin/functions.h
+	$(CC) $(CFLAGS) -c $< -o $@
+build/lang/builtin/modules/opts.o: cap/lang/builtin/modules/opts.c cap/lang/builtin/modules/opts.h
+	$(CC) $(CFLAGS) -c $< -o $@
+build/lang/builtin/modules/alias.o: cap/lang/builtin/modules/alias.c cap/lang/builtin/modules/alias.h
 	$(CC) $(CFLAGS) -c $< -o $@

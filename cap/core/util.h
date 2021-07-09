@@ -30,7 +30,10 @@
 #include <cap/core/constant.h>
 #include <cap/core/config.h>
 #include <cap/run/run.h>
+#include <cap/lang/opts.h>
 #include <cap/lang/builtin/functions.h>
+#include <cap/lang/builtin/modules/opts.h>
+#include <cap/lang/builtin/modules/alias.h>
 
 #ifdef PAD__WINDOWS
 # include <windows.h>
@@ -129,10 +132,11 @@ bool
 Cap_IsOutOfHome(const char *homepath, const char *argpath);
 
 char *
-Cap_CompileArgv(
+Cap_MakeArgv(
     CapConfig *config,
     PadErrStack *errstack,
+    const char *program_filename,
+    const char *src,
     int argc,
-    char *argv[],
-    const char *src
+    char *argv[]
 );

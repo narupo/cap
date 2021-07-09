@@ -345,9 +345,23 @@ Cap_MakeArgv(
     char *argv[]
 ) {
     PadKit *kit = PadKit_New(config->pad_config);
+    PadGC *ref_gc = PadKit_GetRefGC(kit);
+    CapOpts *opts = CapOpts_New();
+
+    if (!CapOpts_Parse(opts, argc, argv)) {
+        goto error;
+    }
 
     CapBltFuncs_SetCapConfig(config);
     PadKit_SetBltFuncInfos(kit, CapBltFuncs_GetBltFuncInfos());
+
+    CapBltOptsMod_SetOpts(opts);
+    PadObj *opts_mod = CapBltOptsMod_NewMod(config->pad_config, ref_gc);
+    PadKit_MoveBltMod(kit, PadMem_Move(opts_mod));
+
+    PadObj *alias_mod = CapBltAliasMod_NewMod(config->pad_config, ref_gc);
+    PadKit_MoveBltMod(kit, PadMem_Move(alias_mod));
+
     if (!PadKit_CompileFromStrArgs(kit, program_filename, src, argc, argv)) {
         goto error;
     }
@@ -357,5 +371,6 @@ Cap_MakeArgv(
     return maked;
 error:
     PadKit_Del(kit);
+    CapOpts_Del(opts);
     return NULL;
 }
