@@ -101,8 +101,12 @@ CapOpts_Clear(CapOpts *self) {
 }
 
 CapOpts *
-CapOpts_Parse(CapOpts *self, int argc, char *argv[]) {
-    if (!self || !argv) {
+CapOpts_Parse(
+    CapOpts *self,
+    int argc,  // allow 0
+    char *argv[]  // allow null
+) {
+    if (!self) {
         return NULL;
     }
     if (argc <= 0) {

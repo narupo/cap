@@ -13,7 +13,7 @@
 #include <cap/core/constant.h>
 #include <cap/core/config.h>
 #include <cap/core/symlink.h>
-#include <cap/lang/importer.h>
+#include <cap/lang/kit.h>
 
 struct CapCatCmd;
 typedef struct CapCatCmd CapCatCmd;

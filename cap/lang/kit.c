@@ -41,11 +41,11 @@ error:
 
 CapKit *
 CapKit_CompileFromStrArgs(
-    CapKit *self,
-    const char *prog_fname,
-    const char *src,
-    int argc,
-    char **argv
+    CapKit *self,  // required
+    const char *prog_fname,  // optional
+    const char *src,  // required
+    int argc,  // optional
+    char **argv  // optional
 ) {
     PadGC *ref_gc = PadKit_GetRefGC(self->kit);
     PadCtx *ref_ctx = PadKit_GetRefCtx(self->kit);

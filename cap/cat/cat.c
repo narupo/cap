@@ -247,26 +247,31 @@ read_stream(CapCatCmd *self, FILE *fin) {
  * @return success to true, failed to false
  */
 static bool
-write_stream(CapCatCmd *self, FILE *fout, const PadStr *buf) {
+write_stream(CapCatCmd *self, const char *fname, FILE *fout, const PadStr *buf) {
     bool ret = true;
-    PadKit *kit = NULL;
+    CapKit *kit = NULL;
     const char *p = PadStr_Getc(buf);
 
     if (self->opts.is_make) {
-        PadKit *kit = PadKit_New(self->config->pad_config);
+        CapKit *kit = CapKit_New(self->config);
         if (kit == NULL) {
             Pad_PushErr("failed to create kit");
             goto error;
         }
-        CapImporter_SetCapConfig(self->config);
-        PadKit_SetImporterFixPathFunc(kit, CapImporter_FixPath);
 
-        if (!PadKit_CompileFromStr(kit, PadStr_Getc(buf))) {
+        if (!CapKit_CompileFromStrArgs(
+            kit,
+            fname,
+            PadStr_Getc(buf),
+            0,
+            NULL
+        )) {
             Pad_PushErr("failed to compile");
+            PadErrStack_Trace(self->errstack, stderr);
             goto error;
         }
 
-        p = PadKit_GetcStdoutBuf(kit);
+        p = CapKit_GetcStdoutBuf(kit);
     }
 
     // set indent
@@ -305,7 +310,7 @@ write_stream(CapCatCmd *self, FILE *fout, const PadStr *buf) {
     fflush(fout);
 
 error:
-    PadKit_Del(kit);
+    CapKit_Del(kit);
     PadStr_Del(out);
     return ret;
 }
@@ -355,7 +360,7 @@ CapCatCmd_Run(CapCatCmd *self) {
 
     if (self->argc - self->optind + 1 < 2) {
         PadStr *stdinbuf = read_stream(self, stdin);
-        write_stream(self, stdout, stdinbuf);
+        write_stream(self, NULL, stdout, stdinbuf);
         PadStr_Del(stdinbuf);
         return 0;
     }
@@ -366,7 +371,7 @@ CapCatCmd_Run(CapCatCmd *self) {
 
         if (PadCStr_Eq(name, "-")) {
             PadStr *stdinbuf = read_stream(self, stdin);
-            write_stream(self, stdout, stdinbuf);
+            write_stream(self, NULL, stdout, stdinbuf);
             PadStr_Del(stdinbuf);
             continue;
         }
@@ -385,7 +390,7 @@ CapCatCmd_Run(CapCatCmd *self) {
             continue;
         }
 
-        write_stream(self, stdout, filebuf);
+        write_stream(self, path, stdout, filebuf);
         PadStr_Del(filebuf);
     }
 

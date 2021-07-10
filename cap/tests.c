@@ -738,8 +738,8 @@ test_catcmd_make_opt(void) {
 
     setbuf(stdout, stdout_buf);
     CapCatCmd_Run(catcmd);
-    assert(!strcmp(stdout_buf, "hello"));
     setbuf(stdout, NULL);
+    assert(!strcmp(stdout_buf, "hello"));
 
     CapCatCmd_Del(catcmd);
     CapConfig_Del(config);
