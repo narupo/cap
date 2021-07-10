@@ -50,6 +50,10 @@ CapKit_CompileFromStrArgs(
     PadGC *ref_gc = PadKit_GetRefGC(self->kit);
     PadCtx *ref_ctx = PadKit_GetRefCtx(self->kit);
 
+    // set fix-path function at importer
+    CapImporter_SetCapConfig(self->config);
+    PadKit_SetImporterFixPathFunc(self->kit, CapImporter_FixPath);
+
     // parse options
     CapOpts *opts = CapOpts_New();
     if (!CapOpts_Parse(opts, argc, argv)) {

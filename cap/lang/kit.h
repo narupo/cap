@@ -6,6 +6,7 @@
 
 #include <cap/core/config.h>
 #include <cap/lang/opts.h>
+#include <cap/lang/importer.h>
 #include <cap/lang/builtin/functions.h>
 
 struct CapKit;
