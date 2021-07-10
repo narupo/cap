@@ -1,5 +1,6 @@
 #pragma once
 
+#include <pad/lib/void_dict.h>
 #include <pad/core/config.h>
 #include <pad/core/util.h>
 #include <pad/lang/types.h>
@@ -14,6 +15,9 @@
 
 #include <cap/lang/opts.h>
 
+bool
+CapBltOptsMod_MoveOpts(void *pkey, CapOpts *move_opts);
+
 /**
  * construct PadOpts module
  *
@@ -24,6 +28,3 @@
  */
 PadObj *
 CapBltOptsMod_NewMod(const PadConfig *config, PadGC *ref_gc);
-
-void
-CapBltOptsMod_SetOpts(CapOpts *opts);

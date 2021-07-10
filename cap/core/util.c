@@ -346,16 +346,18 @@ Cap_MakeArgv(
 ) {
     PadKit *kit = PadKit_New(config->pad_config);
     PadGC *ref_gc = PadKit_GetRefGC(kit);
-    CapOpts *opts = CapOpts_New();
+    PadCtx *ref_ctx = PadKit_GetRefCtx(kit);
 
+    CapOpts *opts = CapOpts_New();
     if (!CapOpts_Parse(opts, argc, argv)) {
+        CapOpts_Del(opts);
         goto error;
     }
 
     CapBltFuncs_SetCapConfig(config);
     PadKit_SetBltFuncInfos(kit, CapBltFuncs_GetBltFuncInfos());
 
-    CapBltOptsMod_SetOpts(opts);
+    CapBltOptsMod_MoveOpts(ref_ctx, opts);
     PadObj *opts_mod = CapBltOptsMod_NewMod(config->pad_config, ref_gc);
     PadKit_MoveBltMod(kit, PadMem_Move(opts_mod));
 
@@ -368,9 +370,10 @@ Cap_MakeArgv(
 
     const char *stdout_buf = PadKit_GetcStdoutBuf(kit);
     char *maked = PadCStr_Dup(stdout_buf);
+
+    PadKit_Del(kit);
     return maked;
 error:
     PadKit_Del(kit);
-    CapOpts_Del(opts);
     return NULL;
 }

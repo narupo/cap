@@ -3,15 +3,46 @@
 #define push_error(fmt, ...) \
     Pad_PushBackErrNode(ref_ast->error_stack, fargs->ref_node, fmt, ##__VA_ARGS__)
 
-/* ファイルを複数開いたときにこのグローバル変数の方式ではうまく機能しない
-   機能させるには複数のコンテキストに対応させる必要がある
+/* optsを機能させるには複数のコンテキストに対応させる必要がある
    つまりコンテキストのアドレスごとにoptsを用意する必要がある */
 
-static CapOpts *_opts;
+static PadVoidDict *_opts_map;
 
-void
-CapBltOptsMod_SetOpts(CapOpts *opts) {
-    _opts = opts;
+bool
+CapBltOptsMod_MoveOpts(void *pkey, CapOpts *move_opts) {
+    if (!pkey || !move_opts) {
+        return false;
+    }
+
+    if (_opts_map == NULL) {
+        _opts_map = PadVoidDict_New();
+        if (_opts_map == NULL) {
+            return false;
+        }
+    }
+
+    char key[PAD_VOID_DICT_ITEM__KEY_SIZE];
+    snprintf(key, sizeof key, "%p", pkey);
+
+    return !!PadVoidDict_Move(_opts_map, key, PadMem_Move(move_opts));
+}
+
+static CapOpts *
+get_item(void *pkey) {
+    if (_opts_map == NULL) {
+        return NULL;
+    }
+
+    char key[PAD_VOID_DICT_ITEM__KEY_SIZE];
+    snprintf(key, sizeof key, "%p", pkey);
+
+    const PadVoidDictItem *item = PadVoidDict_Getc(_opts_map, key);
+    if (item == NULL) {
+        return NULL;
+    }
+
+    CapOpts *opts = item->value;
+    return opts;
 }
 
 static PadObj *
@@ -23,6 +54,12 @@ builtin_opts_get(PadBltFuncArgs *fargs) {
     assert(actual_args->type == PAD_OBJ_TYPE__ARRAY);
 
     PadObjAry *args = actual_args->objarr;
+
+    CapOpts *opts = get_item(ref_ast->ref_context);
+    if (opts == NULL) {
+        push_error("nothing opts");
+        return NULL;
+    }
 
     if (PadObjAry_Len(args) != 1) {
         push_error("can't invoke opts.get. need one argument");
@@ -38,7 +75,7 @@ builtin_opts_get(PadBltFuncArgs *fargs) {
     }
 
     PadUni *optname = objname->unicode;
-    const char *optval = CapOpts_Getc(_opts, PadUni_GetcMB(optname));
+    const char *optval = CapOpts_Getc(opts, PadUni_GetcMB(optname));
     if (!optval) {
         return PadObj_NewNil(ref_ast->ref_gc);
     }
@@ -56,6 +93,12 @@ builtin_opts_has(PadBltFuncArgs *fargs) {
 
     PadObjAry *args = actual_args->objarr;
 
+    CapOpts *opts = get_item(ref_ast->ref_context);
+    if (opts == NULL) {
+        push_error("nothing opts");
+        return NULL;
+    }
+
     if (PadObjAry_Len(args) != 1) {
         push_error("can't invoke opts.get. need one argument");
         return NULL;
@@ -70,7 +113,7 @@ builtin_opts_has(PadBltFuncArgs *fargs) {
     }
 
     PadUni *optname = objname->unicode;
-    bool has = CapOpts_Has(_opts, PadUni_GetcMB(optname));
+    bool has = CapOpts_Has(opts, PadUni_GetcMB(optname));
     return PadObj_NewBool(ref_ast->ref_gc, has);
 }
 
@@ -82,6 +125,12 @@ builtin_opts_args(PadBltFuncArgs *fargs) {
     assert(actual_args);
     assert(actual_args->type == PAD_OBJ_TYPE__ARRAY);
     PadObjAry *args = actual_args->objarr;
+
+    CapOpts *opts = get_item(ref_ast->ref_context);
+    if (opts == NULL) {
+        push_error("nothing opts");
+        return NULL;
+    }
 
     if (PadObjAry_Len(args) != 1) {
         push_error("can't invoke opts.args. need one argument");
@@ -95,7 +144,7 @@ builtin_opts_args(PadBltFuncArgs *fargs) {
     }
 
     int32_t idx = arg->lvalue;
-    const char *value = CapOpts_GetcArgs(_opts, idx);
+    const char *value = CapOpts_GetcArgs(opts, idx);
     if (!value) {
         return PadObj_NewNil(ref_ast->ref_gc);
     }

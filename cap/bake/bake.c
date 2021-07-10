@@ -50,6 +50,7 @@ bake(CapBakeCmd *self) {
     FILE *fout = NULL;
     const char *cap_path = NULL;
     char path[PAD_FILE__NPATH];
+    char *make_path = NULL;
     char *src = NULL;
     char *compiled = NULL;
     bool use_stdin = false;
@@ -64,6 +65,8 @@ bake(CapBakeCmd *self) {
             Pad_PushErr("failed to solve cap path");
             return 1;
         }            
+
+        make_path = path;
 
         fin = fopen(path, "r");
         if (fin == NULL) {
@@ -80,13 +83,18 @@ bake(CapBakeCmd *self) {
     fclose(fin);
     fin = NULL;
 
-    compiled = Pad_CompileArgv(
-        self->config->pad_config,
+    compiled = Cap_MakeArgv(
+        self->config,
         self->errstack,
+        make_path,
+        src,
         self->argc - 1,
-        self->argv + 1,
-        src
+        self->argv + 1
     );
+    if (compiled == NULL) {
+        Pad_PushErr("failed to compile");
+        goto error;        
+    }
 
     if (use_stdin) {
         printf("%s", compiled);
