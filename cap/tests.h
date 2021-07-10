@@ -69,3 +69,4 @@
 #include <cap/link/link.h>
 #include <cap/bake/bake.h>
 #include <cap/replace/replace.h>
+#include <cap/insert/insert.h>

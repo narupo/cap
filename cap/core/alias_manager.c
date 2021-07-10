@@ -96,7 +96,6 @@ CapAliasMgr_LoadPath(CapAliasMgr *self, const char *path) {
         goto error;
     }
 
-    printf("loaded alias path[%s]\n", path);
     Pad_SafeFree(src);
     return self;
 error:

@@ -465,7 +465,7 @@ test_homecmd_default(void) {
 }
 
 static const struct testcase
-CapHomeCmdests[] = {
+home_tests[] = {
     {"default", test_homecmd_default},
     {0},
 };
@@ -500,7 +500,7 @@ test_cdcmd_default(void) {
 }
 
 static const struct testcase
-cdcmd_tests[] = {
+cd_tests[] = {
     {"default", test_cdcmd_default},
     {0},
 };
@@ -565,7 +565,7 @@ test_pwdcmd_nomalize_opt(void) {
 }
 
 static const struct testcase
-CapPwdCmdests[] = {
+pwd_tests[] = {
     {"default", test_pwdcmd_default},
     {"normalize", test_pwdcmd_nomalize_opt},
     {0},
@@ -606,7 +606,7 @@ test_lscmd_default(void) {
 }
 
 static const struct testcase
-CapLsCmdests[] = {
+ls_tests[] = {
     {"default", test_lscmd_default},
     {0},
 };
@@ -794,7 +794,7 @@ test_catcmd_all(void) {
 }
 
 static const struct testcase
-CapCatCmdests[] = {
+cat_tests[] = {
     {"default", test_catcmd_default},
     {"indent", test_catcmd_indent_opt},
     {"tab", test_CapCatCmdab_opt},
@@ -871,7 +871,7 @@ test_makecmd_options(void) {
 }
 
 static const struct testcase
-CapMakeCmdests[] = {
+make_tests[] = {
     {"default", test_makecmd_default},
     {"options", test_makecmd_options},
     {0},
@@ -887,7 +887,7 @@ test_runcmd_default(void) {
 }
 
 static const struct testcase
-CapRunCmdests[] = {
+run_tests[] = {
     {"default", test_runcmd_default},
     {0},
 };
@@ -902,7 +902,7 @@ test_execcmd_default(void) {
 }
 
 static const struct testcase
-CapExecCmdests[] = {
+exec_tests[] = {
     {"default", test_execcmd_default},
     {0},
 };
@@ -942,7 +942,7 @@ test_alcmd_default(void) {
 }
 
 static const struct testcase
-CapAlCmdests[] = {
+alias_tests[] = {
     {"default", test_alcmd_default},
     {0},
 };
@@ -957,7 +957,7 @@ test_editcmd_default(void) {
 }
 
 static const struct testcase
-CapEditCmdests[] = {
+edit_tests[] = {
     {"default", test_editcmd_default},
     {0},
 };
@@ -993,7 +993,7 @@ test_editorcmd_default(void) {
 }
 
 static const struct testcase
-CapEditorCmdests[] = {
+editor_tests[] = {
     {"default", test_editorcmd_default},
     {0},
 };
@@ -1032,7 +1032,7 @@ test_mkdircmd_default(void) {
 }
 
 static const struct testcase
-CapMkdirCmdests[] = {
+mkdir_tests[] = {
     {"default", test_mkdircmd_default},
     {0},
 };
@@ -1269,7 +1269,7 @@ test_rmcmd_dir_r_multi(void) {
 }
 
 static const struct testcase
-CapRmCmdests[] = {
+rm_tests[] = {
     {"default", test_rmcmd_default},
     {"multi", test_rmcmd_multi},
     {"dir", test_rmcmd_dir},
@@ -1480,7 +1480,7 @@ test_mvcmd_err_1(void) {
 }
 
 static const struct testcase
-CapMvCmdests[] = {
+mv_tests[] = {
     {"default", test_mvcmd_default},
     {"dir", test_mvcmd_dir},
     {"file_to_dir", test_mvcmd_file_to_dir},
@@ -1685,7 +1685,7 @@ test_cpcmd_dirs_r(void) {
 }
 
 static const struct testcase
-CapCpCmdests[] = {
+cp_tests[] = {
     {"default", test_cpcmd_default},
     {"dir", test_cpcmd_dir},
     {"files_to_dir", test_cpcmd_files_to_dir},
@@ -1759,7 +1759,7 @@ test_touchcmd_multi(void) {
 }
 
 static const struct testcase
-CapTouchCmdests[] = {
+touch_tests[] = {
     {"default", test_touchcmd_default},
     {"multi", test_touchcmd_multi},
     {0},
@@ -1823,7 +1823,7 @@ test_snippetcmd_add(void) {
 }
 
 static const struct testcase
-snippetcmd_tests[] = {
+snippet_tests[] = {
     {"default", test_snippetcmd_default},
     {"add", test_snippetcmd_add},
     {0},
@@ -1907,7 +1907,7 @@ test_linkcmd_unlink(void) {
 }
 
 static const struct testcase
-CapLinkCmdests[] = {
+link_tests[] = {
     {"default", test_linkcmd_default},
     {"unlink", test_linkcmd_unlink},
     {0},
@@ -1977,7 +1977,7 @@ test_bakecmd_2(void) {
 }
 
 static const struct testcase
-CapBakeCmdests[] = {
+bake_tests[] = {
     {"1", test_bakecmd_1},
     {"2", test_bakecmd_2},
     {0},
@@ -2056,10 +2056,90 @@ test_replacecmd_3(void) {
 }
 
 static const struct testcase
-CapReplaceCmdests[] = {
+replace_tests[] = {
     {"1", test_replacecmd_1},
     {"2", test_replacecmd_2},
     {"3", test_replacecmd_3},
+    {0},
+};
+
+static void
+test_insert_1(void) {
+    PadFile_CopyPath("tests_env/insert/file1.txt", "tests_env/insert/file1.txt.org");
+
+    CapConfig *config = CapConfig_New();
+    int argc = 3;
+    char *argv[] = {
+        "insert",
+        ":tests_env/insert/file1.txt",
+        "viss",
+        NULL,
+    };
+    CapInsertCmd *cmd = CapInsertCmd_New(config, argc, argv);
+    CapInsertCmd_Run(cmd);
+    CapInsertCmd_Del(cmd);
+
+    char *s = PadFile_ReadCopyFromPath("tests_env/insert/file1.txt");
+    assert(s);
+    assert(!strcmp(s, "aaaa\nbbbb\ncccc\nddddviss"));
+    free(s);
+}
+
+static void
+test_insert_2(void) {
+    PadFile_CopyPath("tests_env/insert/file2.txt", "tests_env/insert/file2.txt.org");
+
+    CapConfig *config = CapConfig_New();
+    int argc = 5;
+    char *argv[] = {
+        "insert",
+        ":tests_env/insert/file2.txt",
+        "viss\n",
+        "--after",
+        "koko",
+        NULL,
+    };
+    CapInsertCmd *cmd = CapInsertCmd_New(config, argc, argv);
+    CapInsertCmd_Run(cmd);
+    CapInsertCmd_Del(cmd);
+
+    char *s = PadFile_ReadCopyFromPath("tests_env/insert/file2.txt");
+    printf("s[%s]\n", s);
+    assert(s);
+    assert(!strcmp(s, "aaaa\nbbbb\n@cap.label=koko\nviss\ncccc\ndddd\n\n"));
+    free(s);
+}
+
+static void
+test_insert_3(void) {
+    PadFile_CopyPath("tests_env/insert/file3.txt", "tests_env/insert/file3.txt.org");
+
+    CapConfig *config = CapConfig_New();
+    int argc = 5;
+    char *argv[] = {
+        "insert",
+        ":tests_env/insert/file3.txt",
+        "viss\n",
+        "--after",
+        "2",
+        NULL,
+    };
+    CapInsertCmd *cmd = CapInsertCmd_New(config, argc, argv);
+    CapInsertCmd_Run(cmd);
+    CapInsertCmd_Del(cmd);
+
+    char *s = PadFile_ReadCopyFromPath("tests_env/insert/file3.txt");
+    printf("s[%s]\n", s);
+    assert(s);
+    assert(!strcmp(s, "aaaa\nbbbb\nviss\ncccc\ndddd\n\n"));
+    free(s);
+}
+
+static const struct testcase
+insert_tests[] = {
+    {"1", test_insert_1},
+    {"2", test_insert_2},
+    {"3", test_insert_3},
     {0},
 };
 
@@ -2455,26 +2535,27 @@ lang_tests[] = {
 static const struct testmodule
 test_modules[] = {
     // commands
-    {"home", CapHomeCmdests},
-    {"cd", cdcmd_tests},
-    {"pwd", CapPwdCmdests},
-    {"ls", CapLsCmdests},
-    {"cat", CapCatCmdests},
-    {"make", CapMakeCmdests},
-    {"run", CapRunCmdests},
-    {"exec", CapExecCmdests},
-    {"alias", CapAlCmdests},
-    {"edit", CapEditCmdests},
-    {"editor", CapEditorCmdests},
-    {"mkdir", CapMkdirCmdests},
-    {"rm", CapRmCmdests},
-    {"mv", CapMvCmdests},
-    {"cp", CapCpCmdests},
-    {"touch", CapTouchCmdests},
-    {"snippet", snippetcmd_tests},
-    {"link", CapLinkCmdests},
-    {"bake", CapBakeCmdests},
-    {"replace", CapReplaceCmdests},
+    {"home", home_tests},
+    {"cd", cd_tests},
+    {"pwd", pwd_tests},
+    {"ls", ls_tests},
+    {"cat", cat_tests},
+    {"make", make_tests},
+    {"run", run_tests},
+    {"exec", exec_tests},
+    {"alias", alias_tests},
+    {"edit", edit_tests},
+    {"editor", editor_tests},
+    {"mkdir", mkdir_tests},
+    {"rm", rm_tests},
+    {"mv", mv_tests},
+    {"cp", cp_tests},
+    {"touch", touch_tests},
+    {"snippet", snippet_tests},
+    {"link", link_tests},
+    {"bake", bake_tests},
+    {"replace", replace_tests},
+    {"insert", insert_tests},
 
     {"util", utiltests},
     {"symlink", symlink_tests},
