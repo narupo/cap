@@ -11,6 +11,45 @@ static char *
 read_path_var_from_resource(const CapConfig *config, const char *rcpath) {
     char *src = PadFile_ReadCopyFromPath(rcpath);
 
+    CapKit *kit = CapKit_New(config);
+    if (kit == NULL) {
+        goto error;
+    }
+
+    if (CapKit_CompileFromStrArgs(
+        kit,
+        rcpath,
+        src,
+        0,
+        NULL
+    ) == NULL) {
+        goto error;
+    }
+
+    PadCtx *ctx = CapKit_GetRefCtx(kit);
+
+    PadObjDict *varmap = PadCtx_GetVarmapAtGlobal(ctx);
+    const PadObjDictItem *item = PadObjDict_Getc(varmap, "PATH");
+    if (item == NULL) {
+        goto error;
+    }
+
+    PadCtx_PopNewlineOfStdoutBuf(ctx);
+    printf("%s", PadCtx_GetcStdoutBuf(ctx));
+    fflush(stdout);
+
+    const char *s = PadUni_GetcMB(item->value->unicode);
+    char *path = PadCStr_Dup(s);
+    if (path == NULL) {
+        goto error;
+    }
+
+    CapKit_Del(kit);
+    return path;
+error:
+    CapKit_Del(kit);
+    return NULL;
+#if 0
     PadTkr *tkr = PadTkr_New(PadTkrOpt_New());
     PadAST *ast = PadAST_New(config->pad_config);
     PadGC *gc = PadGC_New();
@@ -68,6 +107,7 @@ read_path_var_from_resource(const CapConfig *config, const char *rcpath) {
     PadGC_Del(gc);
 
     return path;
+#endif
 }
 
 static PadCStrAry *

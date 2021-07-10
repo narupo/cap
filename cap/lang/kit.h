@@ -28,3 +28,6 @@ CapKit_CompileFromStrArgs(
 
 const char *
 CapKit_GetcStdoutBuf(const CapKit *self);
+
+PadCtx *
+CapKit_GetRefCtx(const CapKit *self);

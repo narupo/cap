@@ -88,3 +88,12 @@ CapKit_GetcStdoutBuf(const CapKit *self) {
 
     return PadKit_GetcStdoutBuf(self->kit);
 }
+
+PadCtx *
+CapKit_GetRefCtx(const CapKit *self) {
+    if (self == NULL) {
+        return NULL;
+    }
+
+    return PadKit_GetRefCtx(self->kit);
+}
