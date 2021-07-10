@@ -700,7 +700,7 @@ cmd_exec(CapExecCmd *self, const char *cltxt) {
         return NULL;
     }
 
-    PadCmdline_Show(self->cmdline, stderr);
+    // PadCmdline_Show(self->cmdline, stderr);
     if (PadCmdline_Len(self->cmdline) == 1) {
         return exec_first(self);
     } else {

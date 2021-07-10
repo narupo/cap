@@ -388,7 +388,6 @@ error:
 
 int
 CapInsertCmd_Run(CapInsertCmd *self) {
-    Pad_ShowArgv(self->argc, self->argv);
     int result = insert(self);
     if (PadErrStack_Len(self->errstack)) {
         PadErrStack_TraceSimple(self->errstack, stderr);
