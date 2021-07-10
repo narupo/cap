@@ -98,8 +98,8 @@ CapMakeCmd_MakeFromArgs(
         errstack,
         make_path,
         src,
-        argc - 1,
-        argv + 1
+        argc,
+        argv
     );
     if (!compiled) {
         PadErrStack_Add(

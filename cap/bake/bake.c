@@ -54,11 +54,15 @@ bake(CapBakeCmd *self) {
     char *src = NULL;
     char *compiled = NULL;
     bool use_stdin = false;
+    int make_argc = 0;
+    char **make_argv = NULL;
 
     if (self->argc < 2 ||
         (self->argv[1] && self->argv[1][0] == '-')) {
         fin = stdin;
         use_stdin = true;
+        make_argc = self->argc;
+        make_argv = self->argv;
     } else {
         cap_path = self->argv[1];
         if (!Cap_SolveCmdlineArgPath(self->config, path, sizeof path, cap_path)) {
@@ -67,6 +71,8 @@ bake(CapBakeCmd *self) {
         }            
 
         make_path = path;
+        make_argc = self->argc - 1;
+        make_argv = self->argv + 1;
 
         fin = fopen(path, "r");
         if (fin == NULL) {
@@ -88,8 +94,8 @@ bake(CapBakeCmd *self) {
         self->errstack,
         make_path,
         src,
-        self->argc - 1,
-        self->argv + 1
+        make_argc,
+        make_argv
     );
     if (compiled == NULL) {
         Pad_PushErr("failed to compile");
