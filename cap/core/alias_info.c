@@ -23,13 +23,13 @@ CapAliasInfo_New(void) {
         return NULL;
     }
 
-    self->key_val_map = PadDict_New(2);
+    self->key_val_map = PadDict_New(32);
     if (!self->key_val_map) {
         CapAliasInfo_Del(self);
         return NULL;
     }
 
-    self->key_desc_map = PadDict_New(2);
+    self->key_desc_map = PadDict_New(32);
     if (!self->key_desc_map) {
         CapAliasInfo_Del(self);
         return NULL;
