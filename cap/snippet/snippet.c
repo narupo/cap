@@ -99,7 +99,6 @@ _add(CapSnptCmd *self) {
         return 1;
     }
 
-    printf("path[%s]\n", path);
     FILE *fout = PadFile_Open(path, "wb");
     if (!fout) {
         PadErr_Err("failed to open snippet \"%s\"", name);

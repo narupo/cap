@@ -172,7 +172,7 @@ show_snippet(const CapConfig *config, const char *fname, int argc, char **argv) 
     }
 
     PadErrStack *errstack = PadErrStack_New();
-    char *compiled = Pad_CompileArgv(config->pad_config, errstack, argc, argv, content);
+    char *compiled = Cap_MakeArgv(config, errstack, fname, content, argc, argv);
     if (!compiled) {
         PadErrStack_TraceSimple(errstack, stderr);
         fflush(stderr);
@@ -344,36 +344,33 @@ Cap_MakeArgv(
     int argc,
     char *argv[]
 ) {
-    PadKit *kit = PadKit_New(config->pad_config);
-    PadGC *ref_gc = PadKit_GetRefGC(kit);
-    PadCtx *ref_ctx = PadKit_GetRefCtx(kit);
-
-    CapOpts *opts = CapOpts_New();
-    if (!CapOpts_Parse(opts, argc, argv)) {
-        CapOpts_Del(opts);
+    CapKit *kit = CapKit_New(config);
+    if (kit == NULL) {
+        PadErrStack_Add(errstack, "failed to create kit");
         goto error;
     }
 
-    CapBltFuncs_SetCapConfig(config);
-    PadKit_SetBltFuncInfos(kit, CapBltFuncs_GetBltFuncInfos());
-
-    CapBltOptsMod_MoveOpts(ref_ctx, opts);
-    PadObj *opts_mod = CapBltOptsMod_NewMod(config->pad_config, ref_gc);
-    PadKit_MoveBltMod(kit, PadMem_Move(opts_mod));
-
-    PadObj *alias_mod = CapBltAliasMod_NewMod(config->pad_config, ref_gc);
-    PadKit_MoveBltMod(kit, PadMem_Move(alias_mod));
-
-    if (!PadKit_CompileFromStrArgs(kit, program_filename, src, argc, argv)) {
+    if (CapKit_CompileFromStrArgs(
+        kit,
+        program_filename,
+        src,
+        argc,
+        argv
+    ) == NULL) {
+        PadErrStack_Add(errstack, "failed to compile");
         goto error;
     }
 
-    const char *stdout_buf = PadKit_GetcStdoutBuf(kit);
+    const char *stdout_buf = CapKit_GetcStdoutBuf(kit);
     char *maked = PadCStr_Dup(stdout_buf);
+    if (maked == NULL) {
+        PadErrStack_Add(errstack, "failed to dup");
+        goto error;
+    }
 
-    PadKit_Del(kit);
+    CapKit_Del(kit);
     return maked;
 error:
-    PadKit_Del(kit);
+    CapKit_Del(kit);
     return NULL;
 }

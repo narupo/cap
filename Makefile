@@ -126,6 +126,7 @@ SRCS := \
 	build/replace/replace.c \
 	build/lang/importer.c \
 	build/lang/opts.c \
+	build/lang/kit.c \
 	build/lang/builtin/functions.c \
 	build/lang/builtin/modules/opts.c \
 	build/lang/builtin/modules/alias.c
@@ -224,6 +225,8 @@ build/find/arguments_manager.o: cap/find/arguments_manager.c cap/find/arguments_
 build/lang/importer.o: cap/lang/importer.c cap/lang/importer.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/lang/opts.o: cap/lang/opts.c cap/lang/opts.h
+	$(CC) $(CFLAGS) -c $< -o $@
+build/lang/kit.o: cap/lang/kit.c cap/lang/kit.h
 	$(CC) $(CFLAGS) -c $< -o $@
 build/lang/builtin/functions.o: cap/lang/builtin/functions.c cap/lang/builtin/functions.h
 	$(CC) $(CFLAGS) -c $< -o $@

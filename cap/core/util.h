@@ -24,13 +24,13 @@
 #include <pad/lang/compiler.h>
 #include <pad/lang/traverser.h>
 #include <pad/lang/context.h>
-#include <pad/lang/kit.h>
 
 #include <cap/core/types.h>
 #include <cap/core/constant.h>
 #include <cap/core/config.h>
 #include <cap/run/run.h>
 #include <cap/lang/opts.h>
+#include <cap/lang/kit.h>
 #include <cap/lang/builtin/functions.h>
 #include <cap/lang/builtin/modules/opts.h>
 #include <cap/lang/builtin/modules/alias.h>
