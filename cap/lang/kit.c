@@ -28,7 +28,6 @@ CapKit_New(const CapConfig *config) {
 
     self->config = config;
     self->kit = PadKit_New(config->pad_config);
-    assert(self->kit);
     if (self->kit == NULL) {
         goto error;
     }
@@ -57,7 +56,6 @@ CapKit_CompileFromStrArgs(
     // parse options
     CapOpts *opts = CapOpts_New();
     if (!CapOpts_Parse(opts, argc, argv)) {
-        CapOpts_Del(opts);
         goto error;
     }
 
@@ -68,10 +66,12 @@ CapKit_CompileFromStrArgs(
     // install opts module
     CapBltOptsMod_MoveOpts(ref_ctx, opts);
     PadObj *opts_mod = CapBltOptsMod_NewMod(self->config->pad_config, ref_gc);
+    PadObj_IncRef(opts_mod);
     PadKit_MoveBltMod(self->kit, PadMem_Move(opts_mod));
 
     // install alias module
     PadObj *alias_mod = CapBltAliasMod_NewMod(self->config->pad_config, ref_gc);
+    PadObj_IncRef(alias_mod);
     PadKit_MoveBltMod(self->kit, PadMem_Move(alias_mod));
 
     // compile

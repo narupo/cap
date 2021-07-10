@@ -16,13 +16,13 @@ read_path_var_from_resource(const CapConfig *config, const char *rcpath) {
         goto error;
     }
 
-    if (CapKit_CompileFromStrArgs(
+    if (!CapKit_CompileFromStrArgs(
         kit,
         rcpath,
         src,
         0,
         NULL
-    ) == NULL) {
+    )) {
         goto error;
     }
 

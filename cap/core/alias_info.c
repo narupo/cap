@@ -23,13 +23,13 @@ CapAliasInfo_New(void) {
         return NULL;
     }
 
-    self->key_val_map = PadDict_New(128);
+    self->key_val_map = PadDict_New(2);
     if (!self->key_val_map) {
         CapAliasInfo_Del(self);
         return NULL;
     }
 
-    self->key_desc_map = PadDict_New(128);
+    self->key_desc_map = PadDict_New(2);
     if (!self->key_desc_map) {
         CapAliasInfo_Del(self);
         return NULL;
@@ -137,7 +137,7 @@ CapAliasInfo_Clear(CapAliasInfo *self) {
 }
 
 const PadDict *
-PadAliasInfo_GetcKeyValueMap(const CapAliasInfo *self) {
+CapAliasInfo_GetcKeyValueMap(const CapAliasInfo *self) {
     return self->key_val_map;
 }
 

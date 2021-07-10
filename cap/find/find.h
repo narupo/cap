@@ -13,6 +13,7 @@
 #include <cap/core/alias_manager.h>
 #include <cap/core/alias_info.h>
 #include <cap/find/arguments_manager.h>
+#include <cap/lang/builtin/modules/alias.h>
 
 /**
  * Structure and type of command

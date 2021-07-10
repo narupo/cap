@@ -141,9 +141,8 @@ load_alias_list_by_opts(CapAlCmd* self) {
 
 static const char *
 getc_value(CapAlCmd *self, const char *key) {
-    const PadCtx *ctx = CapAliasMgr_GetcCtx(self->almgr);
-    const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
-    return PadAliasInfo_GetcValue(alinfo, key);
+    const CapAliasInfo *alinfo = CapAliasMgr_GetcAliasInfo(self->almgr);
+    return CapAliasInfo_GetcValue(alinfo, key);
 }
 
 static void
@@ -221,9 +220,8 @@ print_key_val(
 
 static int
 show_list(CapAlCmd *self) {
-    const PadCtx *ctx = CapAliasMgr_GetcCtx(self->almgr);
-    const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
-    const PadDict *key_val_map = PadAliasInfo_GetcKeyValueMap(alinfo);
+    const CapAliasInfo *alinfo = CapAliasMgr_GetcAliasInfo(self->almgr);
+    const PadDict *key_val_map = CapAliasInfo_GetcKeyValueMap(alinfo);
     int keymaxlen = 0;
     int valmaxlen = 0;
 
@@ -248,7 +246,7 @@ show_list(CapAlCmd *self) {
             continue;
         }
 
-        const char *desc = PadAliasInfo_GetcDesc(alinfo, kv_item->key);
+        const char *desc = CapAliasInfo_GetcDesc(alinfo, kv_item->key);
         if (self->opts.is_desc && desc) {
             char disp_desc[128] = {0};
             Pad_TrimFirstLine(disp_desc, sizeof disp_desc, desc);
@@ -296,10 +294,9 @@ show_alias_value(CapAlCmd *self) {
 
 int
 CapAlCmd_ShowDescOfAlias(CapAlCmd *self) {
-    const PadCtx *ctx = CapAliasMgr_GetcCtx(self->almgr);
-    const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
+    const CapAliasInfo *alinfo = CapAliasMgr_GetcAliasInfo(self->almgr);
     const char *key = self->argv[self->optind];
-    const char *desc = PadAliasInfo_GetcDesc(alinfo, key);
+    const char *desc = CapAliasInfo_GetcDesc(alinfo, key);
     if (!desc) {
         return 0;
     }

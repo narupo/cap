@@ -126,3 +126,6 @@ CapAliasMgr_GetErrDetail(const CapAliasMgr *self);
  */
 const PadCtx *
 CapAliasMgr_GetcCtx(const CapAliasMgr *self);
+
+const CapAliasInfo *
+CapAliasMgr_GetcAliasInfo(const CapAliasMgr *self);

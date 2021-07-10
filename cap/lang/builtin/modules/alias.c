@@ -3,15 +3,45 @@
 #define push_error(fmt, ...) \
     Pad_PushBackErrNode(ref_ast->error_stack, fargs->ref_node, fmt, ##__VA_ARGS__)
 
-static CapAliasInfo *_alias_info;
+static PadVoidDict *_alias_info_map;
+
+static void
+_construct(void) {
+    if (_alias_info_map == NULL) {
+        _alias_info_map = PadVoidDict_New();
+    }
+}
+
+static CapAliasInfo *
+get_item(const PadCtx *ctx) {
+    char key[PAD_VOID_DICT_ITEM__KEY_SIZE];
+    snprintf(key, sizeof key, "%p", ctx);
+
+    const PadVoidDictItem *i = PadVoidDict_Getc(_alias_info_map, key);
+    if (i == NULL) {
+        return NULL;
+    }
+
+    return i->value;
+}
+
+static PadVoidDict *
+set_item(const PadCtx *ctx, CapAliasInfo *alinfo) {
+    char key[PAD_VOID_DICT_ITEM__KEY_SIZE];
+    snprintf(key, sizeof key, "%p", ctx);
+
+    return PadVoidDict_Move(_alias_info_map, key, alinfo);
+}
 
 const CapAliasInfo *
-CapBltAliasMod_GetAliasInfo(void) {
-    return _alias_info;
+CapBltAliasMod_GetAliasInfo(const PadCtx *ctx) {
+    _construct();
+    return get_item(ctx);
 }
 
 static PadObj *
 builtin_alias_set(PadBltFuncArgs *fargs) {
+    _construct();
     PadAST *ref_ast = fargs->ref_ast;
     assert(ref_ast);
     PadObj *actual_args = fargs->ref_args;
@@ -53,8 +83,17 @@ builtin_alias_set(PadBltFuncArgs *fargs) {
     const char *val = PadUni_GetcMB(valobj->unicode);
     const char *desc = descobj ? PadUni_GetcMB(descobj->unicode) : NULL;
 
-    CapAliasInfo_SetValue(_alias_info, key, val);    
-    CapAliasInfo_SetDesc(_alias_info, key, desc);    
+    CapAliasInfo *alinfo = get_item(ref_ast->ref_context);
+    if (alinfo == NULL) {
+        alinfo = CapAliasInfo_New();
+    }
+
+    CapAliasInfo_SetValue(alinfo, key, val);    
+    if (desc) {
+        CapAliasInfo_SetDesc(alinfo, key, desc);    
+    }
+
+    set_item(ref_ast->ref_context, alinfo);
 
     return PadObj_NewNil(ref_ast->ref_gc);
 }
@@ -74,11 +113,7 @@ CapBltAliasMod_NewMod(const PadConfig *ref_config, PadGC *ref_gc) {
 
     PadBltFuncInfoAry *info_ary = PadBltFuncInfoAry_New();
     PadBltFuncInfoAry_ExtendBackAry(info_ary, builtin_func_infos);
-
-    if (_alias_info == NULL) {
-        _alias_info = CapAliasInfo_New();
-        // TODO delete
-    }
+    _construct();
 
     return PadObj_NewModBy(
         ref_gc,

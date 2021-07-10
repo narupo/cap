@@ -96,6 +96,7 @@ CapAliasMgr_LoadPath(CapAliasMgr *self, const char *path) {
         goto error;
     }
 
+    printf("loaded alias path[%s]\n", path);
     Pad_SafeFree(src);
     return self;
 error:
@@ -124,7 +125,8 @@ CapAliasMgr_FindAliasValue(CapAliasMgr *self, char *dst, uint32_t dstsz, const c
         return NULL;
     }
 
-    const CapAliasInfo *alinfo = CapBltAliasMod_GetAliasInfo();
+    const PadCtx *ref_ctx = CapKit_GetRefCtx(self->kit);
+    const CapAliasInfo *alinfo = CapBltAliasMod_GetAliasInfo(ref_ctx);
     if (alinfo == NULL) {
         return NULL;
     } 
@@ -162,7 +164,8 @@ CapAliasMgr_GetErrDetail(const CapAliasMgr *self) {
 
 const CapAliasInfo *
 CapAliasMgr_GetcAliasInfo(const CapAliasMgr *self) {
-    return CapBltAliasMod_GetAliasInfo();
+    const PadCtx *ref_ctx = CapKit_GetRefCtx(self->kit);
+    return CapBltAliasMod_GetAliasInfo(ref_ctx);
 }
 
 const PadCtx *

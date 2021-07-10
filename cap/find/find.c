@@ -262,9 +262,8 @@ find_aliases_r(const CapFindCmd *self, const char *dirpath, const char *cap_dirp
         }
     }
 
-    const PadCtx *ctx = CapAliasMgr_GetcCtx(self->almgr);
-    const PadAliasInfo *alinfo = PadCtx_GetcAliasInfo(ctx);
-    const PadDict *alias_kvmap = PadAliasInfo_GetcKeyValueMap(alinfo);
+    const CapAliasInfo *alinfo = CapAliasMgr_GetcAliasInfo(self->almgr);
+    const PadDict *alias_kvmap = CapAliasInfo_GetcKeyValueMap(alinfo);
     int32_t maxkeylen = 0;
     int32_t maxvallen = 0;
     bool hascontents = has_contents(self, alias_kvmap, &maxkeylen, &maxvallen);
