@@ -1,0 +1,7 @@
+{@
+    s = "The
+Big Fat
+Dog
+"
+    exec("cap insert :tests_env/insert/file4.txt \"" + s + "\" --after 2")
+@}

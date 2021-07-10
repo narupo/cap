@@ -2135,11 +2135,34 @@ test_insert_3(void) {
     free(s);
 }
 
+static void
+test_insert_4(void) {
+    PadFile_CopyPath("tests_env/insert/file4.txt", "tests_env/insert/file4.txt.org");
+
+    CapConfig *config = CapConfig_New();
+    int argc = 2;
+    char *argv[] = {
+        "make",
+        ":tests_env/insert/insert.cap",
+        NULL,
+    };
+    CapMakeCmd *cmd = CapMakeCmd_New(config, argc, argv);
+    CapMakeCmd_Run(cmd);
+    CapMakeCmd_Del(cmd);
+
+    char *s = PadFile_ReadCopyFromPath("tests_env/insert/file4.txt");
+    printf("s[%s]\n", s);
+    assert(s);
+    assert(!strcmp(s, "aaaa\nbbbb\nThe\nBig Fat\nDog\ncccc\ndddd\n"));
+    free(s);
+}
+
 static const struct testcase
 insert_tests[] = {
     {"1", test_insert_1},
     {"2", test_insert_2},
     {"3", test_insert_3},
+    {"4", test_insert_4},
     {0},
 };
 

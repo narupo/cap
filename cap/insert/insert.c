@@ -334,7 +334,7 @@ insert_at(CapInsertCmd *self, const char *path, int32_t pos, const char *elem) {
 }
 
 static char *
-fix_elem(CapInsertCmd *self, const char *raw) {
+unescape(CapInsertCmd *self, const char *raw) {
     PadStr *s = PadStr_New();
 
     for (const char *p = raw; *p; p += 1) {
@@ -369,7 +369,7 @@ insert(CapInsertCmd *self) {
         }
 
         raw_elem = self->argv[optind + 1];
-        elem = fix_elem(self, raw_elem);
+        elem = unescape(self, raw_elem);
     }
 
     int32_t pos = find_insert_pos(self, path);
@@ -388,6 +388,7 @@ error:
 
 int
 CapInsertCmd_Run(CapInsertCmd *self) {
+    Pad_ShowArgv(self->argc, self->argv);
     int result = insert(self);
     if (PadErrStack_Len(self->errstack)) {
         PadErrStack_TraceSimple(self->errstack, stderr);

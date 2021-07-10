@@ -700,6 +700,7 @@ cmd_exec(CapExecCmd *self, const char *cltxt) {
         return NULL;
     }
 
+    PadCmdline_Show(self->cmdline, stderr);
     if (PadCmdline_Len(self->cmdline) == 1) {
         return exec_first(self);
     } else {
@@ -710,12 +711,18 @@ cmd_exec(CapExecCmd *self, const char *cltxt) {
 }
 
 static char *
-Pad_Unescape_cl(const char *escaped) {
+escape(const char *escaped) {
+    // TODO: Pad_Escape
     PadStr *s = PadStr_New();
 
     for (const char *p = escaped; *p; p += 1) {
-        if (*p == '\\') {
-            Pad_Unescape(s, &p, "\"'");
+        if (*p == '\r' && *(p + 1) == '\n') {
+            p += 1;
+            PadStr_PushBack(s, '\\');
+            PadStr_PushBack(s, 'n');            
+        } else if (*p == '\n') {
+            PadStr_PushBack(s, '\\');
+            PadStr_PushBack(s, 'n');
         } else {
             PadStr_PushBack(s, *p);
         }
@@ -732,9 +739,9 @@ CapExecCmd_Run(CapExecCmd *self) {
     }
 
     for (int32_t i = self->optind; i < self->argc; ++i) {
-        const char *escaped_cltxt = self->argv[i];
-        char *cltxt = Pad_Unescape_cl(escaped_cltxt);
-        // printf("escaped_cltxt[%s]\n", escaped_cltxt);
+        const char *plain = self->argv[i];
+        char *cltxt = escape(plain);
+        // printf("plain[%s]\n", plain);
         // printf("cltxt[%s]\n", cltxt);
 
         if (!cmd_exec(self, cltxt)) {

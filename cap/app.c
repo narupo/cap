@@ -507,12 +507,10 @@ _exec_alias_by_name(App *self, bool *found, const char *name) {
     PadStr_App(cmdline, "cap ");
     PadStr_App(cmdline, val);
     PadStr_App(cmdline, " ");
-    char escarg[1024];
     for (int i = 1; i < self->cmd_argc; ++i) {
         const char * arg = self->cmd_argv[i];
         PadStr_App(cmdline, "\"");
-        Pad_Escape(escarg, sizeof escarg, arg, "\"");
-        PadStr_App(cmdline, escarg);
+        Pad_EscapeText(cmdline, arg, NULL);
         PadStr_App(cmdline, "\"");
         PadStr_App(cmdline, " ");
     }
