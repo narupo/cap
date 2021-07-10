@@ -49,65 +49,6 @@ read_path_var_from_resource(const CapConfig *config, const char *rcpath) {
 error:
     CapKit_Del(kit);
     return NULL;
-#if 0
-    PadTkr *tkr = PadTkr_New(PadTkrOpt_New());
-    PadAST *ast = PadAST_New(config->pad_config);
-    PadGC *gc = PadGC_New();
-    PadCtx *ctx = PadCtx_New(gc);
-    PadOpts *opts = PadOpts_New();
-
-    PadTkr_Parse(tkr, src);
-    free(src);
-    src = NULL;
-    if (PadTkr_HasErrStack(tkr)) {
-        PadErr_Err("%s", PadTkr_GetcFirstErrMsg(tkr));
-        return NULL;
-    }
-
-    PadAST_Clear(ast);
-    PadAST_MoveOpts(ast, opts);
-    opts = NULL;
-
-    PadCC_Compile(ast, PadTkr_GetToks(tkr));
-    if (PadAST_HasErrs(ast)) {
-        PadErr_Err("%s", PadAST_GetcFirstErrMsg(ast));
-        return NULL;
-    }
-
-    PadTrv_Trav(ast, ctx);
-    if (PadAST_HasErrs(ast)) {
-        PadErr_Err("%s", PadAST_GetcFirstErrMsg(ast));
-        return NULL;
-    }
-
-    PadTkr_Del(tkr);
-    PadAST_Del(ast);
-
-    PadObjDict *varmap = PadCtx_GetVarmapAtGlobal(ctx);
-    const PadObjDictItem *item = PadObjDict_Getc(varmap, "PATH");
-    if (!item) {
-        PadCtx_Del(ctx);
-        PadGC_Del(gc);
-        return NULL;
-    }
-
-    PadCtx_PopNewlineOfStdoutBuf(ctx);
-    printf("%s", PadCtx_GetcStdoutBuf(ctx));
-    fflush(stdout);
-
-    const char *s = PadUni_GetcMB(item->value->unicode);
-    char *path = PadCStr_Dup(s);
-    if (!path) {
-        PadCtx_Del(ctx);
-        PadGC_Del(gc);
-        return NULL;        
-    }
-
-    PadCtx_Del(ctx);
-    PadGC_Del(gc);
-
-    return path;
-#endif
 }
 
 static PadCStrAry *
