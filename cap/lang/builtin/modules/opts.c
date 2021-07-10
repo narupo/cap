@@ -52,7 +52,6 @@ builtin_opts_get(PadBltFuncArgs *fargs) {
     PadObj *actual_args = fargs->ref_args;
     assert(actual_args);
     assert(actual_args->type == PAD_OBJ_TYPE__ARRAY);
-
     PadObjAry *args = actual_args->objarr;
 
     CapOpts *opts = get_item(ref_ast->ref_context);

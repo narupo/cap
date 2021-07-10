@@ -269,7 +269,7 @@ exec_prog_by_dirname(const CapConfig *config, bool *found, int cmd_argc, char *c
 }
 
 static int
-Cap_ExecProg_by_caprc(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[], const char *org) {
+exec_prog_by_caprc(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[], const char *org) {
     *found = false;
     char rcpath[PAD_FILE__NPATH];
 
@@ -321,13 +321,13 @@ Cap_ExecProg(const CapConfig *config, bool *found, int cmd_argc, char *cmd_argv[
     int result;
 
     *found = false;
-    result = Cap_ExecProg_by_caprc(config, found, cmd_argc, cmd_argv, config->cd_path);
+    result = exec_prog_by_caprc(config, found, cmd_argc, cmd_argv, config->cd_path);
     if (*found) {
         return result;
     }
 
     *found = false;
-    result = Cap_ExecProg_by_caprc(config, found, cmd_argc, cmd_argv, config->home_path);
+    result = exec_prog_by_caprc(config, found, cmd_argc, cmd_argv, config->home_path);
     if (*found) {
         return result;
     }

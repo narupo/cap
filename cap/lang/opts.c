@@ -218,3 +218,15 @@ CapOpts_ArgsLen(const CapOpts *self) {
     }
     return PadCStrAry_Len(self->args);
 }
+
+void
+CapOpts_Show(CapOpts *self, FILE *fout) {
+    if (!self || !fout) {
+        return;
+    }
+
+    printf("opts:\n");
+    PadDict_Show(self->opts, fout);
+    printf("args:\n");
+    PadCStrAry_Show(self->args, fout);
+}

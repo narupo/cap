@@ -103,3 +103,6 @@ CapOpts_ArgsLen(const CapOpts *self);
  */
 void
 CapOpts_Clear(CapOpts *self);
+
+void
+CapOpts_Show(CapOpts *self, FILE *fout);

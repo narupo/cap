@@ -2063,12 +2063,290 @@ CapReplaceCmdests[] = {
     {0},
 };
 
+/************
+* lang/opts *
+************/
+
+static void
+test_lang_CapOpts_New(void) {
+    CapOpts *opts = CapOpts_New();
+    assert(opts);
+    CapOpts_Del(opts);
+}
+
+static void
+test_lang_CapOpts_Parse(void) {
+    CapOpts *opts = CapOpts_New();
+    assert(opts);
+
+    int argc = 7;
+    char *argv[] = {
+        "make",
+        "arg1",
+        "arg2",
+        "-a",
+        "aaa",
+        "--bbb",
+        "bbb",
+        NULL,
+    };
+    assert(CapOpts_Parse(opts, argc, argv));
+
+    assert(CapOpts_ArgsLen(opts) == 3);
+    assert(CapOpts_GetcArgs(opts, -1) == NULL);
+    assert(CapOpts_GetcArgs(opts, 0));
+    assert(CapOpts_GetcArgs(opts, 1));
+    assert(CapOpts_GetcArgs(opts, 2));
+    assert(CapOpts_GetcArgs(opts, 3) == NULL);
+    assert(!strcmp(CapOpts_GetcArgs(opts, 0), "make"));
+    assert(!strcmp(CapOpts_GetcArgs(opts, 1), "arg1"));
+    assert(!strcmp(CapOpts_GetcArgs(opts, 2), "arg2"));
+    assert(CapOpts_Getc(opts, "a"));
+    assert(!strcmp(CapOpts_Getc(opts, "a"), "aaa"));
+    assert(CapOpts_Getc(opts, "bbb"));
+    assert(!strcmp(CapOpts_Getc(opts, "bbb"), "bbb"));
+    assert(CapOpts_Has(opts, "a"));
+    assert(CapOpts_Has(opts, "bbb"));
+    CapOpts_Del(opts);
+}
+
+static void
+test_lang_CapOpts_Parse_0(void) {
+    CapOpts *opts = CapOpts_New();
+    assert(opts);
+
+    int argc = 1;
+    char *argv[] = {
+        "make",
+        NULL,
+    };
+    assert(CapOpts_Parse(opts, argc, argv));
+    CapOpts_Del(opts);
+}
+
+static void
+test_lang_CapOpts_GetcArgs_0(void) {
+    CapOpts *opts = CapOpts_New();
+    assert(opts);
+
+    int argc = 3;
+    char *argv[] = {
+        "cmd",
+        "arg1",
+        "arg2",
+        NULL,
+    };
+
+    assert(CapOpts_Parse(opts, argc, argv));
+    assert(!strcmp(CapOpts_GetcArgs(opts, 0), "cmd"));
+    assert(!strcmp(CapOpts_GetcArgs(opts, 1), "arg1"));
+    assert(!strcmp(CapOpts_GetcArgs(opts, 2), "arg2"));
+    CapOpts_Del(opts);
+}
+
+static void
+test_lang_CapOpts_GetcArgs_1(void) {
+    CapOpts *opts = CapOpts_New();
+    assert(opts);
+
+    int argc = 7;
+    char *argv[] = {
+        "cmd",
+        "-a",
+        "optarg1",
+        "-b",
+        "optarg2",
+        "arg1",
+        "arg2",
+        NULL,
+    };
+
+    assert(CapOpts_Parse(opts, argc, argv));
+    assert(!strcmp(CapOpts_Getc(opts, "a"), "optarg1"));
+    assert(!strcmp(CapOpts_Getc(opts, "b"), "optarg2"));
+    assert(CapOpts_GetcArgs(opts, 0));
+    assert(!strcmp(CapOpts_GetcArgs(opts, 0), "cmd"));
+    assert(CapOpts_GetcArgs(opts, 1));
+    assert(!strcmp(CapOpts_GetcArgs(opts, 1), "arg1"));
+    assert(CapOpts_GetcArgs(opts, 2));
+    assert(!strcmp(CapOpts_GetcArgs(opts, 2), "arg2"));
+    CapOpts_Del(opts);
+}
+
+static void
+test_lang_CapOpts_Clear(void) {
+    int argc = 1;
+    char *argv[] = {"abc", NULL};
+
+    CapOpts *opts = CapOpts_New();
+
+    assert(CapOpts_Parse(opts, argc, argv));
+    assert(CapOpts_ArgsLen(opts) == 1);
+    CapOpts_Clear(opts);
+    assert(CapOpts_ArgsLen(opts) == 0);
+
+    CapOpts_Del(opts);
+}
+
+static void
+test_lang_CapOpts_Getc(void) {
+    int argc = 5;
+    char *argv[] = {
+        "cmd",
+        "-a",
+        "aaa",
+        "-b",
+        "bbb",
+        NULL,
+    };
+    CapOpts *opts = CapOpts_New();
+
+    assert(CapOpts_Parse(opts, argc, argv));
+    assert(!strcmp(CapOpts_Getc(opts, "a"), "aaa"));
+    assert(!strcmp(CapOpts_Getc(opts, "b"), "bbb"));
+
+    CapOpts_Del(opts);
+}
+
+static void
+test_lang_CapOpts_Has(void) {
+    int argc = 3;
+    char *argv[] = {
+        "cmd",
+        "-a",
+        "aaa",
+        NULL,
+    };
+    CapOpts *opts = CapOpts_New();
+
+    assert(CapOpts_Parse(opts, argc, argv));
+    assert(CapOpts_Has(opts, "a"));
+
+    CapOpts_Del(opts);
+}
+
+static void
+test_lang_CapOpts_ArgsLen(void) {
+    int argc = 3;
+    char *argv[] = {
+        "cmd",
+        "arg1",
+        "arg2",
+        NULL,
+    };
+    CapOpts *opts = CapOpts_New();
+
+    assert(CapOpts_Parse(opts, argc, argv));
+    assert(CapOpts_ArgsLen(opts) == 3);
+
+    CapOpts_Del(opts);
+}
+
+static const struct testcase
+opts_tests[] = {
+    {"CapOpts_New", test_lang_CapOpts_New},
+    {"CapOpts_Parse", test_lang_CapOpts_Parse},
+    {"CapOpts_Parse_0", test_lang_CapOpts_Parse_0},
+    {"CapOpts_GetcArgs_0", test_lang_CapOpts_GetcArgs_0},
+    {"CapOpts_GetcArgs_1", test_lang_CapOpts_GetcArgs_1},
+    {"CapOpts_Clear", test_lang_CapOpts_Clear},
+    {"CapOpts_Getc", test_lang_CapOpts_Getc},
+    {"CapOpts_Has", test_lang_CapOpts_Has},
+    {"CapOpts_ArgsLen", test_lang_CapOpts_ArgsLen},
+    {0},
+};
+
+/***********
+* lang/trv *
+***********/
+
+static void
+test_lang_blt_mods(void) {
+    PadConfig *config = PadConfig_New();
+    PadTkrOpt *opt = PadTkrOpt_New();
+    PadTkr *tkr = PadTkr_New(PadMem_Move(opt));
+    PadAST *ast = PadAST_New(config);
+    PadGC *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
+
+    // success
+    PadTkr_Parse(tkr, "{@ a = alias.set(\"\", \"\") @}{: a :}");
+    {
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+
+        PadObj *alias_mod = CapBltAliasMod_NewMod(config, gc);
+        PadObjDict *varmap = PadCtx_GetVarmap(ctx);
+        PadObjDict_Move(varmap, alias_mod->module.name, PadMem_Move(alias_mod));
+
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
+        assert(!strcmp(PadCtx_GetcStdoutBuf(ctx), "nil"));
+    }
+
+
+    PadTkr_Parse(tkr, "{@ a = alias.set(\"\", \"\")\n b = alias.set(\"\", \"\") @}{: a :},{: b :}");
+    {
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+        
+        PadObj *alias_mod = CapBltAliasMod_NewMod(config, gc);
+        PadObjDict *varmap = PadCtx_GetVarmap(ctx);
+        PadObjDict_Move(varmap, alias_mod->module.name, PadMem_Move(alias_mod));
+
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
+        assert(!strcmp(PadCtx_GetcStdoutBuf(ctx), "nil,nil"));
+    }
+
+    PadTkr_Parse(tkr, "{@ a = opts.get(\"abc\") @}{: a :}");
+    {
+        char *argv[] = {
+            "make",
+            "-abc",
+            "def",
+            NULL,
+        };
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+
+        CapOpts *opts = CapOpts_New();
+        assert(CapOpts_Parse(opts, 3, argv));
+        CapBltOptsMod_MoveOpts(ctx, opts);
+
+        PadObj *opts_mod = CapBltOptsMod_NewMod(config, gc);
+        PadObjDict *varmap = PadCtx_GetVarmap(ctx);
+        PadObjDict_Move(varmap, opts_mod->module.name, PadMem_Move(opts_mod));
+
+        PadTrv_Trav(ast, ctx);
+        PadAST_MoveOpts(ast, NULL);
+        PadAST_TraceErr(ast, stderr);
+        assert(!PadAST_HasErrs(ast));
+        assert(!strcmp(PadCtx_GetcStdoutBuf(ctx), "def"));
+    }
+
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
+    PadConfig_Del(config);
+}
+
+static const struct testcase
+lang_tests[] = {
+    {"blt_mods", test_lang_blt_mods},
+    {0},
+};
+
 /*******
 * main *
 *******/
 
 static const struct testmodule
-testmodules[] = {
+test_modules[] = {
     // commands
     {"home", CapHomeCmdests},
     {"cd", cdcmd_tests},
@@ -2093,6 +2371,9 @@ testmodules[] = {
 
     {"util", utiltests},
     {"symlink", symlink_tests},
+    {"opts", opts_tests},
+
+    {"lang", lang_tests},
     {0},
 };
 
@@ -2147,7 +2428,7 @@ modtest(const char *modname) {
     int32_t ntest = 0;
     const struct testmodule *fndmod = NULL;
 
-    for (const struct testmodule *m = testmodules; m->name; ++m) {
+    for (const struct testmodule *m = test_modules; m->name; ++m) {
         if (strcmp(modname, m->name) == 0) {
             fndmod = m;
         }
@@ -2171,7 +2452,7 @@ static int32_t
 methtest(const char *modname, const char *methname) {
     const struct testmodule *fndmod = NULL;
 
-    for (const struct testmodule *m = testmodules; m->name; ++m) {
+    for (const struct testmodule *m = test_modules; m->name; ++m) {
         if (strcmp(modname, m->name) == 0) {
             fndmod = m;
         }
@@ -2203,7 +2484,7 @@ static int32_t
 fulltests(void) {
     int32_t ntest = 0;
 
-    for (const struct testmodule *m = testmodules; m->name; ++m) {
+    for (const struct testmodule *m = test_modules; m->name; ++m) {
         printf("\n* module '%s'\n", m->name);
         for (const struct testcase *t = m->tests; t->name; ++t) {
             printf("- testing '%s'\n", t->name);
