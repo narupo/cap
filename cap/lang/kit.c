@@ -101,3 +101,12 @@ CapKit_GetRefCtx(const CapKit *self) {
 
     return PadKit_GetRefCtx(self->kit);
 }
+
+void
+CapKit_Clear(CapKit *self) {
+    if (self == NULL) {
+        return;
+    }
+
+    PadKit_ClearCtx(self->kit);
+}

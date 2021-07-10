@@ -12,10 +12,7 @@ enum {
  */
 struct CapAliasMgr {
     const CapConfig *config;
-    PadTkr *tkr;
-    PadAST *ast;
-    PadGC *gc;
-    PadCtx *context;
+    CapKit *kit;
     char error_detail[ERR_DETAIL_SIZE];
 };
 
@@ -25,10 +22,7 @@ CapAliasMgr_Del(CapAliasMgr *self) {
         return;
     }
 
-    PadAST_Del(self->ast);
-    PadTkr_Del(self->tkr);
-    PadCtx_Del(self->context);
-    PadGC_Del(self->gc);
+    CapKit_Del(self->kit);
     Pad_SafeFree(self);
 }
 
@@ -36,18 +30,19 @@ CapAliasMgr *
 CapAliasMgr_New(const CapConfig *config) {
     CapAliasMgr *self = PadMem_Calloc(1, sizeof(*self));
     if (self == NULL) {
-        return NULL;
+        goto error;
     }
 
     self->config = config;
-
-    PadTkrOpt *opt = PadTkrOpt_New();
-    self->tkr = PadTkr_New(opt);
-    self->ast = PadAST_New(config->pad_config);
-    self->gc = PadGC_New();
-    self->context = PadCtx_New(self->gc);
+    self->kit = CapKit_New(config);
+    if (self->kit == NULL) {
+        goto error;
+    }
 
     return self;
+error:
+    CapAliasMgr_Del(self);
+    return NULL;
 }
 
 static void
@@ -90,34 +85,22 @@ CapAliasMgr_LoadPath(CapAliasMgr *self, const char *path) {
         return NULL;
     }
 
-    CapAliasMgr *ret = self;
-
-    PadTkr_Parse(self->tkr, src);
-    if (PadTkr_HasErrStack(self->tkr)) {
-        set_err(self, PadTkr_GetcFirstErrMsg(self->tkr));
-        ret = NULL;
-        goto fail;
+    if (!CapKit_CompileFromStrArgs(
+        self->kit,
+        path,
+        src,
+        0,
+        NULL
+    )) {
+        set_err(self, "failed to compile");
+        goto error;
     }
 
-    PadAST_Clear(self->ast);
-    PadCC_Compile(self->ast, PadTkr_GetToks(self->tkr));
-    if (PadAST_HasErrs(self->ast)) {
-        set_err(self, PadAST_GetcFirstErrMsg(self->ast));
-        ret = NULL;
-        goto fail;
-    }
-
-    PadCtx_Clear(self->context);
-    PadTrv_Trav(self->ast, self->context);
-    if (PadAST_HasErrs(self->ast)) {
-        set_err(self, PadAST_GetcFirstErrMsg(self->ast));
-        ret = NULL;
-        goto fail;
-    }
-
-fail:
     Pad_SafeFree(src);
-    return ret;
+    return self;
+error:
+    Pad_SafeFree(src);
+    return NULL;
 }
 
 CapAliasMgr *
@@ -141,9 +124,14 @@ CapAliasMgr_FindAliasValue(CapAliasMgr *self, char *dst, uint32_t dstsz, const c
         return NULL;
     }
 
+    const CapAliasInfo *alinfo = CapBltAliasMod_GetAliasInfo();
+    if (alinfo == NULL) {
+        return NULL;
+    } 
+
     // find alias value by key
-    const char *value = PadCtx_GetAliasValue(self->context, key);
-    if (!value) {
+    const char *value = CapAliasInfo_GetcValue(alinfo, key);
+    if (value == NULL) {
         return NULL;
     }
 
@@ -158,7 +146,7 @@ CapAliasMgr_HasErr(const CapAliasMgr *self) {
 
 void
 CapAliasMgr_Clear(CapAliasMgr *self) {
-    PadCtx_Clear(self->context);
+    CapKit_Clear(self->kit);
     CapAliasMgr_ClearError(self);
 }
 
@@ -172,12 +160,12 @@ CapAliasMgr_GetErrDetail(const CapAliasMgr *self) {
     return self->error_detail;
 }
 
-const PadAliasInfo *
-almgr_getc_alinfo(const CapAliasMgr *self) {
-    return PadCtx_GetcAliasInfo(self->context);
+const CapAliasInfo *
+CapAliasMgr_GetcAliasInfo(const CapAliasMgr *self) {
+    return CapBltAliasMod_GetAliasInfo();
 }
 
 const PadCtx *
 CapAliasMgr_GetcCtx(const CapAliasMgr *self) {
-    return self->context;
+    return CapKit_GetRefCtx(self->kit);
 }

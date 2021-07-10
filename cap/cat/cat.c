@@ -267,12 +267,11 @@ write_stream(CapCatCmd *self, const char *fname, FILE *fout, const PadStr *buf) 
             NULL
         )) {
             Pad_PushErr("failed to compile");
-            PadErrStack_Trace(self->errstack, stderr);
             goto error;
         }
 
         p = CapKit_GetcStdoutBuf(kit);
-    }
+        }
 
     // set indent
     PadStr *out = PadStr_New();
