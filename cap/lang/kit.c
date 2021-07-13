@@ -3,6 +3,7 @@
 struct CapKit {
     const CapConfig *config;
     PadKit *kit;
+    PadErrStack *errstack;
 };
 
 void
@@ -12,6 +13,7 @@ CapKit_Del(CapKit *self) {
     }
 
     PadKit_Del(self->kit);
+    PadErrStack_Del(self->errstack);
     free(self);
 }
 
@@ -22,13 +24,18 @@ CapKit_New(const CapConfig *config) {
     }
 
     CapKit *self = PadMem_Calloc(1, sizeof(*self));
-    if (self == NULL) {
+    if (!self) {
         goto error;
     }
 
     self->config = config;
     self->kit = PadKit_New(config->pad_config);
-    if (self->kit == NULL) {
+    if (!self->kit) {
+        goto error;
+    }
+
+    self->errstack = PadErrStack_New();
+    if (!self->errstack) {
         goto error;
     }
 
@@ -46,28 +53,26 @@ CapKit_CompileFromStrArgs(
     int argc,  // optional
     char **argv  // optional
 ) {
+    PadAST *ref_ast = PadKit_GetRefAST(self->kit);
     PadGC *ref_gc = PadKit_GetRefGC(self->kit);
-    PadCtx *ref_ctx = PadKit_GetRefCtx(self->kit);
 
     // set fix-path function at importer
     CapImporter_SetCapConfig(self->config);
     PadKit_SetImporterFixPathFunc(self->kit, CapImporter_FixPath);
 
-    // parse options
-    CapOpts *opts = CapOpts_New();
-    if (!CapOpts_Parse(opts, argc, argv)) {
+    // parse pad-options
+    PadOpts *opts = PadOpts_New();
+    if (!PadOpts_Parse(opts, argc, argv)) {
+        Pad_PushErr("failed to parse options");
         goto error;
     }
+
+    // set pad-options
+    PadAST_MoveOpts(ref_ast, PadMem_Move(opts));
 
     // install built-in functions
     CapBltFuncs_SetCapConfig(self->config);
     PadKit_SetBltFuncInfos(self->kit, CapBltFuncs_GetBltFuncInfos());
-
-    // install opts module
-    CapBltOptsMod_MoveOpts(ref_ctx, opts);
-    PadObj *opts_mod = CapBltOptsMod_NewMod(self->config->pad_config, ref_gc);
-    PadObj_IncRef(opts_mod);
-    PadKit_MoveBltMod(self->kit, PadMem_Move(opts_mod));
 
     // install alias module
     PadObj *alias_mod = CapBltAliasMod_NewMod(self->config->pad_config, ref_gc);
@@ -76,6 +81,8 @@ CapKit_CompileFromStrArgs(
 
     // compile
     if (!PadKit_CompileFromStrArgs(self->kit, prog_fname, src, argc, argv)) {
+        const PadErrStack *es = PadKit_GetcErrStack(self->kit);
+        PadErrStack_ExtendBackOther(self->errstack, es);
         goto error;
     }
 
@@ -117,5 +124,5 @@ CapKit_GetcErrStack(CapKit *self) {
         return NULL;
     }
 
-    return PadKit_GetcErrStack(self->kit);
+    return self->errstack;
 }

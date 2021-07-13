@@ -739,6 +739,7 @@ test_catcmd_make_opt(void) {
     setbuf(stdout, stdout_buf);
     CapCatCmd_Run(catcmd);
     setbuf(stdout, NULL);
+    printf("buf[%s]\n", stdout_buf);
     assert(!strcmp(stdout_buf, "hello"));
 
     CapCatCmd_Del(catcmd);
@@ -2364,7 +2365,7 @@ opts_tests[] = {
 ***********/
 
 static void
-test_lang_blt_mods(void) {
+test_lang_blt_mods_1(void) {
     PadConfig *config = PadConfig_New();
     PadTkrOpt *opt = PadTkrOpt_New();
     PadTkr *tkr = PadTkr_New(PadMem_Move(opt));
@@ -2450,9 +2451,9 @@ test_lang_blt_mods(void) {
         (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
         PadCtx_Clear(ctx);
 
-        CapOpts *opts = CapOpts_New();
-        assert(CapOpts_Parse(opts, 3, argv));
-        CapBltOptsMod_MoveOpts(ctx, opts);
+        PadOpts *opts = PadOpts_New();
+        assert(PadOpts_Parse(opts, 3, argv));
+        PadAST_MoveOpts(ast, opts);
 
         PadObj *opts_mod = CapBltOptsMod_NewMod(config, gc);
         PadObjDict *varmap = PadCtx_GetVarmap(ctx);
@@ -2463,7 +2464,6 @@ test_lang_blt_mods(void) {
         assert(!PadAST_HasErrs(ast));
         assert(!strcmp(PadCtx_GetcStdoutBuf(ctx), "def"));
     }
-
 
     PadTkr_Parse(tkr, "{: opts.get(\"abc\") :}");
     {
@@ -2477,9 +2477,9 @@ test_lang_blt_mods(void) {
         PadCC_Compile(ast, PadTkr_GetToks(tkr));
         PadCtx_Clear(ctx);
 
-        CapOpts *opts = CapOpts_New();
-        assert(CapOpts_Parse(opts, 3, argv));
-        CapBltOptsMod_MoveOpts(ctx, opts);
+        PadOpts *opts = PadOpts_New();
+        assert(PadOpts_Parse(opts, 3, argv));
+        PadAST_MoveOpts(ast, opts);
 
         PadObj *opts_mod = CapBltOptsMod_NewMod(config, gc);
         PadObjDict *varmap = PadCtx_GetVarmap(ctx);
@@ -2501,9 +2501,9 @@ test_lang_blt_mods(void) {
         PadCC_Compile(ast, PadTkr_GetToks(tkr));
         PadCtx_Clear(ctx);
 
-        CapOpts *opts = CapOpts_New();
-        assert(CapOpts_Parse(opts, 3, argv));
-        CapBltOptsMod_MoveOpts(ctx, opts);
+        PadOpts *opts = PadOpts_New();
+        assert(PadOpts_Parse(opts, 3, argv));
+        PadAST_MoveOpts(ast, opts);
 
         PadObj *opts_mod = CapBltOptsMod_NewMod(config, gc);
         PadObjDict *varmap = PadCtx_GetVarmap(ctx);
@@ -2525,9 +2525,128 @@ test_lang_blt_mods(void) {
         PadCC_Compile(ast, PadTkr_GetToks(tkr));
         PadCtx_Clear(ctx);
 
-        CapOpts *opts = CapOpts_New();
-        assert(CapOpts_Parse(opts, 3, argv));
-        CapBltOptsMod_MoveOpts(ctx, opts);
+        PadOpts *opts = PadOpts_New();
+        assert(PadOpts_Parse(opts, 3, argv));
+        PadAST_MoveOpts(ast, opts);
+
+        PadObj *opts_mod = CapBltOptsMod_NewMod(config, gc);
+        PadObjDict *varmap = PadCtx_GetVarmap(ctx);
+        PadObjDict_Move(varmap, opts_mod->module.name, PadMem_Move(opts_mod));
+
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
+        assert(!strcmp(PadCtx_GetcStdoutBuf(ctx), "false"));
+    }
+
+    PadCtx_Del(ctx);
+    PadGC_Del(gc);
+    PadAST_Del(ast);
+    PadTkr_Del(tkr);
+    PadConfig_Del(config);
+}
+
+static void
+test_lang_blt_mods_2(void) {
+    PadConfig *config = PadConfig_New();
+    PadTkrOpt *opt = PadTkrOpt_New();
+    PadTkr *tkr = PadTkr_New(PadMem_Move(opt));
+    PadAST *ast = PadAST_New(config);
+    PadGC *gc = PadGC_New();
+    PadCtx *ctx = PadCtx_New(gc);
+
+    /*******
+    * opts *
+    *******/
+
+    PadTkr_Parse(tkr, "{@ a = opts.get(\"abc\") @}{: a :}");
+    {
+        char *argv[] = {
+            "make",
+            "-abc",
+            "def",
+            NULL,
+        };
+        PadAST_Clear(ast);
+        (PadCC_Compile(ast, PadTkr_GetToks(tkr)));
+        PadCtx_Clear(ctx);
+
+        PadOpts *opts = PadOpts_New();
+        assert(PadOpts_Parse(opts, 3, argv));
+        PadAST_MoveOpts(ast, opts);
+
+        PadObj *opts_mod = CapBltOptsMod_NewMod(config, gc);
+        PadObjDict *varmap = PadCtx_GetVarmap(ctx);
+        PadObjDict_Move(varmap, opts_mod->module.name, PadMem_Move(opts_mod));
+
+        PadTrv_Trav(ast, ctx);
+        PadAST_TraceErr(ast, stderr);
+        assert(!PadAST_HasErrs(ast));
+        assert(!strcmp(PadCtx_GetcStdoutBuf(ctx), "def"));
+    }
+
+    PadTkr_Parse(tkr, "{: opts.get(\"abc\") :}");
+    {
+        char *argv[] = {
+            "make",
+            "--abc",
+            "def",
+            NULL,
+        };
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+
+        PadOpts *opts = PadOpts_New();
+        assert(PadOpts_Parse(opts, 3, argv));
+        PadAST_MoveOpts(ast, opts);
+
+        PadObj *opts_mod = CapBltOptsMod_NewMod(config, gc);
+        PadObjDict *varmap = PadCtx_GetVarmap(ctx);
+        PadObjDict_Move(varmap, opts_mod->module.name, PadMem_Move(opts_mod));
+
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
+        assert(!strcmp(PadCtx_GetcStdoutBuf(ctx), "def"));
+    }
+
+    PadTkr_Parse(tkr, "{: opts.has(\"abc\") :}");
+    {
+        char *argv[] = {
+            "make",
+            "--abc",
+            NULL,
+        };
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+
+        PadOpts *opts = PadOpts_New();
+        assert(PadOpts_Parse(opts, 3, argv));
+        PadAST_MoveOpts(ast, opts);
+
+        PadObj *opts_mod = CapBltOptsMod_NewMod(config, gc);
+        PadObjDict *varmap = PadCtx_GetVarmap(ctx);
+        PadObjDict_Move(varmap, opts_mod->module.name, PadMem_Move(opts_mod));
+
+        PadTrv_Trav(ast, ctx);
+        assert(!PadAST_HasErrs(ast));
+        assert(!strcmp(PadCtx_GetcStdoutBuf(ctx), "true"));
+    }
+
+    PadTkr_Parse(tkr, "{: opts.has(\"def\") :}");
+    {
+        char *argv[] = {
+            "make",
+            "--abc",
+            NULL,
+        };
+        PadAST_Clear(ast);
+        PadCC_Compile(ast, PadTkr_GetToks(tkr));
+        PadCtx_Clear(ctx);
+
+        PadOpts *opts = PadOpts_New();
+        assert(PadOpts_Parse(opts, 3, argv));
+        PadAST_MoveOpts(ast, opts);
 
         PadObj *opts_mod = CapBltOptsMod_NewMod(config, gc);
         PadObjDict *varmap = PadCtx_GetVarmap(ctx);
@@ -2547,7 +2666,8 @@ test_lang_blt_mods(void) {
 
 static const struct testcase
 lang_tests[] = {
-    {"blt_mods", test_lang_blt_mods},
+    {"blt_mods_1", test_lang_blt_mods_1},
+    {"blt_mods_2", test_lang_blt_mods_2},
     {0},
 };
 

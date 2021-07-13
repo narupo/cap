@@ -250,7 +250,9 @@ static bool
 write_stream(CapCatCmd *self, const char *fname, FILE *fout, const PadStr *buf) {
     bool ret = true;
     CapKit *kit = NULL;
+    PadStr *out = NULL;
     const char *p = PadStr_Getc(buf);
+    int m = 0;
 
     if (self->opts.is_make) {
         CapKit *kit = CapKit_New(self->config);
@@ -266,16 +268,17 @@ write_stream(CapCatCmd *self, const char *fname, FILE *fout, const PadStr *buf) 
             0,
             NULL
         )) {
+            const PadErrStack *es = CapKit_GetcErrStack(kit);
+            PadErrStack_ExtendBackOther(self->errstack, es);
             Pad_PushErr("failed to compile");
             goto error;
         }
 
         p = CapKit_GetcStdoutBuf(kit);
-        }
+    }
 
     // set indent
-    PadStr *out = PadStr_New();
-    int m = 0;
+    out = PadStr_New();
 
     for (; *p; ) {
         char c = *p++;
@@ -394,5 +397,11 @@ CapCatCmd_Run(CapCatCmd *self) {
     }
 
     fflush(stdout);
+
+    if (PadErrStack_Len(self->errstack)) {
+        PadErrStack_TraceSimple(self->errstack, stderr);
+        fflush(stderr);
+    }
+
     return ret;
 }
