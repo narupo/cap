@@ -18,7 +18,7 @@ enum {
 /**
  * program option
  */
-struct Opts {
+struct CapAppOpts {
     bool is_help;
     bool is_version;
 };
@@ -32,12 +32,12 @@ typedef struct {
     int cmd_argc;
     char **cmd_argv;
     CapConfig *config;
-    struct Opts opts;
+    struct CapAppOpts opts;
     PadErrStack *errstack;
-} App;
+} CapApp;
 
 static int
-_run(App *self, int argc, char *argv[]);
+CapApp_Run(CapApp *self, int argc, char *argv[]);
 
 /**
  * parse options
@@ -47,7 +47,7 @@ _run(App *self, int argc, char *argv[]);
  * @return failed to false
  */
 static bool
-_parse_opts(App *self) {
+CapApp_ParseOpts(CapApp *self) {
     static struct option longopts[] = {
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'V'},
@@ -55,7 +55,7 @@ _parse_opts(App *self) {
     };
 
     // init status
-    self->opts = (struct Opts){0};
+    self->opts = (struct CapAppOpts){0};
     optind = 0;
     opterr = 0;
 
@@ -90,7 +90,7 @@ _parse_opts(App *self) {
  * @param[in] self
  */
 static void
-_del(App *self) {
+CapApp_Del(CapApp *self) {
     if (self) {
         CapConfig_Del(self->config);
         Pad_FreeArgv(self->argc, self->argv);
@@ -108,7 +108,7 @@ _del(App *self) {
  * @return failed to false
  */
 static bool
-_deploy_env(const App *self) {
+CapApp_DeployEnv(const CapApp *self) {
     char userhome[PAD_FILE__NPATH];
     if (!PadFile_GetUserHome(userhome, sizeof userhome)) {
         Pad_PushErr("failed to get user's home directory. what is your file system?");
@@ -212,7 +212,7 @@ _deploy_env(const App *self) {
  * @return failed to false
  */
 static bool
-_parse_args(App *self, int argc, char *argv[]) {
+CapApp_ParseArgs(CapApp *self, int argc, char *argv[]) {
     PadDistriArgs dargs = {0};
     if (!PadDistriArgs_Distribute(&dargs, argc, argv)) {
         Pad_PushErr("failed to distribute arguments");
@@ -232,12 +232,12 @@ _parse_args(App *self, int argc, char *argv[]) {
  * @param[in] argc
  * @param[in] argv
  *
- * @return success to pointer to dynamic allocate memory to App
+ * @return success to pointer to dynamic allocate memory to CapApp
  * @return failed to NULL
  */
-static App *
-_new(void) {
-    App *self = PadMem_Calloc(1, sizeof(*self));
+static CapApp *
+CapApp_New(void) {
+    CapApp *self = PadMem_Calloc(1, sizeof(*self));
     if (self == NULL) {
         return NULL;
     }
@@ -254,7 +254,7 @@ _new(void) {
  * @param[in] app
  */
 static int
-_usage(App *app) {
+CapApp_Usage(CapApp *app) {
     static const char usage[] =
         "Cap is shell for snippet codes.\n"
         "\n"
@@ -330,7 +330,7 @@ _usage(App *app) {
  * @param[in] self
  */
 static void
-_version(App *self) {
+CapApp_Version(CapApp *self) {
     fflush(stdout);
     fflush(stderr);
     printf("%s\n", CAP__VERSION);
@@ -348,7 +348,7 @@ _version(App *self) {
  * @return If the cmdname not is the command name of Cap to false
  */
 static bool
-_is_cap_cmd_name(const App *self, const char *cmdname) {
+CapApp_IsCapCmdName(const CapApp *self, const char *cmdname) {
     static const char *capcmdnames[] = {
         "home",
         "cd",
@@ -398,7 +398,7 @@ _is_cap_cmd_name(const App *self, const char *cmdname) {
  * @return failed to not 0
  */
 static int
-_exec_cmd_by_name(App *self, const char *name) {
+CapApp_ExecCmdByName(CapApp *self, const char *name) {
 #define routine(Cmd) { \
         Cmd *cmd = Cmd##_New(self->config, self->cmd_argc, self->cmd_argv); \
         if (!cmd) { \
@@ -484,7 +484,7 @@ _exec_cmd_by_name(App *self, const char *name) {
  * @return failed to not 0
  */
 static int
-_exec_alias_by_name(App *self, bool *found, const char *name) {
+CapApp_ExecAliasByName(CapApp *self, bool *found, const char *name) {
     CapAliasMgr *almgr = CapAliasMgr_New(self->config);
 
     // find alias value by name
@@ -537,7 +537,7 @@ _exec_alias_by_name(App *self, bool *found, const char *name) {
         return 1;
     }
 
-    int result = _run(self, argc, argv);
+    int result = CapApp_Run(self, argc, argv);
     Pad_FreeArgv(argc, argv);
 
     return result;
@@ -551,19 +551,19 @@ _exec_alias_by_name(App *self, bool *found, const char *name) {
  * @return 
  */
 static int
-_run_cmd_name(App *self) {
+CapApp_RunCmdName(CapApp *self) {
     const char *cmdname = self->cmd_argv[0];
     if (!cmdname) {
         Pad_PushErr("command name is null");
         return 1; // impossible
     }
 
-    if (_is_cap_cmd_name(self, cmdname)) {
-        return _exec_cmd_by_name(self, cmdname);
+    if (CapApp_IsCapCmdName(self, cmdname)) {
+        return CapApp_ExecCmdByName(self, cmdname);
     }
 
     bool found = false;
-    int result = _exec_alias_by_name(self, &found, cmdname);
+    int result = CapApp_ExecAliasByName(self, &found, cmdname);
     if (found) {
         return result;
     }
@@ -587,7 +587,7 @@ _run_cmd_name(App *self) {
 }
 
 static bool
-_init(App *self, int argc, char *argv[]) {
+CapApp_Init(CapApp *self, int argc, char *argv[]) {
     if (!CapConfig_Init(self->config)) {
         PadErrStack *es = CapConfig_GetErrStack(self->config);
         PadErrStack_ExtendBackOther(self->errstack, es);
@@ -595,17 +595,17 @@ _init(App *self, int argc, char *argv[]) {
         return false;
     }
 
-    if (!_parse_args(self, argc, argv)) {
+    if (!CapApp_ParseArgs(self, argc, argv)) {
         Pad_PushErr("failed to parse arguments");
         return false;
     }
 
-    if (!_parse_opts(self)) {
+    if (!CapApp_ParseOpts(self)) {
         Pad_PushErr("failed to parse options");
         return false;
     }
 
-    if (!_deploy_env(self)) {
+    if (!CapApp_DeployEnv(self)) {
         Pad_PushErr("failed to deploy environment at file system");
         return false;
     }
@@ -622,24 +622,24 @@ _init(App *self, int argc, char *argv[]) {
  * @return failed to not 0
  */
 static int
-_run(App *self, int argc, char *argv[]) {
-    if (!_init(self, argc, argv)) {
+CapApp_Run(CapApp *self, int argc, char *argv[]) {
+    if (!CapApp_Init(self, argc, argv)) {
         return 1;
     }
 
     if (self->opts.is_help) {
-        return _usage(self);
+        return CapApp_Usage(self);
     }
 
     if (self->opts.is_version) {
-        _version(self);
+        CapApp_Version(self);
     }
 
     if (self->cmd_argc == 0) {
-        return _usage(self);
+        return CapApp_Usage(self);
     }
 
-    return _run_cmd_name(self);
+    return CapApp_RunCmdName(self);
 }
 
 /**
@@ -648,7 +648,7 @@ _run(App *self, int argc, char *argv[]) {
  * @param[in] *self
  */
 static void
-_trace(const App *self) {
+CapApp_Trace(const CapApp *self) {
     if (PadErrStack_Len(self->errstack)) {
         fflush(stdout);
         PadErrStack_TraceSimple(self->errstack, stderr);
@@ -670,17 +670,17 @@ main(int argc, char *argv[]) {
     // set locale for unicode object (char32_t, char16_t)
     setlocale(LC_CTYPE, "");
 
-    App *app = _new();
+    CapApp *app = CapApp_New();
     if (!app) {
         PadErr_Die("failed to start application");
     }
 
-    int result = _run(app, argc, argv);
+    int result = CapApp_Run(app, argc, argv);
     if (result != 0) {
-        _trace(app);
+        CapApp_Trace(app);
     }
 
-    _del(app);
+    CapApp_Del(app);
 
     return result;
 }
