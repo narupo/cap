@@ -131,7 +131,7 @@ CapMakeCmd_Run(CapMakeCmd *self) {
         true
     );
     if (result != 0) {
-        PadErrStack_TraceSimple(self->errstack, stderr);
+        PadErrStack_Trace(self->errstack, stderr);
     }
 
     return result;

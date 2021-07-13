@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pad/lib/memory.h>
+#include <pad/core/error_stack.h>
 #include <pad/lang/kit.h>
 #include <pad/lang/builtin/functions.h>
 
@@ -35,3 +36,7 @@ CapKit_GetRefCtx(const CapKit *self);
 
 void
 CapKit_Clear(CapKit *self);
+
+const PadErrStack *
+CapKit_GetcErrStack(CapKit *self);
+

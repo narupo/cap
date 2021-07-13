@@ -110,3 +110,12 @@ CapKit_Clear(CapKit *self) {
 
     PadKit_ClearCtx(self->kit);
 }
+
+const PadErrStack *
+CapKit_GetcErrStack(CapKit *self) {
+    if (self == NULL) {
+        return NULL;
+    }
+
+    return PadKit_GetcErrStack(self->kit);
+}

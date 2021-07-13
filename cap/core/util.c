@@ -338,6 +338,8 @@ Cap_MakeArgv(
         argc,
         argv
     ) == NULL) {
+        const PadErrStack *es = CapKit_GetcErrStack(kit);
+        PadErrStack_ExtendBackOther(errstack, es);
         PadErrStack_Add(errstack, "failed to compile");
         goto error;
     }
